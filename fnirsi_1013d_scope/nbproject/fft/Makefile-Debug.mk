@@ -39,8 +39,6 @@ OBJECTFILES= \
 	${OBJECTDIR}/menu.o \
 	${OBJECTDIR}/DS3231.o \
 	${OBJECTDIR}/ccu_control.o \
-	${OBJECTDIR}/ch340_class.o \
-	${OBJECTDIR}/commands.o \
 	${OBJECTDIR}/diskio.o \
 	${OBJECTDIR}/display_control.o \
 	${OBJECTDIR}/display_lib.o \
@@ -55,6 +53,8 @@ OBJECTFILES= \
 	${OBJECTDIR}/fpga_control.o \
 	${OBJECTDIR}/icons.o \
 	${OBJECTDIR}/interrupt.o \
+#	${OBJECTDIR}/kiss_fftr.o \
+#	${OBJECTDIR}/kiss_fft.o \
 	${OBJECTDIR}/mass_storage_class.o \
 	${OBJECTDIR}/memcmp.o \
 	${OBJECTDIR}/memcpy.o \
@@ -116,16 +116,6 @@ ${OBJECTDIR}/ccu_control.o: ccu_control.c
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/ccu_control.o ccu_control.c
-
-${OBJECTDIR}/ch340_class.o: ch340_class.c
-	${MKDIR} -p ${OBJECTDIR}
-	${RM} "$@.d"
-	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/ch340_class.o ch340_class.c	
-
-${OBJECTDIR}/commands.o: commands.c
-	${MKDIR} -p ${OBJECTDIR}
-	${RM} "$@.d"
-	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/commands.o commands.c
 
 ${OBJECTDIR}/diskio.o: diskio.c
 	${MKDIR} -p ${OBJECTDIR}
@@ -196,6 +186,16 @@ ${OBJECTDIR}/interrupt.o: interrupt.c
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/interrupt.o interrupt.c
+
+# ${OBJECTDIR}/kiss_fftr.o: kiss_fftr.c
+#	${MKDIR} -p ${OBJECTDIR}
+#	${RM} "$@.d"
+#	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/kiss_fftr.o kiss_fftr.c
+
+# ${OBJECTDIR}/kiss_fft.o: kiss_fft.c
+#	${MKDIR} -p ${OBJECTDIR}
+#	${RM} "$@.d"
+#	$(COMPILE.c) -g -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/kiss_fft.o kiss_fft.c
 
 ${OBJECTDIR}/mass_storage_class.o: mass_storage_class.c
 	${MKDIR} -p ${OBJECTDIR}

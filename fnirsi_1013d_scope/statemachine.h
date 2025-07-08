@@ -19,6 +19,8 @@ void handle_channel_menu_touch(PCHANNELSETTINGS settings);
 void handle_acquisition_menu_touch(void);
 void handle_trigger_menu_touch(void);
 
+void handle_generator_menu_touch(void);
+
 void handle_right_basic_menu_touch(void);
 void handle_right_volts_div_menu_touch(void);
 
@@ -26,8 +28,9 @@ void handle_measures_menu_touch(void);
 
 void handle_view_mode_touch(void);       //need to finish this function (trace display for waveform view) Check the comments!!
                                          //waveform view functionality also needs to be added to handle_right_basic_menu_touch
-
 void handle_picture_view_touch(void);
+
+void handle_diagnostic_view_touch(void);
 
 int32 handle_confirm_delete(void);
 
@@ -38,6 +41,8 @@ void close_open_menus(uint32 closemain);
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void move_trigger_point_position(void);
+
+//void change_channel_1_HW_offset(void);
 
 void change_channel_1_offset(void);
 void change_channel_2_offset(void);

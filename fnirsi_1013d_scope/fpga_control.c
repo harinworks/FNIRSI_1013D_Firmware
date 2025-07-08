@@ -289,11 +289,20 @@ void fpga_set_channel_voltperdiv(PCHANNELSETTINGS settings)
 
 void fpga_set_channel_offset(PCHANNELSETTINGS settings)
 {
-  //Send the command for channel DC offset to the FPGA
+  //uint32 offset;
+    
+  //Send the command for channel DC offset to the FPGA scopesettings.channel1.traceposition
   fpga_write_cmd(settings->offsetcommand);
 
   //Write the center offset data for this channel and volt per div setting
-  fpga_write_short(settings->dc_calibration_offset[settings->samplevoltperdiv]);
+  //fpga_write_short(settings->dc_calibration_offset[settings->samplevoltperdiv];
+  fpga_write_short(settings->dc_calibration_offset[settings->samplevoltperdiv]+(settings->dcoffset));
+  //fpga_write_short(settings->dc_calibration_offset[settings->samplevoltperdiv]-(settings->dcoffset));
+  //offset = (signal_adjusters[0] * (settings->dcoffset)/2) / signal_adjusters[settings->samplevoltperdiv];
+  
+  //offset = (multiply * (settings->traceposition)) / signal_adjusters[settings->displayvoltperdiv];
+  
+  //fpga_write_short(settings->dc_calibration_offset[settings->samplevoltperdiv]-(offset));
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -396,7 +405,9 @@ void fpga_swap_trigger_channel(void)
 
 void fpga_set_trigger_level(void)
 {
+  uint32 voltperdiv;
   uint32 traceposition;
+  int32 dcoffset;
   int32  level;
   
   //The trace position on screen equals to ADC reading 128
@@ -407,16 +418,31 @@ void fpga_set_trigger_level(void)
   if(scopesettings.triggerchannel == 0)
   {
     //Channel 1, so use its data
+    voltperdiv    = scopesettings.channel1.samplevoltperdiv;
     traceposition = scopesettings.channel1.traceposition;
+    //dcoffset = scopesettings.channel1.dcoffset/2;
+    //dcoffset = (scopesettings.channel1.dcoffset*100)/220;//195
+    dcoffset = (scopesettings.channel1.dcoffset*100)/scopesettings.channel1.dc_shift_size;
+    scopesettings.channel1.triggerverticalposition=scopesettings.triggerverticalposition;
   }
   else
   {
     //Channel 2, so use its data
+    voltperdiv    = scopesettings.channel2.samplevoltperdiv;
     traceposition = scopesettings.channel2.traceposition;
+    //dcoffset = scopesettings.channel2.dcoffset/2;
+    //dcoffset = (scopesettings.channel2.dcoffset*100)/220;//230
+    dcoffset = (scopesettings.channel2.dcoffset*100)/scopesettings.channel2.dc_shift_size;
+    scopesettings.channel2.triggerverticalposition=scopesettings.triggerverticalposition;
   }
   
   //The difference between the two positions determines the level offset on 128, but it needs to be scaled back first
-  level = ((((int32)scopesettings.triggerverticalposition - (int32)traceposition) * 128) / 200) + 128;
+  //level = ((((int32)scopesettings.triggerverticalposition - (int32)traceposition) * 4194304) / signal_adjusters[voltperdiv]) + 128;
+  //level = ((((int32)scopesettings.triggerverticalposition - (int32)traceposition) * 2100000) / signal_adjusters[voltperdiv]) + 130;
+  //level = ((((int32)scopesettings.triggerverticalposition - (int32)traceposition) * 2097152) / signal_adjusters[voltperdiv]) + 128;
+  
+    level = ((((int32)(scopesettings.triggerverticalposition - dcoffset) - (int32)traceposition) * 2097152) / signal_adjusters[voltperdiv]) + 128;
+  //level = scopesettings.channel1.center-255+traceposition+scopesettings.triggerverticalposition;
 
   //Set the new level in the settings
   scopesettings.triggerlevel = level;
@@ -459,24 +485,56 @@ void fpga_set_trigger_mode(void)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-
-void fpga_set_time_base(uint32 timebase)
+//short time base
+void fpga_set_time_base(uint32 timebase) //len pre rezim auto, urcuje max cas po ktory sa odoberaju vzorky
 {
-  //Write the command to set the short time base data to the FPGA
-  fpga_write_cmd(0x0E);
-  
   //Make sure setting is in range
   if(timebase < (sizeof(timebase_settings) / sizeof(uint32)))
   {
+    //Write the command to set the short time base data to the FPGA
+    fpga_write_cmd(0x0E);
+    
     //Table settings ranges from setting 0 (200mS/div) to 23 (5nS/div)
     fpga_write_int(timebase_settings[timebase]);
+    //fpga_write_int(100); //pod 1ms 50
   }
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void fpga_do_conversion(void)
+void fpga_set_long_timebase(uint32 timebase)
 {
+  //Send the data, which is always 2000
+  //fpga_write_int(2000);//0x07d0 is 2000
+  
+  //Make sure setting is in range
+  if(timebase < (sizeof(timebase_settings) / sizeof(uint32)))
+  {
+    //Send the command for long time base to the FPGA
+    //fpga_write_cmd(0x0D);
+  
+    //Table settings ranges from setting 0 (200mS/div) to 23 (5nS/div)
+    //fpga_write_int(timebase_settings[timebase]);
+  }
+ 
+  //The command 0x0D sets the rate with which the ADC is clocked. The 0x07D0 means 100KSa/s.
+  //With the command 0x28 the mode is selected. Needs to be set to 0x01 for the roll mode sampling. Not sure if it is needed for every read of the sampl
+  
+  //Disable trigger system???
+  fpga_write_cmd(0x0F);
+  fpga_write_byte(0x01);
+  
+  //Some mode select command for the FPGA (0x01 for long time base)
+  //fpga_write_cmd(0x28); //0X28 not support in FPGA???
+  //fpga_write_byte(0x01);
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void fpga_do_conversion(void)
+{ 
+  scopesettings.conversion_done = 0;    //flag for conversion, 0-start
+  
   //Check if sampling with trigger system enabled
   if(scopesettings.samplemode == 1)
   {
@@ -490,10 +548,10 @@ void fpga_do_conversion(void)
     fpga_write_cmd(0x0F);
     fpga_write_byte(0x01);
   }
-  
+
   //Set the FPGA for short time base mode
-  fpga_write_cmd(0x28);
-  fpga_write_byte(0x00);
+  //fpga_write_cmd(0x28);
+  //fpga_write_byte(0x00);
   
   //Reset the sample system
   fpga_write_cmd(0x01);
@@ -511,29 +569,36 @@ void fpga_do_conversion(void)
   //Done with reset
   fpga_write_cmd(0x01);
   fpga_write_byte(0x00);
-  
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+
+uint8 fpga_done_conversion(void)
+{
   //Send check on triggered or buffer full command to the FPGA
   fpga_write_cmd(0x0A);
   
   //Check if sampling with trigger system enabled
   if(scopesettings.samplemode == 1)
   {
-    //Wait for the FPGA to signal triggered or touch panel is touched
-    while(((fpga_read_byte() & 1) == 0) && (havetouch == 0))
+    if (((fpga_read_byte() & 1) == 1))
     {
-      //Scan the touch panel
-      tp_i2c_read_status();
+        //Disable trigger system???
+        fpga_write_cmd(0x0F);
+        fpga_write_byte(0x01);
+        scopesettings.conversion_done = 1;
     }
-    
-    //Disable trigger system???
-    fpga_write_cmd(0x0F);
-    fpga_write_byte(0x01);
   }
   else
   {
-    //Wait for the FPGA to signal triggered or buffer full
-    while((fpga_read_byte() & 1) == 0);
+    //Check for the FPGA to signal triggered or buffer full
+    if (((fpga_read_byte() & 1) == 1)) scopesettings.conversion_done = 1;
   }
+  
+  //Scan the touch panel
+  tp_i2c_read_status();
+  if (havetouch == 1) scopesettings.display_data_done = 1;
+      
+  return (scopesettings.conversion_done);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -545,16 +610,10 @@ uint16 fpga_prepare_for_transfer(void)
   //Send the command for getting some data from the FPGA
   fpga_write_cmd(0x14);
   
-  //Get the data, only 4 bits for first byte
-//  data1 = fpga_read_byte() & 0x0F;
-//  data2 = fpga_read_byte();
-  
-  //Prepare the data
-//  data = (((data1 << 12) | (data2 << 4) | data1) >> 4) + 2;
-  
   //Just read a short, and with 0x0FFF and add 2
   //Have to see if the add 2 is needed
-  data = (fpga_read_short() & 0x0FFF) + 2;
+  //data = (fpga_read_short() & 0x0FFF) + 2;    
+  data = (fpga_read_short() & 0x0FFF);  //change 11.12.2023
  
   return(data & 0x0FFF);
 }
@@ -578,7 +637,6 @@ uint32 isqrt(uint32 n) {
     }
     d >>= 2;
   }
-
   return c;
 }
 
@@ -593,6 +651,9 @@ void fpga_read_sample_data(PCHANNELSETTINGS settings, uint32 triggerpoint)
   settings->max     = 0;
   settings->average = 0;
   settings->rms     = 0;
+  
+  settings->minDC     = 0x7FFFFFFF;
+  settings->maxDC     = 0;
   
   //Send command 0x1F to the FPGA followed by the translated data returned from command 0x14
   fpga_write_cmd(0x1F);
@@ -614,6 +675,26 @@ void fpga_read_sample_data(PCHANNELSETTINGS settings, uint32 triggerpoint)
   //Save the calculated measurements
   settings->adc1rawaverage = settings->rawaverage;
   
+
+  //Calculate the signal center for frequency determination
+  //Calculate the signal center for autosetup dc shift  
+  settings->centerDC = (settings->maxDC + settings->minDC) / 2;
+  
+  //Calculate the peak to peak value for autosetup dc shift
+  settings->peakpeakDC = settings->maxDC - settings->minDC;
+  
+    //Calculate the signal center for frequency determination
+  //settings->center = (settings->max + settings->min) / 2;
+  
+  //Calculate a zero crossing threshold value
+  threshold = ((settings->maxDC - settings->minDC) / 10) + 2;
+  
+  //Set levels for detecting zero crossings
+  settings->highlevel = settings->centerDC + threshold;
+  settings->lowlevel  = settings->centerDC - threshold;
+  
+  
+  /*
   //Calculate the signal center for frequency determination
   settings->center = (settings->max + settings->min) / 2;
   
@@ -623,6 +704,7 @@ void fpga_read_sample_data(PCHANNELSETTINGS settings, uint32 triggerpoint)
   //Set levels for detecting zero crossings
   settings->highlevel = settings->center + threshold;
   settings->lowlevel  = settings->center - threshold;
+  */
   
   //Initialize the frequency determination
   settings->zerocrossings   = 0;
@@ -674,7 +756,13 @@ void fpga_read_sample_data(PCHANNELSETTINGS settings, uint32 triggerpoint)
   
   //Calculate the signal center
   settings->center = (settings->max + settings->min) / 2;
+/*  
+  //Calculate the signal center for autosetup dc shift
+  settings->centerDC = (settings->maxDC + settings->minDC) / 2;
   
+  //Calculate the peak to peak value for autosetup dc shift
+  settings->peakpeakDC = settings->maxDC - settings->minDC;
+*/  
   //Calculate the frequency if possible
   if(settings->zerocrossings > 2)
   {
@@ -731,7 +819,7 @@ void fpga_read_adc_data(PCHANNELSETTINGS settings)
 
     //Compensate the value for ADC in equality
     sample += settings->compensation;
-    
+     
     //Check if sample became negative
     if(sample < 0)
     {
@@ -745,6 +833,12 @@ void fpga_read_adc_data(PCHANNELSETTINGS settings)
       //Keep it on max if so
       sample = 255;
     }
+      
+ //*****************************************************************************   
+    //Check if sample overload ADC
+    if (sample == 0)    settings->ADoverload |= 1;
+    if (sample == 255)  settings->ADoverload |= 254;    //=255
+ //*****************************************************************************   
     
     //Check if busy with second ADC data
     if(settings->checkfirstadc)
@@ -784,29 +878,27 @@ void fpga_read_adc_data(PCHANNELSETTINGS settings)
       }
     }
     
-    //Get the minimum value of the samples
-    if(sample < settings->min)
-    {
-      //Keep the lowest
-      settings->min = sample;
-    }
-    
-    //Get the maximum value of the samples
-    if(sample > settings->max)
-    {
-      //Keep the highest
-      settings->max = sample;
-    }
-    
-    //Add the samples for average calculation
-    settings->average += sample;
-
-	//Add squares of the samples for RMS calculation
-	settings->rms += (sample - 128) * (sample - 128);
+    if (settings->invert) sample = 255-sample;  //1-signal inverted 
     
     //Store the data
     *settings->buffer = sample;
-
+    
+//-*****************************************************************************    
+    
+        //Get the minimum value of the samples
+    if(sample < settings->minDC)
+    {
+      //Keep the lowest
+      settings->minDC = sample;
+    }
+    
+    //Get the maximum value of the samples
+    if(sample > settings->maxDC)
+    {
+      //Keep the highest
+      settings->maxDC = sample;
+    }
+    
     //Check if busy with second ADC data to see if frequency determination can be done
     if(settings->checkfirstadc)
     {
@@ -872,7 +964,101 @@ void fpga_read_adc_data(PCHANNELSETTINGS settings)
           settings->zerocrossings++;
         }
       }
-    }    
+    }   
+    
+    //For dc shift in DC mode  
+    //385 korekcia nameranej hodnoty (avg=0 pri DC s offsetom aj AC mode), vecie cislo-nizsia zobrazena hodnota
+    //sample+=((settings->dcoffset*100)/385); //386 = -200mV, 385 = +100mV
+    sample+=((settings->dcoffset*100)/(settings->dc_shift_value)); //386 = -200mV, 385 = +100mV
+    
+    //Get the minimum value of the samples
+    if(sample < settings->min)
+    {
+      //Keep the lowest
+      settings->min = sample;
+    }
+    
+    //Get the maximum value of the samples
+    if(sample > settings->max)
+    {
+      //Keep the highest
+      settings->max = sample;
+    }
+    
+    //Add the samples for average calculation
+    settings->average += sample;
+
+	//Add squares of the samples for RMS calculation
+	settings->rms += (sample - 128) * (sample - 128);
+     
+        /*
+    //Check if busy with second ADC data to see if frequency determination can be done
+    if(settings->checkfirstadc)
+    {
+      //Check against the high level
+      if(sample > settings->highlevel)
+      {
+        //If above, check if in low state
+        if(settings->state == 0)
+        {
+          //If so flip the state
+          settings->state = 1;
+          
+          //Check if first zero crossing detected
+          if(settings->zerocrossings == 0)
+          {
+            //Set the previous index if so
+            settings->previousindex = count;
+          }
+          else
+          {
+            //Calculate the total number of samples in the low parts of the signal
+            settings->lowsamplecount += settings->previousindex - count;
+            
+            //Add one to the low divider for average calculation
+            settings->lowdivider++;
+            
+            //Set the new previous index
+            settings->previousindex = count;
+          }
+
+          //Found a zero crossing
+          settings->zerocrossings++;
+        }
+      }
+      //Check against the low level
+      else if(sample < settings->lowlevel)
+      {
+        //If below check if in high state
+        if(settings->state == 1)
+        {
+          //If so flip the state
+          settings->state = 0;
+
+          //Check if first zero crossing detected
+          if(settings->zerocrossings == 0)
+          {
+            //Set the previous index if so
+            settings->previousindex = count;
+          }
+          else
+          {
+            //Calculate the total number of samples in the high parts of the signal
+            settings->highsamplecount += settings->previousindex - count;
+            
+            //Add one to the low divider for average calculation
+            settings->highdivider++;
+            
+            //Set the new previous index
+            settings->previousindex = count;
+          }
+          
+          //Found a zero crossing
+          settings->zerocrossings++;
+        }
+      }
+    }   
+          */ 
     
     //Skip a sample to allow for ADC2 data to be placed into
     settings->buffer += 2;
@@ -887,6 +1073,99 @@ void fpga_read_adc_data(PCHANNELSETTINGS settings)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+uint16 fpga_average_trace_data(PCHANNELSETTINGS settings)
+{
+  //Read ten bytes of trace data and average them
+  uint16 data = 0;
+  int16 datatmp = 0;
+  uint32 count = 10;
+  
+  //register uint32 setting = settings->samplevoltperdiv;
+  
+  //Send a command for getting trace data from the FPGA
+  fpga_write_cmd(settings->averagecommand);
+  
+  //Set the bus for reading
+  FPGA_BUS_DIR_IN();
+  
+  //Set the control lines for reading a command
+  FPGA_DATA_READ();
+
+  //Read the data as long as there is count
+  while(count)
+  {
+    //Clock the data to the output of the FPGA
+    FPGA_PULSE_CLK();
+ 
+    //Read the data CH1 or CH2
+    datatmp = FPGA_GET_DATA() + settings->adc1compensation; 
+    
+    //Check limits
+    if (datatmp > 255)  datatmp = 255;
+    if (datatmp < 0)    datatmp = 0;
+        
+        
+    data += (uint16)datatmp;
+    
+    //One read done
+    count--;
+  }
+  
+  //Calculate the average and return it
+  //data = data / 10;
+  //data = (data * multiply) >> VOLTAGE_SHIFTER;
+  return(data / 10);
+}
+
+uint16 fpga_average_trace_data_long(PCHANNELSETTINGS settings)
+{
+  //Read ten bytes of trace data and average them
+  uint16 data = 0;
+  int16 datatmp = 0;
+  uint32 count = 100;
+  
+  //register uint32 setting = settings->samplevoltperdiv;
+  
+  //Send a command for getting trace data from the FPGA
+  fpga_write_cmd(settings->averagecommand);
+  
+  
+  //Set the bus for reading
+  FPGA_BUS_DIR_IN();
+  
+  //Set the control lines for reading a command
+  FPGA_DATA_READ();
+
+  //Read the data as long as there is count
+  while(count)
+  {
+    //Clock the data to the output of the FPGA
+    FPGA_PULSE_CLK();
+ 
+    //Read the data CH1 or CH2
+    datatmp = FPGA_GET_DATA() + settings->adc1compensation; 
+    
+    //Check limits
+    if (datatmp > 255)  datatmp = 255;
+    if (datatmp < 0)    datatmp = 0;
+        
+        
+    data += (uint16)datatmp;
+    
+    //One read done
+    count--;
+  }
+  
+  //Calculate the average and return it
+  //data = data / 10;
+  //data = (data * multiply) >> VOLTAGE_SHIFTER;
+    
+  return(data);
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------------------
+/*
 void fpga_set_battery_level(void)
 {
   //Send the command for setting the battery level to the FPGA??
@@ -895,7 +1174,7 @@ void fpga_set_battery_level(void)
   //Write the data
   fpga_write_short(32431);
 }
-
+*/
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void fpga_delay(uint32 usec)

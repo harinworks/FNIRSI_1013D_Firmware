@@ -1,6 +1,7 @@
 //----------------------------------------------------------------------------------------------------------------------------------
-
 #include "types.h"
+#include "menu.h"
+#include "test.h"
 #include "scope_functions.h"
 #include "statemachine.h"
 #include "touchpanel.h"
@@ -10,3919 +11,20 @@
 #include "sd_card_interface.h"
 #include "display_lib.h"
 #include "ff.h"
+#include "DS3231.h"
 
 #include "usb_interface.h"
 #include "variables.h"
 
 #include "sin_cos_math.h"
-
+/*
+//sinx
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+//endsinx
+*/
 #include <string.h>
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_setup_display_lib(void)
-{
-  display_set_bg_color(0x00000000);
-
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  display_set_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_setup_main_screen(void)
-{
-  //Prepare the screen in a working buffer
-//  display_set_screen_buffer(displaybuffer1);
-
-  //Setup for clearing top and right menu bars
-  display_set_fg_color(0x00000000);
-
-  //Top bar for the main, channel and trigger menu and information
-  display_fill_rect(0, 0, 730, 46);
-
-  //Right bar for control buttons
-  display_fill_rect(730, 0, 70, 480);
-
-  //Setup the menu bar on the right side
-  scope_setup_right_control_menu();
-
-  //Check if normal or wave view mode
-  if(scopesettings.waveviewmode == 0)
-  {
-    //Normal mode so show menu button
-    scope_menu_button(0);
-  }
-  else
-  {
-    //Wave view mode so show return button
-    scope_main_return_button(0);
-  }
-
-  //Show the user if the acquisition is running or stopped
-  scope_run_stop_text();
-
-  //Display the channel menu select buttons and their settings
-  scope_channel_settings(&scopesettings.channel1, 0);
-  scope_channel_settings(&scopesettings.channel2, 0);
-
-  //Display the current time per div setting
-  scope_acqusition_settings(0);
-
-  //Show the user selected move speed
-  scope_move_speed(0);
-
-  //Display the trigger menu select button and the settings
-  scope_trigger_settings(0);
-
-  //Show the battery charge level and charging indicator
-  scope_battery_status();
-  
-  //Show version information
-  display_set_fg_color(0x00FFFFFF);
-  display_set_font(&font_2);
-  display_text(VERSION_STRING_XPOS, VERSION_STRING_YPOS, VERSION_STRING);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_setup_view_screen(void)
-{
-  //Switch to view mode so disallow saving of settings on power down
-  viewactive = VIEW_ACTIVE;
-
-  //Set scope run state to running to have it sample fresh data on exit
-  scopesettings.runstate = 0;
-
-  //Only needed for waveform view. Picture viewing does not change the scope settings
-  if(viewtype == VIEW_TYPE_WAVEFORM)
-  {
-    //Save the current settings
-    scope_save_setup(&savedscopesettings1);
-  }
-  
-  //Initialize the view mode variables
-  //Used for indicating if select all or select button is active
-  viewselectmode = 0;
-
-  //Start at first page
-  viewpage = 0;
-
-  //Clear the item selected flags
-  memset(viewitemselected, VIEW_ITEM_NOT_SELECTED, VIEW_ITEMS_PER_PAGE);
-
-  //Set storage buffer for screen capture under selected signs and messages
-  display_set_destination_buffer(displaybuffer2);
-  display_set_source_buffer(displaybuffer2);
-
-  //Display the file actions menu on the right side of the screen
-  scope_setup_right_file_menu();
-
-  //Load the thumbnail file for the current view type
-  if(scope_load_thumbnail_file() != 0)
-  {
-    //Restore the main screen
-    scope_setup_main_screen();
-    
-    //Loading the thumbnail file failed so no sense in going on
-    return;
-  }
-
-  //Display the available thumbnails for the current view type
-  scope_initialize_and_display_thumbnails();
-
-  //Handle touch for this part of the user interface
-  handle_view_mode_touch();
-
-  //This is only needed when an actual waveform has been viewed, but that needs an extra flag
-  //Only needed for waveform view. Picture viewing does not change the scope settings
-  if(viewtype == VIEW_TYPE_WAVEFORM)
-  {
-    //Restore the current settings
-    scope_restore_setup(&savedscopesettings1);
-
-    //Make sure view mode is normal
-    scopesettings.waveviewmode = 0;
-
-    //And resume with auto trigger mode
-    scopesettings.triggermode = 0;
-
-    //Need to restore the original scope data and fpga settings
-
-    //Is also part of startup, so could be done with a function
-    //Set the volts per div for each channel based on the loaded scope settings
-    fpga_set_channel_voltperdiv(&scopesettings.channel1);
-    fpga_set_channel_voltperdiv(&scopesettings.channel2);
-
-    //These are not done in the original code
-    //Set the channels AC or DC coupling based on the loaded scope settings
-    fpga_set_channel_coupling(&scopesettings.channel1);
-    fpga_set_channel_coupling(&scopesettings.channel2);
-
-    //Setup the trigger system in the FPGA based on the loaded scope settings
-    fpga_set_sample_rate(scopesettings.samplerate);
-    fpga_set_trigger_channel();
-    fpga_set_trigger_edge();
-    fpga_set_trigger_level();
-    fpga_set_trigger_mode();
-
-    //Set channel screen offsets
-    fpga_set_channel_offset(&scopesettings.channel1);
-    fpga_set_channel_offset(&scopesettings.channel2);
-  }
-
-  //Reset the screen to the normal scope screen
-  scope_setup_main_screen();
-
-  //Back to normal mode so allow saving of settings on power down
-  viewactive = VIEW_NOT_ACTIVE;
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_setup_usb_screen(void)
-{
-  //Clear the whole screen
-  display_set_fg_color(0x00000000);
-  display_fill_rect(0, 0, 800, 480);
-
-  //Set the light color for the equipment borders
-  display_set_fg_color(0x00AAAAAA);
-
-  //Draw the computer screen
-  display_fill_rounded_rect(470, 115, 250, 190, 2);
-  display_fill_rect(580, 305, 30, 20);
-  display_fill_rounded_rect(550, 325, 90, 10, 2);
-  display_fill_rect(550, 331, 89, 4);
-
-  //Draw the scope
-  display_fill_rounded_rect(80, 200, 180, 135, 2);
-
-  //Draw the cable
-  display_fill_rect(210, 188, 10, 12);
-  display_fill_rect(213, 154, 4, 36);
-  display_fill_rect(213, 150, 152, 4);
-  display_fill_rect(361, 154, 4, 106);
-  display_fill_rect(361, 260, 98, 4);
-  display_fill_rect(458, 257, 12, 10);
-
-  //Fill in the screens with a blue color
-  display_set_fg_color(0x00000055);
-  display_fill_rect(477, 125, 235, 163);
-  display_fill_rect(88, 210, 163, 112);
-
-  //Draw a dark border around the blue screens
-  display_set_fg_color(0x00111111);
-  display_draw_rect(477, 125, 235, 163);
-  display_draw_rect(88, 210, 163, 112);
-
-  //Display the text with font 5 and the light color
-  display_set_font(&font_5);
-  display_set_fg_color(0x00AAAAAA);
-  display_text(125, 254, "ON / OFF");
-
-  //Start the USB interface
-  usb_device_enable();
-
-  //Wait for the user to touch the scope ON / OFF section to quit
-  while(1)
-  {
-    //Scan the touch panel for touch
-    tp_i2c_read_status();
-
-    //Check if there is touch
-    if(havetouch)
-    {
-      //Check if touch within the text field
-      if((xtouch >= 90) && (xtouch <= 250) && (ytouch >= 210) && (ytouch <= 320))
-      {
-        //Touched the text field so wait until touch is released and then quit
-        tp_i2c_wait_for_touch_release();
-
-        break;
-      }
-    }
-  }
-
-  //Stop the USB interface
-  usb_device_disable();
-
-  //Re-sync the system files
-  scope_sync_thumbnail_files();
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_setup_right_control_menu(void)
-{
-  //Setup for clearing right menu bar
-  display_set_fg_color(0x00000000);
-
-  //Clear the right bar for the control buttons
-  display_fill_rect(730, 0, 70, 480);
-
-  //Display the control button
-  scope_control_button(0);
-
-  //Check in which state the right menu is in
-  if(scopesettings.rightmenustate == 0)
-  {
-    //Main control state so draw the always used buttons
-    scope_t_cursor_button(0);
-    scope_v_cursor_button(0);
-    scope_measures_button(0);
-    scope_save_picture_button(0);
-
-    //Check if in wave view mode
-    if(scopesettings.waveviewmode == 0)
-    {
-      //Main control mode buttons
-      scope_run_stop_button(0);
-      scope_auto_set_button(0);
-      scope_save_wave_button(0);
-    }
-    else
-    {
-      //Wave view mode buttons
-      scope_previous_wave_button(0);
-      scope_next_wave_button(0);
-      scope_delete_wave_button(0);
-    }
-  }
-  else
-  {
-    //Channel sensitivity state
-    scope_channel_sensitivity_control(&scopesettings.channel1, 0, 0);
-    scope_channel_sensitivity_control(&scopesettings.channel2, 0, 0);
-
-    //Check if in wave view mode
-    if(scopesettings.waveviewmode == 0)
-    {
-      //Main control mode
-      scope_50_percent_trigger_button(0);
-    }
-    else
-    {
-      //Wave view mode
-      scope_show_grid_button(0);
-    }
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_setup_right_file_menu(void)
-{
-  //Set black color for background
-  display_set_fg_color(0x00000000);
-
-  //Clear the right menu bar
-  display_fill_rect(730, 0, 70, 480);
-
-  //Add the buttons
-  scope_return_button(0);
-  scope_select_all_button(0);
-  scope_select_button(0);
-  scope_delete_button(0);
-  scope_page_up_button(0);
-  scope_page_down_button(0);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_setup_bottom_file_menu(int mode)
-{
-  //Check if background needs to be saved
-  if(mode == VIEW_BOTTON_MENU_INIT)
-  {
-    //Save the screen rectangle where the menu will be displayed
-    display_copy_rect_from_screen(0, 390, 800, 90);
-  }
-
-  //Check if it needs to be drawn
-  if(mode & VIEW_BOTTON_MENU_SHOW)
-  {
-    //Draw the background in grey
-    display_set_fg_color(0x00202020);
-    display_fill_rect(0, 390, 800, 90);
-
-    //Draw the filename in white
-    display_set_fg_color(0x00FFFFFF);
-    display_set_font(&font_5);
-    display_text(20, 392, viewfilename);
-    
-    //Setup the buttons
-    scope_bmp_return_button(0);    
-    scope_bmp_delete_button(0);
-    scope_bmp_previous_button(0);
-    scope_bmp_next_button(0);
-    
-    //Signal menu is visible
-    viewbottommenustate = VIEW_BOTTON_MENU_SHOW | VIEW_BOTTOM_MENU_ACTIVE;
-  }
-  else
-  {
-    //Hide the menu bar
-    display_copy_rect_to_screen(0, 390, 800, 90);
-
-    //Signal menu is not visible
-    viewbottommenustate = VIEW_BOTTON_MENU_HIDE | VIEW_BOTTOM_MENU_ACTIVE;
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-// Right side bar functions
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_control_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Grey color for inactive button
-    display_set_fg_color(0x00404040);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 5, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00606060);
-  display_draw_rounded_rect(739, 5, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(748, 22, "CTRL");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_run_stop_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 65, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 65, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 75, "RUN/");
-  display_text(746, 90, "STOP");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_auto_set_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 125, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 125, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 135, "AUTO");
-  display_text(753, 150, "SET");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_previous_wave_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 65, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 65, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(749, 75, "prev");
-  display_text(748, 90, "wave");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_next_wave_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 125, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 125, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(749, 135, "next");
-  display_text(748, 150, "wave");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_t_cursor_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 185, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 185, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 195, "T");
-  display_text(765, 195, "CU");
-  display_text(746, 210, "RSOR");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_v_cursor_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 245, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 245, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 255, "V");
-  display_text(765, 255, "CU");
-  display_text(746, 270, "RSOR");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_measures_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 305, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 305, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 315, "MEAS");
-  display_text(746, 330, "URES");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_save_picture_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 365, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 365, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 375, "SAVE");
-  display_text(753, 390, "PIC");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_save_wave_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 425, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 425, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 435, "SAVE");
-  display_text(746, 450, "WAVE");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_delete_wave_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 425, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 425, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(745, 436, "delete");
-  display_text(748, 449, "wave");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_50_percent_trigger_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 425, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 425, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(752, 436, "50%");
-  display_text(749, 449, "TRIG");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_show_grid_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-  else
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(739, 425, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, 425, 51, 50, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(748, 436, "show");
-  display_text(752, 449, "grid");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_channel_sensitivity_control(PCHANNELSETTINGS settings, int type, int mode)
-{
-  uint32 y;
-
-  //Check if V+ is active or inactive
-  if((type == 0) && (mode != 0))
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-  else
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-
-  //Top button
-  display_fill_rounded_rect(739, settings->voltdivypos, 51, 50, 2);
-  
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, settings->voltdivypos, 51, 50, 2);
-
-  //Check if V- is active or inactive
-  if((type != 0) && (mode != 0))
-  {
-    //Orange color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-  else
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00202020);
-  }
-
-  //Y position o f bottom button
-  y = settings->voltdivypos + 86;
-  
-  //Bottom button
-  display_fill_rounded_rect(739, y, 51, 50, 2);
-
-  //Draw the edge
-  display_set_fg_color(0x00505050);
-  display_draw_rounded_rect(739, y, 51, 50, 2);
-  
-  //Display V+ and V- the text in larger font
-  display_set_font(&font_0);
-  
-  //Check if V+ is active or inactive
-  if((type == 0) && (mode != 0))
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  
-  //Top button text
-  display_text(757, settings->voltdivypos + 18, "V+");
-
-  //Check if V- is active or inactive
-  if((type != 0) && (mode != 0))
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  
-  //Bottom button text
-  display_text(757, settings->voltdivypos + 104, "V-");
-
-  //Display the channel identifier bar with the channel color
-  display_set_fg_color(settings->color);
-  display_fill_rect(739, settings->voltdivypos + 56, 51, 24);
-
-  //Display the channel identifier in black
-  display_set_fg_color(0x00000000);
-  display_set_font(&font_2);
-  display_text(754, settings->voltdivypos + 61, settings->buttontext);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_return_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(734, 14, 63, 58, 2);
-
-  //Outline the button
-  display_set_fg_color(0x00606060);
-  display_draw_rounded_rect(734, 14, 63, 58, 2);
-  
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(747, 34, "return");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_select_all_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00303030);
-  }
-  else if(mode == 1)
-  {
-    //Active color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-  else
-  {
-    //White for enabled button
-    display_set_fg_color(0x00FFFFFF);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(734, 93, 63, 58, 2);
-
-  //Outline the button
-  display_set_fg_color(0x00606060);
-  display_draw_rounded_rect(734, 93, 63, 58, 2);
-  
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 106, "select");
-  display_text(758, 120, "all");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_select_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00303030);
-  }
-  else if(mode == 1)
-  {
-    //Active color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-  else
-  {
-    //White for enabled button
-    display_set_fg_color(0x00FFFFFF);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(734, 173, 63, 58, 2);
-
-  //Outline the button
-  display_set_fg_color(0x00606060);
-  display_draw_rounded_rect(734, 173, 63, 58, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 193, "select");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_delete_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(734, 253, 63, 58, 2);
-
-  //Outline the button
-  display_set_fg_color(0x00606060);
-  display_draw_rounded_rect(734, 253, 63, 58, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(746, 273, "delete");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_page_up_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(734, 333, 63, 58, 2);
-
-  //Outline the button
-  display_set_fg_color(0x00606060);
-  display_draw_rounded_rect(734, 333, 63, 58, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(750, 345, "page");
-  display_text(758, 360, "up");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_page_down_button(int mode)
-{
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //Black color for inactive button
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active color for activated button
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Draw the body of the button
-  display_fill_rounded_rect(734, 413, 63, 58, 2);
-
-  //Outline the button
-  display_set_fg_color(0x00606060);
-  display_draw_rounded_rect(734, 413, 63, 58, 2);
-
-  //Check if inactive or active mode
-  if(mode == 0)
-  {
-    //White text color for inactive button
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Black text color for activated button
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(750, 425, "page");
-  display_text(748, 442, "down");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-// Bitmap control bar functions
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_bmp_return_button(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so black background
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active so active color background
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Fill in the body of the button
-  display_fill_rounded_rect(40, 425, 120, 50, 3);
-
-  //Draw rounded rectangle as button border in black
-  display_set_fg_color(0x00000000);
-  display_draw_rounded_rect(40, 425, 120, 50, 3);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00303030);
-  }
-  else
-  {
-    //Active so black foreground and active color background
-    display_set_fg_color(0x00303030);
-    display_set_bg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(return_arrow_icon, 79, 436, 41, 27);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_bmp_delete_button(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so black background
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active so active color background
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Fill in the body of the button
-  display_fill_rounded_rect(240, 425, 120, 50, 3);
-
-  //Draw rounded rectangle as button border in black
-  display_set_fg_color(0x00000000);
-  display_draw_rounded_rect(240, 425, 120, 50, 3);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00303030);
-  }
-  else
-  {
-    //Active so black foreground and active color background
-    display_set_fg_color(0x00303030);
-    display_set_bg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(waste_bin_icon, 284, 433, 31, 33);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_bmp_previous_button(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so black background
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active so active color background
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Fill in the body of the button
-  display_fill_rounded_rect(440, 425, 120, 50, 3);
-
-  //Draw rounded rectangle as button border in black
-  display_set_fg_color(0x00000000);
-  display_draw_rounded_rect(440, 425, 120, 50, 3);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00303030);
-  }
-  else
-  {
-    //Active so black foreground and active color background
-    display_set_fg_color(0x00303030);
-    display_set_bg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(previous_picture_icon, 483, 438, 33, 24);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_bmp_next_button(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so black background
-    display_set_fg_color(0x00303030);
-  }
-  else
-  {
-    //Active so active color background
-    display_set_fg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Fill in the body of the button
-  display_fill_rounded_rect(640, 425, 120, 50, 3);
-
-  //Draw rounded rectangle as button border in black
-  display_set_fg_color(0x00000000);
-  display_draw_rounded_rect(640, 425, 120, 50, 3);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00303030);
-  }
-  else
-  {
-    //Active so black foreground and active color background
-    display_set_fg_color(0x00303030);
-    display_set_bg_color(ITEM_ACTIVE_COLOR);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(next_picture_icon, 683, 438, 33, 24);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-// Top bar function
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_menu_button(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark blue background
-    display_set_fg_color(0x00000078);
-  }
-  else
-  {
-    //Active so pale yellow background
-    display_set_fg_color(0x00FFFF80);
-  }
-
-  //Draw the background
-  display_fill_rect(0, 0, 80, 38);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Active so black foreground
-    display_set_fg_color(0x00000000);
-  }
-
-  //Draw the menu symbol
-  display_fill_rect(6,  11, 7, 7);
-  display_fill_rect(15, 11, 7, 7);
-  display_fill_rect(6,  20, 7, 7);
-  display_fill_rect(15, 20, 7, 7);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(32, 11, "MENU");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_main_return_button(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so black background
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //Active so white background
-    display_set_fg_color(0x00FFFFFF);
-  }
-
-  //Draw the background
-  display_fill_rect(0, 0, 80, 38);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00000000);
-  }
-  else
-  {
-    //Active so black foreground and white background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00FFFFFF);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(return_arrow_icon, 20, 5, 41, 27);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_run_stop_text(void)
-{
-  //Check if run or stop mode
-  if(scopesettings.runstate == 0)
-  {
-    //Run mode. Black box
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //Stop mode. Red box
-    display_set_fg_color(0x00FF0000);
-  }
-
-  //Fill the box
-  display_fill_rect(RUN_STOP_TEXT_XPOS, RUN_STOP_TEXT_YPOS, RUN_STOP_TEXT_WIDTH, RUN_STOP_TEXT_HEIGHT);
-
-  //Select the font for the text
-  display_set_font(&font_3);
-
-  //Check if run or stop mode
-  if(scopesettings.runstate == 0)
-  {
-    //Run mode. White text
-    display_set_fg_color(0x00FFFFFF);
-    display_text(RUN_STOP_TEXT_XPOS + 4, RUN_STOP_TEXT_YPOS + 1, "RUN");
-  }
-  else
-  {
-    //Stop mode. Black text
-    display_set_fg_color(0x00000000);
-    display_text(RUN_STOP_TEXT_XPOS + 1, RUN_STOP_TEXT_YPOS + 1, "STOP");
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_channel_settings(PCHANNELSETTINGS settings, int mode)
-{
-  int8 **vdtext;
-
-  //Clear the area first
-  display_set_fg_color(0x00000000);
-  display_fill_rect(settings->buttonxpos, CH_BUTTON_YPOS, CH_BUTTON_BG_WIDTH, CH_BUTTON_BG_HEIGHT);
-
-  //Check if channel is enabled or disabled
-  if(settings->enable == 0)
-  {
-    //Disabled so off colors
-    //Check if inactive or active
-    if(mode == 0)
-    {
-      //Inactive, grey menu button
-      display_set_fg_color(0x00444444);
-    }
-    else
-    {
-      //Active, light grey menu button
-      display_set_fg_color(0x00BBBBBB);
-    }
-  }
-  else
-  {
-    //Enabled so on colors
-    //Check if inactive or active
-    if(mode == 0)
-    {
-      //Inactive, channel 1 color menu button
-      display_set_fg_color(settings->color);
-    }
-    else
-    {
-      //Active, blue menu button
-      display_set_fg_color(settings->touchedcolor);
-    }
-  }
-
-  //Fill the button
-  display_fill_rect(settings->buttonxpos, CH_BUTTON_YPOS, CH_BUTTON_WIDTH, CH_BUTTON_HEIGHT);
-
-  //Select the font for the text
-  display_set_font(&font_2);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, black text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //Active, white text
-    display_set_fg_color(0x00FFFFFF);
-
-    //Fill the settings background
-    display_fill_rect(settings->buttonxpos + 30, CH_BUTTON_YPOS, CH_BUTTON_BG_WIDTH - 30, CH_BUTTON_BG_HEIGHT);
-  }
-
-  //Display the channel identifier text
-  display_text(settings->buttonxpos + 5, CH_BUTTON_YPOS + 11, settings->buttontext);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, white text
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Active, black text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Check on which coupling is set
-  if(settings->coupling == 0)
-  {
-    //DC coupling
-    display_text(settings->buttonxpos + 38, CH_BUTTON_YPOS + 3, "DC");
-  }
-  else
-  {
-    //AC coupling
-    display_text(settings->buttonxpos + 38, CH_BUTTON_YPOS + 3, "AC");
-  }
-
-  //Print the probe magnification factor
-  switch(settings->magnification)
-  {
-    case 0:
-      //Times 1 magnification
-      display_text(settings->buttonxpos + 63, CH_BUTTON_YPOS + 3, "1X");
-
-      //Set the volts per div text range to be used for this magnification
-      vdtext = (int8 **)volt_div_texts[0];
-      break;
-
-    case 1:
-      //Times 10 magnification
-      display_text(settings->buttonxpos + 61, CH_BUTTON_YPOS + 3, "10X");
-
-      //Set the volts per div text range to be used for this magnification
-      vdtext = (int8 **)volt_div_texts[1];
-      break;
-
-    default:
-      //Times 100 magnification
-      display_text(settings->buttonxpos + 59, CH_BUTTON_YPOS + 3, "100X");
-
-      //Set the volts per div text range to be used for this magnification
-      vdtext = (int8 **)volt_div_texts[2];
-      break;
-  }
-
-  //Display the sensitivity when in range
-  if(settings->displayvoltperdiv < 7)
-  {
-    display_text(settings->buttonxpos + 38, CH_BUTTON_YPOS + 19, vdtext[settings->displayvoltperdiv]);
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_acqusition_settings(int mode)
-{
-  //Clear the area first
-  display_set_fg_color(0x00000000);
-  display_fill_rect(ACQ_BUTTON_XPOS, ACQ_BUTTON_YPOS, ACQ_BUTTON_BG_WIDTH, ACQ_BUTTON_BG_HEIGHT);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, green menu button
-    display_set_fg_color(TRIGGER_COLOR);
-  }
-  else
-  {
-    //Active, magenta menu button
-    display_set_fg_color(0x00FF00FF);
-  }
-
-  //Fill the button
-  display_fill_rect(ACQ_BUTTON_XPOS, ACQ_BUTTON_YPOS, ACQ_BUTTON_WIDTH, ACQ_BUTTON_HEIGHT);
-
-  //Select the font for the text
-  display_set_font(&font_2);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, black text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //Active, white text
-    display_set_fg_color(0x00FFFFFF);
-
-    //Fill the settings background
-    display_fill_rect(ACQ_BUTTON_XPOS + 30, ACQ_BUTTON_YPOS, ACQ_BUTTON_BG_WIDTH - 30, ACQ_BUTTON_BG_HEIGHT);
-  }
-
-  //Display the acquisition identifier text
-  display_text(ACQ_BUTTON_XPOS + 4, ACQ_BUTTON_YPOS + 11, "ACQ");
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, white text
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Active, black text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Only display the text when in range of the text array
-  if(scopesettings.samplerate < (sizeof(acquisition_speed_texts) / sizeof(int8 *)))
-  {
-    //Display the text from the table
-    display_text(ACQ_BUTTON_XPOS + 38, ACQ_BUTTON_YPOS + 3, (int8 *)acquisition_speed_texts[scopesettings.samplerate]);
-  }
-
-  //Only display the text when in range of the text array
-  if(scopesettings.timeperdiv < (sizeof(time_div_texts) / sizeof(int8 *)))
-  {
-    //Display the text from the table
-    display_text(ACQ_BUTTON_XPOS + 38, ACQ_BUTTON_YPOS + 19, (int8 *)time_div_texts[scopesettings.timeperdiv]);
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_move_speed(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark blue background
-    display_set_fg_color(0x00000078);
-  }
-  else
-  {
-    //Active so pale yellow background
-    display_set_fg_color(0x00FFFF80);
-  }
-
-  //Draw the background
-  display_fill_rect(493, 5, 40, 35);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white text
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Active so black text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Select the font for the text
-  display_set_font(&font_3);
-
-  //Display the common text
-  display_text(496, 6, "move");
-
-  //Check on which speed is set
-  if(scopesettings.movespeed == 0)
-  {
-    display_text(501, 21, "fast");
-  }
-  else
-  {
-    display_text(499, 21, "slow");
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_trigger_settings(int mode)
-{
-  int8 *modetext = 0;
-
-  //Clear the area first
-  display_set_fg_color(0x00000000);
-  display_fill_rect(570, 5, 110, 35);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, green menu button
-    display_set_fg_color(TRIGGER_COLOR);
-  }
-  else
-  {
-    //Active, magenta menu button
-    display_set_fg_color(0x00FF00FF);
-  }
-
-  //Fill the button
-  display_fill_rect(570, 5, 31, 35);
-
-  //Select the font for the text
-  display_set_font(&font_4);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, black text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //Active, white text
-    display_set_fg_color(0x00FFFFFF);
-
-    //Fill the settings background
-    display_fill_rect(601, 5, 68, 35);
-  }
-
-  //Display the channel identifier text
-  display_text(582, 15, "T");
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive, white text
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Active, black text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Check on which trigger mode is set
-  switch(scopesettings.triggermode)
-  {
-    case 0:
-      modetext = "Auto";
-      break;
-
-    case 1:
-      modetext = "Single";
-      break;
-
-    case 2:
-      modetext = "Normal";
-      break;
-  }
-
-  //Select the font for the texts
-  display_set_font(&font_2);
-
-  //Check if valid setting
-  if(modetext)
-  {
-    //Display the selected text if so
-    display_text(606, 7, modetext);
-  }
-
-  //Draw the trigger edge symbol
-  display_draw_vert_line(642, 27, 38);
-
-  //Draw the arrow based on the selected edge
-  if(scopesettings.triggeredge == 0)
-  {
-    //rising edge
-    display_draw_horz_line(27, 642, 645);
-    display_draw_horz_line(38, 639, 642);
-    display_draw_horz_line(32, 641, 643);
-    display_draw_horz_line(33, 640, 644);
-  }
-  else
-  {
-    //falling edge
-    display_draw_horz_line(27, 639, 642);
-    display_draw_horz_line(38, 642, 645);
-    display_draw_horz_line(32, 640, 644);
-    display_draw_horz_line(33, 641, 643);
-  }
-
-  //Check on which channel is used for triggering
-  switch(scopesettings.triggerchannel)
-  {
-    //Channel 1
-    case 0:
-      //Check if inactive or active
-      if(mode == 0)
-      {
-        //Inactive, dark channel 1 trigger color box
-        display_set_fg_color(CHANNEL1_TRIG_COLOR);
-      }
-      else
-      {
-        //Active, some blue box
-        display_set_fg_color(0x003333FF);
-      }
-
-      //Fill the channel background
-      display_fill_rect(605, 25, 28, 15);
-
-      //Check if inactive or active
-      if(mode == 0)
-      {
-        //Inactive, black text
-        display_set_fg_color(0x00000000);
-      }
-      else
-      {
-        //Active, white text
-        display_set_fg_color(0x00FFFFFF);
-      }
-
-      //Display the text
-      display_text(608, 26, "CH1");
-      break;
-
-    //Channel 2
-    case 1:
-      //Check if inactive or active
-      if(mode == 0)
-      {
-        //Inactive, dark cyan box
-        display_set_fg_color(CHANNEL2_TRIG_COLOR);
-      }
-      else
-      {
-        //Active, some red box
-        display_set_fg_color(0x00FF3333);
-      }
-
-      //Fill the channel background
-      display_fill_rect(605, 25, 28, 15);
-
-      //Check if inactive or active
-      if(mode == 0)
-      {
-        //Inactive, black text
-        display_set_fg_color(0x00000000);
-      }
-      else
-      {
-        //Active, white text
-        display_set_fg_color(0x00FFFFFF);
-      }
-
-      //Display the text
-      display_text(608, 26, "CH2");
-      break;
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_battery_status(void)
-{
-  //Prepare the battery symbol in a working buffer to avoid flicker
-  display_set_screen_buffer(displaybuffer1);
-
-  //Clear the background
-  display_set_fg_color(0x00000000);
-  display_fill_rect(701, 5, 25, 13);
-
-  //Draw an empty battery symbol in white
-  display_set_fg_color(0x00FFFFFF);
-  display_fill_rect(701, 9, 2, 4);
-  display_fill_rect(703, 5, 22, 12);
-
-  //Check if there is any charge
-  if(scopesettings.batterychargelevel)
-  {
-    //Keep charge level on max if above
-    if(scopesettings.batterychargelevel > 20)
-    {
-      //Max for displaying the level
-      scopesettings.batterychargelevel = 20;
-    }
-
-    //Check if charge level is low
-    if(scopesettings.batterychargelevel < 4)
-    {
-      //Draw the level indicator in red
-      display_set_fg_color(0x00FF0000);
-    }
-    else
-    {
-      //Draw the level indicator in dark green
-      display_set_fg_color(0x0000BB00);
-    }
-
-    //Draw the indicator based on the level
-    display_fill_rect(724 - scopesettings.batterychargelevel, 6, scopesettings.batterychargelevel, 10);
-  }
-
-  //Draw the battery charging indicator when plugged in
-  if(scopesettings.batterycharging)
-  {
-#if 0
-    //Some light blue color
-    display_set_fg_color(0x002222FF);
-
-    //Draw an arrow when charging
-    display_draw_horz_line(10, 708, 718);
-    display_draw_horz_line(11, 708, 718);
-    display_draw_horz_line(12, 708, 718);
-    display_draw_vert_line(719, 8, 14);
-    display_draw_vert_line(720, 9, 13);
-    display_draw_vert_line(721, 10, 12);
-    display_draw_vert_line(722, 11, 11);
-#else
-    //Some orange color
-    display_set_fg_color(0x00FF6A00);
-
-    //Draw a lightning bolt when charging
-    display_draw_horz_line( 7, 715, 716);
-    display_draw_horz_line( 8, 713, 716);
-    display_draw_horz_line( 9, 711, 715);
-    display_draw_horz_line(10, 709, 715);
-    display_draw_horz_line(11, 707, 711);
-    display_draw_horz_line(12, 705, 709);
-    display_draw_horz_line(11, 713, 715);
-    display_draw_horz_line(10, 719, 723);
-    display_draw_horz_line(11, 717, 721);
-    display_draw_horz_line(12, 713, 719);
-    display_draw_horz_line(13, 713, 717);
-    display_draw_horz_line(14, 712, 715);
-    display_draw_horz_line(15, 712, 713);
-#endif
-  }
-
-  //Copy it to the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-  display_copy_rect_to_screen(701, 5, 25, 13);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-// Menu functions
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_main_menu(void)
-{
-  //Setup the menu in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-
-  //Fill the background
-  display_fill_rect(0, 46, 149, 233);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-
-  //Draw the edge
-  display_draw_rect(0, 46, 149, 233);
-
-  //Three black lines between the settings
-  display_set_fg_color(0x00000000);
-  display_draw_horz_line(104, 9, 140);
-  display_draw_horz_line(163, 9, 140);
-  display_draw_horz_line(222, 9, 140);
-
-  //Display the menu items
-  scope_main_menu_system_settings(0);
-  scope_main_menu_picture_view(0);
-  scope_main_menu_waveform_view(0);
-  scope_main_menu_usb_connection(0);
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_top_rect_onto_screen(0, 46, 149, 233, 63039);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_main_menu_system_settings(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00181818);
-  }
-  else
-  {
-    //Active so yellow background
-    display_set_fg_color(0x00FFFF00);
-  }
-
-  //Draw the background
-  display_fill_rect(9, 59, 131, 35);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00181818);
-  }
-  else
-  {
-    //Active so black foreground and yellow background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00FFFF00);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(system_settings_icon, 21, 63, 15, 25);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(69, 60, "System");
-  display_text(68, 76, "settings");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_main_menu_picture_view(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00181818);
-  }
-  else
-  {
-    //Active so white background
-    display_set_fg_color(0x00CCCCCC);
-  }
-
-  //Draw the background
-  display_fill_rect(9, 116, 131, 35);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00181818);
-  }
-  else
-  {
-    //Active so black foreground and white background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00CCCCCC);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(picture_view_icon, 17, 122, 24, 24);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(73, 119, "Picture");
-  display_text(79, 135, "view");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_main_menu_waveform_view(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00181818);
-  }
-  else
-  {
-    //Active so white background
-    display_set_fg_color(0x00CCCCCC);
-  }
-
-  //Draw the background
-  display_fill_rect(9, 175, 131, 35);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00181818);
-  }
-  else
-  {
-    //Active so black foreground and white background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00CCCCCC);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(waveform_view_icon, 17, 181, 24, 24);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(62, 178, "Waveform");
-  display_text(79, 194, "view");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_main_menu_usb_connection(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00181818);
-  }
-  else
-  {
-    //Active so white background
-    display_set_fg_color(0x00CCCCCC);
-  }
-
-  //Draw the background
-  display_fill_rect(9, 235, 131, 35);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00181818);
-  }
-  else
-  {
-    //Active so black foreground and white background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00CCCCCC);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(usb_icon, 20, 239, 18, 25);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(80, 237, "USB");
-  display_text(60, 253, "connection");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_channel_menu(PCHANNELSETTINGS settings)
-{
-  uint32 xstart;
-  uint32 xend;
-
-  //Setup the menu in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-
-  //Fill the background
-  display_fill_rect(settings->menuxpos, CH_MENU_YPOS, CH_MENU_WIDTH, CH_MENU_HEIGHT);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-
-  //Draw the edge
-  display_draw_rect(settings->menuxpos, CH_MENU_YPOS, CH_MENU_WIDTH, CH_MENU_HEIGHT);
-
-  //Line start and end x positions
-  xstart = settings->menuxpos + 14;
-  xend   = settings->menuxpos + CH_MENU_WIDTH - 14;
-
-  //Three black lines between the settings
-  display_set_fg_color(0x00000000);
-  display_draw_horz_line(CH_MENU_YPOS +  62, xstart, xend);
-  display_draw_horz_line(CH_MENU_YPOS + 124, xstart, xend);
-  display_draw_horz_line(CH_MENU_YPOS + 188, xstart, xend);
-
-  //Main texts in white
-  display_set_fg_color(0x00FFFFFF);
-
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Display the texts
-  display_text(settings->menuxpos + 15, CH_MENU_YPOS +  10, "open");
-  display_text(settings->menuxpos + 22, CH_MENU_YPOS +  29, "CH");
-  display_text(settings->menuxpos + 15, CH_MENU_YPOS +  72, "open");
-  display_text(settings->menuxpos + 19, CH_MENU_YPOS +  91, "FFT");
-  display_text(settings->menuxpos + 15, CH_MENU_YPOS + 136, "coup");
-  display_text(settings->menuxpos + 18, CH_MENU_YPOS + 154, "ling");
-  display_text(settings->menuxpos + 15, CH_MENU_YPOS + 201, "probe");
-  display_text(settings->menuxpos + 15, CH_MENU_YPOS + 219, "mode");
-
-  //Display the actual settings
-  scope_channel_enable_select(settings);
-  scope_channel_fft_show(settings);
-  scope_channel_coupling_select(settings);
-  scope_channel_probe_magnification_select(settings);
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_top_rect_onto_screen(settings->menuxpos, CH_MENU_YPOS, CH_MENU_WIDTH, CH_MENU_HEIGHT, 69906);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_channel_enable_select(PCHANNELSETTINGS settings)
-{
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Set dark grey color for the box behind the not selected text
-  display_set_fg_color(0x00181818);
-
-  //Check if channel is disabled or enabled
-  if(settings->enable == 0)
-  {
-    //Disabled so dark grey box behind on
-    display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 16, 32, 22);
-  }
-  else
-  {
-    //Enabled so dark grey box behind off
-    display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 16, 32, 22);
-  }
-
-  //Set channel color for the box behind the selected text
-  display_set_fg_color(settings->color);
-
-  //Check if channel is disabled or enabled
-  if(settings->enable == 0)
-  {
-    //Disabled so channel color box behind off
-    display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 16, 32, 22);
-  }
-  else
-  {
-    //Enabled so channel color box behind on
-    display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 16, 32, 22);
-  }
-
-  //Check if channel is disabled or enabled
-  if(settings->enable == 0)
-  {
-    //Disabled so white on text
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Enabled so black on text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the on text
-  display_text(settings->menuxpos + 84, CH_MENU_YPOS + 19, "ON");
-
-  //Check if channel is disabled or enabled
-  if(settings->enable == 0)
-  {
-    //Disabled so black off text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //Enabled so white off text
-    display_set_fg_color(0x00FFFFFF);
-  }
-
-  //Display the off text
-  display_text(settings->menuxpos + 133, CH_MENU_YPOS + 19, "OFF");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_channel_fft_show(PCHANNELSETTINGS settings)
-{
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Set dark grey color for the box behind the not selected text
-  display_set_fg_color(0x00181818);
-
-  //Check if fft is disabled or enabled
-  if(settings->fftenable == 0)
-  {
-    //Disabled so dark grey box behind on
-    display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 78, 32, 22);
-  }
-  else
-  {
-    //Enabled so dark grey box behind off
-    display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 78, 32, 22);
-  }
-
-  //Set channel color for the box behind the selected text
-  display_set_fg_color(settings->color);
-
-  //Check if fft is disabled or enabled
-  if(settings->fftenable == 0)
-  {
-    //Disabled so channel color box behind off
-    display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 78, 32, 22);
-  }
-  else
-  {
-    //Enabled so channel color box behind on
-    display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 78, 32, 22);
-  }
-
-  //Check if fft is disabled or enabled
-  if(settings->fftenable == 0)
-  {
-    //Disabled so white on text
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Enabled so black on text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the on text
-  display_text(settings->menuxpos + 84, CH_MENU_YPOS + 81, "ON");
-
-  //Check if fft is disabled or enabled
-  if(settings->fftenable == 0)
-  {
-    //Disabled so black off text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //Enabled so white off text
-    display_set_fg_color(0x00FFFFFF);
-  }
-
-  //Display the off text
-  display_text(settings->menuxpos + 133, CH_MENU_YPOS + 81, "OFF");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_channel_coupling_select(PCHANNELSETTINGS settings)
-{
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Set dark grey color for the box behind the not selected text
-  display_set_fg_color(0x00181818);
-
-  //Check if coupling is dc or ac
-  if(settings->coupling == 0)
-  {
-    //DC so dark grey box behind ac text
-    display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 142, 32, 22);
-  }
-  else
-  {
-    //AC so dark grey box behind dc text
-    display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 142, 32, 22);
-  }
-
-  //Set channel color for the box behind the selected text
-  display_set_fg_color(settings->color);
-
-  //Check if coupling is dc or ac
-  if(settings->coupling == 0)
-  {
-    //DC so channel color box behind dc text
-    display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 142, 32, 22);
-  }
-  else
-  {
-    //AC so channel color box behind ac text
-    display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 142, 32, 22);
-  }
-
-  //Check if coupling is dc or ac
-  if(settings->coupling == 0)
-  {
-    //DC so black DC text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //AC so white or grey DC text
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White auto text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the DC text
-  display_text(settings->menuxpos + 84, CH_MENU_YPOS + 145, "DC");
-
-  //Check if coupling is DC or AC
-  if(settings->coupling == 0)
-  {
-    //DC so white or grey AC text
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White auto text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-  else
-  {
-    //AC so black AC text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the off text
-  display_text(settings->menuxpos + 135, CH_MENU_YPOS + 145, "AC");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
-{
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Set dark grey color for the boxes behind the not selected texts
-  display_set_fg_color(0x00181818);
-
-  //Check if coupling is dc or ac
-  switch(settings->magnification)
-  {
-    case 0:
-      //dark grey times 10 and 100 magnification
-      display_fill_rect(settings->menuxpos + 109, CH_MENU_YPOS + 199, 23, 38);
-      display_fill_rect(settings->menuxpos + 138, CH_MENU_YPOS + 199, 30, 38);
-      break;
-
-    case 1:
-      //dark grey times 1 and 100 magnification
-      display_fill_rect(settings->menuxpos +  78, CH_MENU_YPOS + 199, 20, 38);
-      display_fill_rect(settings->menuxpos + 138, CH_MENU_YPOS + 199, 30, 38);
-      break;
-
-    default:
-      //dark grey times 1 and 10 magnification
-      display_fill_rect(settings->menuxpos +  78, CH_MENU_YPOS + 199, 20, 38);
-      display_fill_rect(settings->menuxpos + 109, CH_MENU_YPOS + 199, 23, 38);
-      break;
-  }
-
-  //Set channel color for the box behind the selected text
-  display_set_fg_color(settings->color);
-
-  //Check if which magnification to highlight
-  switch(settings->magnification)
-  {
-    case 0:
-      //Highlight times 1 magnification
-      display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 199, 20, 38);
-      break;
-
-    case 1:
-      //Highlight times 10 magnification
-      display_fill_rect(settings->menuxpos + 109, CH_MENU_YPOS + 199, 23, 38);
-      break;
-
-    default:
-      //Highlight times 100 magnification
-      display_fill_rect(settings->menuxpos + 138, CH_MENU_YPOS + 199, 30, 38);
-      break;
-  }
-
-  //Check if magnification is 1x
-  if(settings->magnification == 0)
-  {
-    //Yes so black 1X text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //No so white or grey 1X text
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White auto text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the 1X text
-  display_text(settings->menuxpos + 84, CH_MENU_YPOS + 201, "1");
-  display_text(settings->menuxpos + 83, CH_MENU_YPOS + 219, "X");
-
-  //Check if magnification is 10x
-  if(settings->magnification == 1)
-  {
-    //Yes so black 10X text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //No so white or grey 10X text
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White auto text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the 10X text
-  display_text(settings->menuxpos + 113, CH_MENU_YPOS + 201, "10");
-  display_text(settings->menuxpos + 115, CH_MENU_YPOS + 219, "X");
-
-  //Check if magnification is 100x
-  if(settings->magnification > 1)
-  {
-    //Yes so black 100X text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //No so white or grey 100X text
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White auto text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the 100X text
-  display_text(settings->menuxpos + 142, CH_MENU_YPOS + 201, "100");
-  display_text(settings->menuxpos + 149, CH_MENU_YPOS + 219, "X");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_acquisition_menu(void)
-{
-  //Setup the menu in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-
-  //Fill the background
-  display_fill_rect(ACQ_MENU_XPOS, ACQ_MENU_YPOS, ACQ_MENU_WIDTH, ACQ_MENU_HEIGHT);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-
-  //Draw the edge
-  display_draw_rect(ACQ_MENU_XPOS, ACQ_MENU_YPOS, ACQ_MENU_WIDTH, ACQ_MENU_HEIGHT);
-
-  //A black line between the settings
-  display_set_fg_color(0x00000000);
-  display_draw_horz_line(ACQ_MENU_YPOS +  158, ACQ_MENU_XPOS + 8, ACQ_MENU_XPOS + ACQ_MENU_WIDTH - 8);
-
-  //Main texts in white
-  display_set_fg_color(0x00FFFFFF);
-
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Display the texts
-  display_text(ACQ_MENU_XPOS + 111, ACQ_MENU_YPOS +   8, "Sample Rate");
-  display_text(ACQ_MENU_XPOS +  97, ACQ_MENU_YPOS + 166, "Time per Division");
-
-  //Display the actual settings
-  scope_acquisition_speed_select();
-  scope_acquisition_timeperdiv_select();
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_top_rect_onto_screen(ACQ_MENU_XPOS, ACQ_MENU_YPOS, ACQ_MENU_WIDTH, ACQ_MENU_HEIGHT, 69906);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_acquisition_speed_select(void)
-{
-  uint32 i,x,y;
-
-  //Select the font for the texts
-  display_set_font(&font_2);
-
-  //Set dark grey color for the boxes behind the not selected texts
-  display_set_fg_color(0x00383838);
-
-  //Clear the boxes for the not selected items
-  for(i=0;i<(sizeof(acquisition_speed_texts) / sizeof(int8 *));i++)
-  {
-    if(i != scopesettings.samplerate)
-    {
-      x = ((i & 3) * 72) + 10;
-      y = ((i >> 2) * 23) + 33;
-
-      display_fill_rect(ACQ_MENU_XPOS + x, ACQ_MENU_YPOS + y, 68, 20);
-    }
-  }
-
-  //Set channel 2 color for the box behind the selected text
-  display_set_fg_color(TRIGGER_COLOR);
-
-  //Get the position of the selected item
-  x = ((scopesettings.samplerate & 3) * 72) + 10;
-  y = ((scopesettings.samplerate >> 2) * 23) + 33;
-
-  //Highlight the selected item
-  display_fill_rect(ACQ_MENU_XPOS + x, ACQ_MENU_YPOS + y, 68, 20);
-
-  for(i=0;i<(sizeof(acquisition_speed_texts) / sizeof(int8 *));i++)
-  {
-    if(i != scopesettings.samplerate)
-    {
-      //Check if in stop mode
-      if(scopesettings.runstate)
-      {
-        //When stopped select option is disabled so texts shown in light grey
-        display_set_fg_color(0x00606060);
-      }
-      else
-      {
-        //When running available not selected texts shown in white
-        display_set_fg_color(0x00FFFFFF);
-      }
-    }
-    else
-    {
-      //Selected texts in black
-      display_set_fg_color(0x00000000);
-    }
-
-    //Calculate the position of this text
-    x = ((i & 3) * 72) + acquisition_speed_text_x_offsets[i];
-    y = ((i >> 2) * 23) + 36;
-
-    //Display the text from the table
-    display_text(ACQ_MENU_XPOS + x, ACQ_MENU_YPOS + y, (int8 *)acquisition_speed_texts[i]);
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_acquisition_timeperdiv_select(void)
-{
-  uint32 c,i,x,y;
-
-  //Select the font for the texts
-  display_set_font(&font_2);
-
-  //Set dark grey color for the boxes behind the not selected texts
-  display_set_fg_color(0x00383838);
-
-  //Clear the boxes for the not selected items
-  for(i=0;i<(sizeof(time_div_texts) / sizeof(int8 *));i++)
-  {
-    //Settings displayed from smallest to highest value
-    c = ((sizeof(time_div_texts) / sizeof(int8 *)) - 1) - i;
-
-    if(c != scopesettings.timeperdiv)
-    {
-      x = ((i & 3) * 72) + 10;
-      y = ((i >> 2) * 23) + 191;
-
-      display_fill_rect(ACQ_MENU_XPOS + x, ACQ_MENU_YPOS + y, 68, 20);
-    }
-  }
-
-  //Set channel 2 color for the box behind the selected text
-  display_set_fg_color(TRIGGER_COLOR);
-
-  //Get the position of the selected item
-  c = ((sizeof(time_div_texts) / sizeof(int8 *)) - 1) - scopesettings.timeperdiv;
-  x = ((c & 3) * 72) + 10;
-  y = ((c >> 2) * 23) + 191;
-
-  //Highlight the selected item
-  display_fill_rect(ACQ_MENU_XPOS + x, ACQ_MENU_YPOS + y, 68, 20);
-
-  for(i=0;i<(sizeof(time_div_texts) / sizeof(int8 *));i++)
-  {
-    //Settings displayed from smallest to highest value
-    c = ((sizeof(time_div_texts) / sizeof(int8 *)) - 1) - i;
-
-    //Check if the current text is the selected on
-    if(c != scopesettings.timeperdiv)
-    {
-      //When not check if the current on is a viable candidate for full screen trace display
-      if(viable_time_per_div[scopesettings.samplerate][c])
-      {
-        //Available but viable not selected texts in white
-        display_set_fg_color(0x00FFFFFF);
-      }
-      else
-      {
-        //Not viable but available not selected texts in grey
-        display_set_fg_color(0x00686868);
-      }
-    }
-    else
-    {
-      //Selected texts in black
-      display_set_fg_color(0x00000000);
-    }
-
-    //Calculate the position of this text
-    x = ((i & 3) * 72) + time_div_text_x_offsets[c];
-    y = ((i >> 2) * 23) + 194;
-
-    //Display the text from the table
-    display_text(ACQ_MENU_XPOS + x, ACQ_MENU_YPOS + y, (int8 *)time_div_texts[c]);
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_trigger_menu(void)
-{
-  //Setup the menu in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-
-  //Fill the background
-  display_fill_rect(560, 46, 172, 186);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-
-  //Draw the edge
-  display_draw_rect(560, 46, 172, 186);
-
-  //Three black lines between the settings
-  display_set_fg_color(0x00000000);
-  display_draw_horz_line(107, 570, 722);
-  display_draw_horz_line(168, 570, 722);
-
-  //Main texts in white
-  display_set_fg_color(0x00FFFFFF);
-
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Display the texts
-  display_text(570,  56, "trigger");
-  display_text(570,  75, "mode");
-  display_text(570, 118, "trigger");
-  display_text(570, 137, "edge");
-  display_text(570, 182, "trigger");
-  display_text(570, 200, "channel");
-
-  //Display the actual settings
-  scope_trigger_mode_select();
-  scope_trigger_edge_select();
-  scope_trigger_channel_select();
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_top_rect_onto_screen(560, 46, 172, 186, 56415);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_trigger_mode_select(void)
-{
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Set dark grey color for the boxes behind the not selected texts
-  display_set_fg_color(0x00181818);
-
-  //Check which trigger mode is selected
-  switch(scopesettings.triggermode)
-  {
-    case 0:
-      //dark grey single and normal
-      display_fill_rect(661, 57, 20, 38);
-      display_fill_rect(692, 57, 21, 38);
-      break;
-
-    case 1:
-      //dark grey auto and normal
-      display_fill_rect(629, 57, 20, 38);
-      display_fill_rect(692, 57, 21, 38);
-      break;
-
-    default:
-      //dark grey auto and single
-      display_fill_rect(629, 57, 20, 38);
-      display_fill_rect(661, 57, 20, 38);
-      break;
-  }
-
-  //Set trigger color for the box behind the selected text
-  display_set_fg_color(TRIGGER_COLOR);
-
-  //Check if which trigger mode to highlight
-  switch(scopesettings.triggermode)
-  {
-    case 0:
-      //Highlight auto mode
-      display_fill_rect(629, 57, 20, 38);
-      break;
-
-    case 1:
-      //Highlight single mode
-      display_fill_rect(661, 57, 20, 38);
-      break;
-
-    default:
-      //Highlight normal mode
-      display_fill_rect(692, 57, 21, 38);
-      break;
-  }
-
-  //Check if trigger mode is auto
-  if(scopesettings.triggermode == 0)
-  {
-    //Yes so black auto text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //When not selected check if in normal view mode
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White auto text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the auto text
-  display_text(631, 58, "au");
-  display_text(633, 75, "to");
-
-  //Check if trigger mode is single
-  if(scopesettings.triggermode == 1)
-  {
-    //Yes so black single text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //When not selected check if in normal view mode
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White single text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey single text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the single text
-  display_text(666, 56, "si");
-  display_text(663, 66, "ng");
-  display_text(665, 79, "le");
-
-  //Check if trigger mode is normal
-  if(scopesettings.triggermode > 1)
-  {
-    //Yes so black normal text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //When not selected check if in normal view mode
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White normal text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey normal text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the normal text
-  display_text(695, 56, "no");
-  display_text(694, 66, "rm");
-  display_text(696, 79, "al");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_trigger_edge_select(void)
-{
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Set dark grey color for the box behind the not selected text
-  display_set_fg_color(0x00181818);
-
-  //Check which trigger edge is selected
-  if(scopesettings.triggeredge == 0)
-  {
-    //Rising so dark grey box behind falling
-    display_fill_rect(671, 125, 45, 22);
-  }
-  else
-  {
-    //Falling so dark grey box behind rising
-    display_fill_rect(626, 125, 40, 22);
-  }
-
-  //Set trigger color for the box behind the selected text
-  display_set_fg_color(TRIGGER_COLOR);
-
-  //Check which trigger edge is selected
-  if(scopesettings.triggeredge == 0)
-  {
-    //Rising so trigger color box behind rising
-    display_fill_rect(626, 125, 40, 22);
-  }
-  else
-  {
-    //Falling so trigger color box behind falling
-    display_fill_rect(671, 125, 45, 22);
-  }
-
-  //Check which trigger edge is selected
-  if(scopesettings.triggeredge == 0)
-  {
-    //Rising so black rising text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //For falling edge trigger check if in normal view mode
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the rising text
-  display_text(629, 127, "rising");
-
-  //Check which trigger edge is selected
-  if(scopesettings.triggeredge == 0)
-  {
-    //For rising edge trigger check if in normal view mode
-    if(scopesettings.waveviewmode == 0)
-    {
-      //White text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-  else
-  {
-    //Falling so black falling text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the falling text
-  display_text(674, 127, "falling");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_trigger_channel_select(void)
-{
-  //Select the font for the texts
-  display_set_font(&font_3);
-
-  //Set dark grey color for the box behind the not selected text
-  display_set_fg_color(0x00181818);
-
-  //Check if channel is 1 or 2
-  if(scopesettings.triggerchannel == 0)
-  {
-    //1 so dark grey box behind CH2 text
-    display_fill_rect(680, 188, 32, 22);
-  }
-  else
-  {
-    //2 so dark grey box behind CH1 text
-    display_fill_rect(632, 188, 32, 22);
-  }
-
-  //Set trigger color for the box behind the selected text
-  display_set_fg_color(TRIGGER_COLOR);
-
-  //Check if channel is 1 or 2
-  if(scopesettings.triggerchannel == 0)
-  {
-    //1 so trigger color box behind CH1 text
-    display_fill_rect(632, 188, 32, 22);
-  }
-  else
-  {
-    //2 so trigger color box behind CH2 text
-    display_fill_rect(680, 188, 32, 22);
-  }
-
-  //Check if channel is 1 or 2
-  if(scopesettings.triggerchannel == 0)
-  {
-    //1 so black CH1 text
-    display_set_fg_color(0x00000000);
-  }
-  else
-  {
-    //2 so white or grey CH1 text
-    if((scopesettings.waveviewmode == 0) && scopesettings.channel1.enable)
-    {
-      //White text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-
-  //Display the CH1 text
-  display_text(635, 191, "CH1");
-
-  //Check if channel is 1 or 2
-  if(scopesettings.triggerchannel == 0)
-  {
-    //1 so white or grey CH2 text
-    if((scopesettings.waveviewmode == 0) && scopesettings.channel2.enable)
-    {
-      //White text if in normal mode
-      display_set_fg_color(0x00FFFFFF);
-    }
-    else
-    {
-      //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
-    }
-  }
-  else
-  {
-    //2 so black CH2 text
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the CH2 text
-  display_text(683, 191, "CH2");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_system_settings_menu(void)
-{
-  int y;
-
-  //Setup the menu in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-
-  //Fill the background
-  display_fill_rect(150, 46, 244, 353);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-
-  //Draw the edge
-  display_draw_rect(150, 46, 244, 353);
-
-  //Five black lines between the settings
-  display_set_fg_color(0x00000000);
-
-  for(y=104;y<350;y+=59)
-  {
-    display_draw_horz_line(y, 159, 385);
-  }
-
-  //Display the menu items
-  scope_system_settings_screen_brightness_item(0);
-  scope_system_settings_grid_brightness_item(0);
-  scope_system_settings_trigger_50_item();
-  scope_system_settings_calibration_item(0);
-  scope_system_settings_x_y_mode_item();
-  scope_system_settings_confirmation_item();
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_left_rect_onto_screen(150, 46, 244, 353, 63039);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_screen_brightness_item(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00181818);
-  }
-  else
-  {
-    //Active so yellow background
-    display_set_fg_color(0x00FFFF00);
-  }
-
-  //Draw the background
-  display_fill_rect(159, 59, 226, 36);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00181818);
-  }
-  else
-  {
-    //Active so black foreground and yellow background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00FFFF00);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(screen_brightness_icon, 171, 63, 24, 24);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(231, 60, "Screen");
-  display_text(220, 76, "brightness");
-
-  //Show the actual setting
-  scope_system_settings_screen_brightness_value();
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_screen_brightness_value(void)
-{
-  //Draw the yellow background
-  display_set_fg_color(0x00FFFF00);
-  display_fill_rect(332, 67, 32, 15);
-
-  //Display the number with fixed width font and black color
-  display_set_font(&font_0);
-  display_set_fg_color(0x00000000);
-  display_decimal(337, 68, scopesettings.screenbrightness);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_grid_brightness_item(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00181818);
-  }
-  else
-  {
-    //Active so yellow background
-    display_set_fg_color(0x00FFFF00);
-  }
-
-  //Draw the background
-  display_fill_rect(159, 116, 226, 36);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00181818);
-  }
-  else
-  {
-    //Active so black foreground and yellow background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00FFFF00);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(grid_brightness_icon, 171, 122, 24, 24);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(240, 119, "Grid");
-  display_text(220, 135, "brightness");
-
-  //Show the actual setting
-  scope_system_settings_grid_brightness_value();
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_grid_brightness_value(void)
-{
-  //Draw the yellow background
-  display_set_fg_color(0x00FFFF00);
-  display_fill_rect(332, 124, 32, 15);
-
-  //Display the number with fixed width font and black color
-  display_set_font(&font_0);
-  display_set_fg_color(0x00000000);
-  display_decimal(337, 125, scopesettings.gridbrightness);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_trigger_50_item(void)
-{
-  //Set the colors for white foreground and grey background
-  display_set_fg_color(0x00FFFFFF);
-  display_set_bg_color(0x00181818);
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(trigger_50_percent_icon, 171, 181, 24, 24);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(229, 178, "Always");
-  display_text(217, 194, "trigger 50%");
-
-  //Show the state
-  scope_display_slide_button(326, 183, scopesettings.alwaystrigger50);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_calibration_item(int mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00181818);
-  }
-  else
-  {
-    //Active so yellow background
-    display_set_fg_color(0x00FFFF00);
-  }
-
-  //Draw the background
-  display_fill_rect(159, 235, 226, 36);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_fg_color(0x00FFFFFF);
-    display_set_bg_color(0x00181818);
-  }
-  else
-  {
-    //Active so black foreground and yellow background
-    display_set_fg_color(0x00000000);
-    display_set_bg_color(0x00FFFF00);
-  }
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(baseline_calibration_icon, 171, 239, 24, 25);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(225, 237, "Baseline");
-  display_text(219, 253, "calibration");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_x_y_mode_item(void)
-{
-  //Set the colors for white foreground and grey background
-  display_set_fg_color(0x00FFFFFF);
-  display_set_bg_color(0x00181818);
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(x_y_mode_display_icon, 171, 297, 24, 24);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(223, 295, "X-Y mode");
-  display_text(231, 311, "display");
-
-  //Show the state
-  scope_display_slide_button(326, 299, scopesettings.xymodedisplay);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_system_settings_confirmation_item(void)
-{
-  //Set the colors for white foreground and grey background
-  display_set_fg_color(0x00FFFFFF);
-  display_set_bg_color(0x00181818);
-
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(confirmation_icon, 171, 356, 24, 24);
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(217, 354, "Notification");
-  display_text(213, 370, "confirmation");
-
-  //Show the state
-  scope_display_slide_button(326, 358, scopesettings.confirmationmode);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_calibration_start_text(void)
-{
-  //Save the screen under the baseline calibration start text
-  display_set_destination_buffer(displaybuffer2);
-  display_copy_rect_from_screen(395, 222, 199, 59);
-
-  //Setup the text in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-  display_fill_rect(395, 222, 199, 59);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-  display_draw_rect(395, 222, 199, 59);
-
-  //Display the text in white
-  display_set_fg_color(0x00FFFFFF);
-  display_set_font(&font_3);
-  display_text(409, 227, "Please unplug");
-  display_text(409, 243, "the probe and");
-  display_text(409, 259, "USB first !");
-
-  //Add the ok button
-  scope_display_ok_button(517, 230, 0);
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_left_rect_onto_screen(395, 222, 199, 59, 63039);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_show_calibrating_text(void)
-{
-  //Restore the screen from under the calibration start text to get rid of it
-  display_set_source_buffer(displaybuffer2);
-  display_copy_rect_to_screen(395, 222, 199, 59);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-  display_fill_rect(395, 222, 110, 59);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-  display_draw_rect(395, 222, 110, 59);
-
-  //Display the text in white
-  display_set_fg_color(0x00FFFFFF);
-  display_set_font(&font_3);
-  display_text(409, 243, "Calibrating...");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_show_calibration_done_text(void)
-{
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-  display_fill_rect(395, 222, 110, 59);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-  display_draw_rect(395, 222, 110, 59);
-
-  //Display the text in white
-  display_set_fg_color(0x00FFFFFF);
-  display_set_font(&font_3);
-  display_text(414, 235, "Calibration");
-  display_text(416, 251, "successful");
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_measures_menu(void)
-{
-  int item;
-  int channel;
-
-  //Setup the menu in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-  display_fill_rect(231, 263, 499, 214);
-
-  //Draw the edge in black
-  display_set_fg_color(0x00000000);
-  display_draw_rect(231, 263, 499, 214);
-
-  //Three horizontal black lines between the settings
-  display_draw_horz_line(288, 232, 729);
-  display_draw_horz_line(350, 232, 729);
-  display_draw_horz_line(412, 232, 729);
-
-  //Vertical separator between the channel sections
-  display_draw_vert_line(481, 264, 476);
-
-  //Vertical separators between the items
-  display_draw_vert_line(294, 289, 476);
-  display_draw_vert_line(356, 289, 476);
-  display_draw_vert_line(418, 289, 476);
-  display_draw_vert_line(544, 289, 476);
-  display_draw_vert_line(606, 289, 476);
-  display_draw_vert_line(668, 289, 476);
-
-  //Channel 1 top bar
-  display_set_fg_color(CHANNEL1_COLOR);
-  display_fill_rect(232, 264, 248, 23);
-
-  //Channel 2 top bar
-  display_set_fg_color(CHANNEL2_COLOR);
-  display_fill_rect(482, 264, 247, 23);
-
-  //Display the channel identifier text in black
-  display_set_fg_color(0x00000000);
-  display_set_font(&font_2);
-  display_text(240, 269, "CH1");
-  display_text(490, 269, "CH2");
-
-  //Display the menu items
-  for(channel=0;channel<2;channel++)
-  {
-    //For each channel 12 items
-    for(item=0;item<12;item++)
-    {
-      //Draw the separate items
-      scope_measures_menu_item(channel, item);
-    }
-  }
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_right_rect_onto_screen(231, 263, 499, 214, 75646);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_measures_menu_item(int channel, int item)
-{
-  uint16  xpos;
-  uint16  ypos;
-  char   *text;
-
-  //Set the x position offset for the given channel
-  if(channel == 0)
-  {
-    //Channel 1 is on the left side
-    xpos = 232;
-  }
-  else
-  {
-    //Channel 2 is on the right side
-    xpos = 482;
-  }
-
-  //Set the text and the position for the given item
-  switch(item)
-  {
-    case 0:
-      text  = "Vmax";
-      xpos += 15;
-      ypos  = 312;
-      break;
-
-    case 1:
-      text  = "Vmin";
-      xpos += 79;
-      ypos  = 312;
-      break;
-
-    case 2:
-      text  = "Vavg";
-      xpos += 141;
-      ypos  = 312;
-      break;
-
-    case 3:
-      text  = "Vrms";
-      xpos += 203;
-      ypos  = 312;
-      break;
-
-    case 4:
-      text  = "Vpp";
-      xpos += 19;
-      ypos  = 376;
-      break;
-
-    case 5:
-      text  = "Vp";
-      xpos += 86;
-      ypos  = 376;
-      break;
-
-    case 6:
-      text  = "Freq";
-      xpos += 143;
-      ypos  = 376;
-      break;
-
-    case 7:
-      text  = "Cycle";
-      xpos += 201;
-      ypos  = 376;
-      break;
-
-    case 8:
-      text  = "Tim+";
-      xpos += 17;
-      ypos  = 437;
-      break;
-
-    case 9:
-      text  = "Tim-";
-      xpos += 80;
-      ypos  = 437;
-      break;
-
-    case 10:
-      text  = "Duty+";
-      xpos += 138;
-      ypos  = 437;
-      break;
-
-    case 11:
-      text  = "Duty-";
-      xpos += 202;
-      ypos  = 437;
-      break;
-
-    default:
-      return;
-  }
-
-  //Check if item is on or off
-  if(scopesettings.measuresstate[channel][item] == 0)
-  {
-    //Off so some dark grey text
-    display_set_fg_color(0x00444444);
-  }
-  else
-  {
-    //On so white text
-    display_set_fg_color(0x00FFFFFF);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(xpos, ypos, text);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_open_slider(uint16 xpos, uint16 ypos, uint8 position)
-{
-  //Save the screen under the screen brightness slider
-  display_set_destination_buffer(displaybuffer2);
-  display_copy_rect_from_screen(xpos, ypos, 331, 58);
-
-  //Setup the slider menu in a separate buffer to be able to slide it onto the screen
-  display_set_screen_buffer(displaybuffer1);
-
-  //Draw the background in dark grey
-  display_set_fg_color(0x00181818);
-
-  //Fill the background
-  display_fill_rect(xpos, ypos, 331, 58);
-
-  //Draw the edge in a lighter grey
-  display_set_fg_color(0x00333333);
-
-  //Draw the edge
-  display_draw_rect(xpos, ypos, 331, 58);
-
-  //Display the actual slider
-  scope_display_slider(xpos, ypos, position);
-
-  //Set source and target for getting it on the actual screen
-  display_set_source_buffer(displaybuffer1);
-  display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
-  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_left_rect_onto_screen(xpos, ypos, 331, 58, 63039);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_display_slider(uint16 xpos, uint16 ypos, uint8 position)
-{
-  uint16 x = xpos + 20;
-  uint16 y = ypos + 24;
-  uint16 w = (291 * position) / 100;
-  uint16 ys = ypos + 23;
-  uint16 ye = ypos + 35;
-
-  //Clear the background first
-  display_set_fg_color(0x00181818);
-  display_fill_rect(xpos + 8, ypos + 17, 315, 24);
-
-  //Draw the first part of the slider bar in a yellow color
-  display_set_fg_color(0x00FFFF00);
-  display_fill_rounded_rect(x, y, w, 10, 2);
-
-  //Adjust positions for the grey part
-  x += w;
-  w  = 291 - w;
-
-  //Draw the last part of the slider bar in a light grey color
-  display_set_fg_color(0x00666666);
-  display_fill_rounded_rect(x, y, w, 10, 2);
-
-  //Adjust positions for drawing the knob
-  x -= 11;
-  y -= 6;
-
-  //Draw the knob
-  display_set_fg_color(0x00AAAAAA);
-  display_fill_rounded_rect(x, y, 22, 22, 2);
-
-  //Draw the black lines on the knob
-  display_set_fg_color(0x00000000);
-  display_draw_vert_line(x +  6, ys, ye);
-  display_draw_vert_line(x + 11, ys, ye);
-  display_draw_vert_line(x + 16, ys, ye);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-int32 scope_move_slider(uint16 xpos, uint16 ypos, uint8 *position)
-{
-  uint16 xs = xpos + 20;
-  uint16 value;
-  int16 filter = xtouch - prevxtouch;
-
-  //Check if update needed
-  if((filter > -3) && (filter < 3))
-  {
-    //When change in movement less the absolute 3 don't process
-    return(0);
-  }
-
-  //Save for next filter check
-  prevxtouch = xtouch;
-
-  //Make sure it stays in allowed range
-  if(xtouch <= xs)
-  {
-    //Below slider keep it on 0
-    value = 0;
-  }
-  else if(xtouch >= (xpos + 311))
-  {
-    //Above slider keep it on max
-    value = 100;
-  }
-  else
-  {
-    //Based on xtouch position calculate a new position from 0 to 100
-    value = ((xtouch - xs) * 100) / 291;
-  }
-
-  //Update the position variable
-  *position = value;
-
-  //Show the new position on screen
-  scope_display_slider(xpos, ypos, value);
-
-  //Signal there is change
-  return(1);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_display_slide_button(uint16 xpos, uint16 ypos, uint8 state)
-{
-  uint16 linex      = xpos + 8;
-  uint16 lineystart = ypos + 6;
-  uint16 lineyend   = ypos + 15;
-  uint16 buttonx    = xpos + 4;
-  uint32 edgecolor  = 0x00444444;
-  uint32 fillcolor  = 0x00888888;
-
-  if(state == 1)
-  {
-    //Displace the lines and button by 19 pixels
-    linex   += 19;
-    buttonx += 19;
-
-    //Set the enabled colors
-    edgecolor  = 0x00008800;
-    fillcolor  = 0x0000FF00;
-  }
-
-  //Draw the background
-  display_set_fg_color(fillcolor);
-  display_fill_rounded_rect(xpos, ypos, 45, 21, 2);
-
-  //Draw the edge
-  display_set_fg_color(edgecolor);
-  display_draw_rounded_rect(xpos, ypos, 45, 21, 2);
-
-  //Draw button in dark grey
-  display_set_fg_color(0x00444444);
-  display_fill_rect(buttonx, ypos + 4, 19, 13);
-
-  //Draw lines in black
-  display_set_fg_color(0x00000000);
-  display_draw_vert_line(linex,     lineystart, lineyend);
-  display_draw_vert_line(linex + 3, lineystart, lineyend);
-  display_draw_vert_line(linex + 6, lineystart, lineyend);
-  display_draw_vert_line(linex + 9, lineystart, lineyend);
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_display_ok_button(uint16 xpos, uint16 ypos, uint8 mode)
-{
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so dark grey background
-    display_set_fg_color(0x00333333);
-  }
-  else
-  {
-    //Active so light grey background
-    display_set_fg_color(0x00CCCCCC);
-  }
-
-  //Draw the background
-  display_fill_rect(xpos, ypos, 66, 44);
-
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so white foreground
-    display_set_fg_color(0x00FFFFFF);
-  }
-  else
-  {
-    //Active so black foreground
-    display_set_fg_color(0x00000000);
-  }
-
-  //Display the text
-  display_set_font(&font_3);
-  display_text(xpos + 24, ypos + 14, "OK");
-}
-
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_adjust_timebase(void)
@@ -3930,11 +32,20 @@ void scope_adjust_timebase(void)
   //Check if touch within the trace display region
   if((previousxtouch > 2) && (previousxtouch < 720) && (previousytouch > 50) && (previousytouch < 470))
   {
-    //Check if touch on the left of the center line
+    uint8 min;
+    uint8 max;
+  
+    if ((scopesettings.long_mode) && (scopesettings.waveviewmode)) {min = 0;   max = 10;}
+    if ((!scopesettings.long_mode) &&(scopesettings.waveviewmode)) {min = 11;  max = ((sizeof(time_div_texts) / sizeof(int8 *)) - 1); }
+    if(!scopesettings.waveviewmode) {min = 0;  max = ((sizeof(time_div_texts) / sizeof(int8 *)) - 1); }
+      
+      //Check if touch on the left of the center line
     if(previousxtouch < 358)
-    {
-      //Check if not already on the highest setting (50S/div)
-      if(scopesettings.timeperdiv > 0)
+    { //Short time base
+      //Check if not already on the highest setting (200mS/div)
+      //Long time base
+      //Check if not already on the highest setting (50s/div)
+      if(scopesettings.timeperdiv > min)
       {
         //Go up in time by taking one of the setting
         scopesettings.timeperdiv--;
@@ -3942,93 +53,160 @@ void scope_adjust_timebase(void)
     }
     //Check if touch on the right of the center line
     else if(previousxtouch > 362)
-    {
-      //Check if not already on the lowest setting (10nS/div)
-      if(scopesettings.timeperdiv < ((sizeof(time_div_texts) / sizeof(int8 *)) - 1))
+    { //Long time base
+      //Check if not already on the lowest setting (100ms/div)
+      //Short time base
+      //Check if not already on the lowest setting (5nS/div)
+      if(scopesettings.timeperdiv < max)
       {
         //Go down in time by adding one to the setting
         scopesettings.timeperdiv++;
       }
     }
+  
+    scope_set_timebase();
+    
+  }
+  
+}
+    
+//----------------------------------------------------------------------------------------------------------------------------------
+  
+  void scope_set_timebase(void)
+  {
+     //Scope mode, long base skip 20 & 50ms/div
+    if(!scopesettings.waveviewmode) 
+    {   
+        if(scopesettings.timeperdiv == 9)  {scopesettings.timeperdiv = 11;scopesettings.long_mode = 0;}      //9 11
+        if(scopesettings.timeperdiv == 10) {scopesettings.timeperdiv = 8;scopesettings.long_mode = 1;}       //10 8
+    } 
+ 
+    //Long time base
+    if (scopesettings.timeperdiv < 11)  //9
+    {   scopesettings.long_mode = 1;
+        //Send the time base command for the long time base
+        fpga_set_long_timebase(scopesettings.timeperdiv);
+    }else 
+    {   //Short time base
+        scopesettings.long_mode = 0;
+        scopesettings.display_data_done = 1;
+        //Send the time base command for the sort time base
+        fpga_set_time_base(scopesettings.timeperdiv);
+    }
 
     //For time per div set with tapping on the screen the direct relation between the time per div and the sample rate is set
-    //but only when the scope is running. Otherwise the sample rate of the acquired buffer still is valid.
-    if(scopesettings.runstate == 0)
+    //but only when the scope is running and set short time base. Otherwise the sample rate of the acquired buffer still is valid.
+    //if((scopesettings.runstate))    //ked bezi urob
+    //if((scopesettings.runstate)||(scopesettings.triggermode == 1))//ok //ked bezi urob
+    //if(scopesettings.runstate)   
+    //ak niesme v view mode tak urob
+    //if(!scopesettings.waveviewmode) 
+    if(((previousytouch < 240)&&(!scopesettings.waveviewmode)&&(scopesettings.triggermode == 1))||(scopesettings.long_mode)||(scopesettings.runstate))  //switch all sample and time per div
     {
-      //Set the sample rate that belongs to the selected time per div setting
-      scopesettings.samplerate = time_per_div_sample_rate[scopesettings.timeperdiv];
+        
+        //Set the sample rate that belongs to the selected time per div setting
+        scopesettings.samplerate = time_per_div_sample_rate[scopesettings.timeperdiv];  
+  
+        //Set the new setting in the FPGA
+        fpga_set_sample_rate(scopesettings.samplerate);
+    
+        if((scopesettings.triggermode == 1)) //if single mode
+        {   //one shot 
+            scopesettings.runstate=1; 
+            //Display the changed state
+            scope_run_stop_text();
+        }
+      //nebezi nemaz obrazovku
+      //if(scopesettings.runstate) //ok
+    //if((scopesettings.triggermode != 1)||(scopesettings.long_mode)) scope_preset_values(); 
+        scope_preset_values(); 
     }
+    
 
-    //Set the new setting in the FPGA
-    fpga_set_sample_rate(scopesettings.samplerate);
-
+    
+    //if((scopesettings.triggermode == 1)) 
+        //scope_display_trace_data();
+  
     //Show he new setting on the display
     scope_acqusition_settings(0);
-  }
 }
-
 //----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_draw_grid(void)
+ 
+  void scope_preset_values(void)
 {
-  uint32 color;
-  register uint32 i;
-
-  //Only draw the grid when something will show (not in the original code)
-  if(scopesettings.gridbrightness > 3)
+    //Use a separate buffer to clear the screen
+    display_set_screen_buffer(displaybuffertmp);
+  
+    //Clear the trace portion of the screen
+    display_set_fg_color(BLACK_COLOR);
+    display_fill_rect(0, 48, 730, 432); //display_fill_rect(2, 48, 728, 432);
+    
+  if(scopesettings.long_mode) //if set long time base, no drawn.
   {
-    //Calculate a grey shade based on the grid brightness setting
-    color = (scopesettings.gridbrightness * 255) / 100;
-    color = (color << 16) | (color << 8) | color;
-
-    //Set the color for drawing
-    display_set_fg_color(color);
-
-    //Draw the edge
-    display_draw_rect(2, 46, 726, 404);
-
-    //Draw the center lines
-    display_draw_horz_line(249,  2, 726);
-    display_draw_vert_line(364, 46, 448);
-
-    //Draw the ticks on the x line
-    for(i=4;i<726;i+=5)
-    {
-      display_draw_vert_line(i, 247, 251);
+      
+    scopesettings.xpos = 4;
+    scopesettings.lastx = 3;
+    scopesettings.count = 0;
+    
+    //scopesettings.lastx=726;
+    
+    memset(channel1tracebuffer, 128, sizeof(channel1tracebuffer));
+    memset(channel2tracebuffer, 128, sizeof(channel2tracebuffer));
+    
+    
+    //Auto mode - set flag, signal is triggered=1 
+    if(scopesettings.triggermode) triggerlong = 0; else triggerlong = 1;
+    
+    //y position for the channel 1 trace center pointer.
+    scopesettings.channel1.sample1 = 442 - scopesettings.channel1.traceposition;//441
+    //y position for the channel 2 trace center pointer.
+    scopesettings.channel2.sample1 = 442 - scopesettings.channel2.traceposition;//441  
+    
+  } 
+  else //if((scopesettings.runstate))//1-run
+  {
+    if((scopesettings.runstate)||(!scopesettings.waveviewmode) )//ok 1-run  1 - wavwe mode opravit?
+    { 
+        memset(channel1tracebuffer, 128, sizeof(channel1tracebuffer));
+        memset(channel2tracebuffer, 128, sizeof(channel2tracebuffer));
     }
-
-    //Draw the ticks on the y line
-    for(i=49;i<448;i+=5)
-    {
-      display_draw_horz_line(i, 362, 366);
-    }
-
-    //Draw the horizontal dots
-    for(i=99;i<448;i+=50)
-    {
-      display_draw_horz_dots(i, 4, 726, 5);
-    }
-
-    //Draw the vertical dots
-    for(i=14;i<726;i+=50)
-    {
-      display_draw_vert_dots(i, 49, 448, 5);
-    }
+    
+  scope_display_trace_data();
   }
+    
+    //Check if not in waveform view mode (Scope mode) with grid disabled
+    if((!scopesettings.waveviewmode) || (scopesettings.gridenable))
+    {
+        //Draw the grid lines and dots based on the grid brightness setting
+        scope_draw_grid();
+    }
+    
+    //Draw the cursors with their measurement displays
+    scope_draw_time_cursors();
+    scope_draw_volt_cursors();
+    scope_display_cursor_measurements();
+    
+    //Draw the signal center, trigger level and trigger position pointers
+    scope_draw_pointers();
+     
+    //Copy it to the actual screen buffer
+    display_set_source_buffer(displaybuffertmp);//1
+    display_set_screen_buffer((uint16 *)maindisplaybuffer);
+    display_copy_rect_to_screen(0, 48, 730, 432);  //44 728 434  
 }
-
+  
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_draw_pointers(void)
 {
-  uint32 position;
+  int32 position;
 
   //Draw channel 1 pointer when it is enabled
   if(scopesettings.channel1.enable)
   {
     //Set the colors for drawing
     display_set_fg_color(CHANNEL1_COLOR);
-    display_set_bg_color(0x00000000);
+    display_set_bg_color(BLACK_COLOR);
 
     //Select the font for this pointer id
     display_set_font(&font_0);
@@ -4037,17 +215,17 @@ void scope_draw_pointers(void)
     if(scopesettings.xymodedisplay == 0)
     {
       //y position for the channel 1 trace center pointer.
-      position = 441 - scopesettings.channel1.traceposition;
+      position = 442 - scopesettings.channel1.traceposition;//441
 
       //Limit on the top of the displayable region
-      if(position < 46)
+      if(position < 49)//44
       {
-        position = 46;
+        position = 49;
       }
       //Limit on the bottom of the displayable region
-      else if(position > 441)
+      else if(position > 442)//441
       {
-        position = 441;
+        position = 442;
       }
 
       //Draw the pointer
@@ -4078,22 +256,22 @@ void scope_draw_pointers(void)
   if(scopesettings.channel2.enable)
   {
     //y position for the channel 2 trace center pointer
-    position = 441 - scopesettings.channel2.traceposition;
+    position = 442 - scopesettings.channel2.traceposition;//441
 
     //Limit on the top of the displayable region
-    if(position < 46)
+    if(position < 49)//44
     {
-      position = 46;
+      position = 49;
     }
     //Limit on the bottom of the displayable region
-    else if(position > 441)
+    else if(position > 442)//441
     {
-      position = 441;
+      position = 442;
     }
 
     //Set the colors for drawing
     display_set_fg_color(CHANNEL2_COLOR);
-    display_set_bg_color(0x00000000);
+    display_set_bg_color(BLACK_COLOR);
 
     //Select the font for this pointer id
     display_set_font(&font_0);
@@ -4105,49 +283,55 @@ void scope_draw_pointers(void)
   //Need to think about trigger position in 200mS - 20mS/div settings. Not sure if they work or need to be done in software
   //The original scope does not show them for 50mS and 20mS/div
 
-  //Draw trigger position and level pointer when in normal display mode
-  if(scopesettings.xymodedisplay == 0)
+  //Draw trigger position and level pointer when in normal display mode & sortmode or (long mode with single & normal trigger)
+  if((scopesettings.xymodedisplay == 0)&&((!scopesettings.long_mode)||(scopesettings.triggermode)))
   {
-    //x position for the trigger position pointer
-    position = scopesettings.triggerhorizontalposition + 2;
-
-    //Limit on the left of the displayable region
-    if(position < 2)
-    {
-      position = 2;
-    }
-    //Limit on the right of the displayable region
-    else if(position > 712)
-    {
-      position = 712;
-    }
-
     //Set the colors for drawing
-    display_set_fg_color(TRIGGER_COLOR);
-    display_set_bg_color(0x00000000);
+    if(disp_have_trigger == 1) display_set_fg_color(RED_COLOR); 
+    else display_set_fg_color(TRIGGER_COLOR);
+    display_set_bg_color(BLACK_COLOR);
 
     //Select the font for this pointer id
-    display_set_font(&font_3);
+    display_set_font(&font_3); 
+    
+    //x position for the trigger position pointer
+    //position = scopesettings.triggerhorizontalposition + 2;
+    position = scopesettings.triggerhorizontalposition;
 
+    //Limit on the left of the displayable region
+    if(position < 3)//3
+    { //Out of limit on the left of the displayable region
+      display_right_pointer(3, 48, 'H');//45
+    }
+    //Limit on the right of the displayable region
+    else if(position > 713)
+    {//Out of limit on the right of the displayable region
+      display_left_pointer(706, 48, 'H');//45
+    }
+    else 
     //Draw the pointer
-    display_top_pointer(position, 47, 'H');
-
+    display_top_pointer(position, 48, 'H');//47 45
+    
+    //-----------------------------------------------------
     //y position for the trigger level pointer
-    position = 441 - scopesettings.triggerverticalposition;
+    position = 442 - scopesettings.triggerverticalposition;//441
 
     //Limit on the top of the displayable region
-    if(position < 46)
+    if(position < 49)
     {
-      position = 46;
+      position = 49;
     }
     //Limit on the bottom of the displayable region
-    else if(position > 441)
+    else if(position > 442)//441
     {
-      position = 441;
+      position = 442;
     }
 
     //Need to reset the fore ground color
-    display_set_fg_color(TRIGGER_COLOR);
+    //Select the channel based on the current trigger color
+    if(scopesettings.triggerchannel == 0) display_set_fg_color(CHANNEL1_COLOR);
+            else display_set_fg_color(CHANNEL2_COLOR);   
+    
 
     //Draw the pointer
     display_right_pointer(707, position, 'T');
@@ -4156,62 +340,35 @@ void scope_draw_pointers(void)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void scope_draw_time_cursors(void)
-{
-  //Only draw the lines when enabled
-  if(scopesettings.timecursorsenable)
-  {
-    //Set the color for the dashed lines
-    display_set_fg_color(CURSORS_COLOR);
-
-    //Draw the lines
-    display_draw_vert_dashes(scopesettings.timecursor1position, 48, 448, 3, 3);
-    display_draw_vert_dashes(scopesettings.timecursor2position, 48, 448, 3, 3);
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_draw_volt_cursors(void)
-{
-  //Only draw the lines when enabled
-  if(scopesettings.voltcursorsenable)
-  {
-    //Set the color for the dashed lines
-    display_set_fg_color(CURSORS_COLOR);
-
-    //Draw the lines
-    display_draw_horz_dashes(scopesettings.voltcursor1position, 5, 726, 3, 3);
-    display_draw_horz_dashes(scopesettings.voltcursor2position, 5, 726, 3, 3);
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
 void scope_calculate_trigger_vertical_position()
 {
-  PCHANNELSETTINGS settings;
+  //PCHANNELSETTINGS settings;
+  int32 position;
+    //uint8  displayvoltperdiv;
 
   //Select the channel based on the current trigger channel
   if(scopesettings.triggerchannel == 0)
   {
-    settings = &scopesettings.channel1;
+    //settings = &scopesettings.channel1;
+     position = scopesettings.channel1.triggerverticalposition;  
+     //displayvoltperdiv = scopesettings.channel1.displayvoltperdiv;
   }
   else
   {
-    settings = &scopesettings.channel2;
+    //settings = &scopesettings.channel2;
+     position = scopesettings.channel2.triggerverticalposition;
+     //displayvoltperdiv = scopesettings.channel2.displayvoltperdiv;
   }
 
-  int32 position;
-
+//position = position*displayvoltperdiv;
   //Center the trigger level around 0 point
-  position = scopesettings.triggerlevel - 128;
+ // position = scopesettings.triggerlevel - 128;
 
   //Adjust it for the current volt per div setting
-  position = (position * signal_adjusters[settings->displayvoltperdiv]) >> VOLTAGE_SHIFTER;
+//  position = (position * settings->input_calibration[settings->displayvoltperdiv]) >> VOLTAGE_SHIFTER;
 
   //Add the trace center to it
-  position = settings->traceposition + position;
+  //position = settings->traceposition + position;
 
   //Limit to extremes
   if(position < 0)
@@ -4228,13 +385,13 @@ void scope_calculate_trigger_vertical_position()
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-
+    
 void scope_acquire_trace_data(void)
 {
   uint32 data;
-
-  //Check if running and not in a trace or cursor displacement state
-  if((scopesettings.runstate == 0) && (touchstate == 0))
+  
+  if((scopesettings.runstate)&&(scopesettings.display_data_done)&&(touchstate == 0))//runstate ok
+  //if((scopesettings.runstate) && (scopesettings.display_data_done))//runstate ok
   {
     //Set the trigger level
     fpga_set_trigger_level();
@@ -4242,27 +399,36 @@ void scope_acquire_trace_data(void)
     //Write the time base setting to the FPGA
     fpga_set_time_base(scopesettings.timeperdiv);
 
-    //Sampling with trigger circuit enabled
-    scopesettings.samplemode = 1;
+    //Sampling with trigger circuit enabled (standard memory mode)
+    //if(scopesettings.long_memory) scopesettings.samplemode = 0; else scopesettings.samplemode = 1;
 
-    //Start the conversion and wait until done or touch panel active
+    //Start the conversion
     fpga_do_conversion();
-
-    //Check if cut short with touch
-    if(havetouch)
-    {
-      //If so skip the rest
-      return;
-    }
-
+    
+    //Flag conversion in progres
+    scopesettings.display_data_done = 0;
+    
+        //while(fpga_done_conversion()==0);
+        //timerHOLD=timerH;
+        //while(timerHOLD);
+        //fpga_do_conversion();
+  }
+  
+  //Check until conversion done or touch panel active
+  if((fpga_done_conversion())&&(scopesettings.runstate)&&(touchstate == 0)) 
+  {
     //Check if in single mode
     if(scopesettings.triggermode == 1)
     {
       //Switch to stopped
-      scopesettings.runstate = 1;
+      scopesettings.runstate = 0;//ok
 
       //Show this on the screen
       scope_run_stop_text();
+      
+      //Check in which state the right menu is in
+      //Button back to inactive state
+      if(scopesettings.rightmenustate == 0) scope_run_stop_button(0);
     }
 
     //Get trigger point information
@@ -4273,6 +439,14 @@ void scope_acquire_trace_data(void)
     //The signal representation still is correct and the trigger point seems to be more valid also
     //The original uses time base dependent processing here, but this seems to do the trick on all ranges
     //The software needs to verify the trigger to make it more stable
+  /* 
+      display_set_fg_color(BLACK_COLOR);
+      //Fill the settings background
+      display_fill_rect(550, 0, 100, 220);  //x , y , sirka, vyska
+      display_set_fg_color(WHITE_COLOR);
+      display_set_font(&font_2);
+      display_decimal(550, 10, data);
+   */   
     if(data < 750)
     {
       //Less then 750 make it bigger
@@ -4281,9 +455,21 @@ void scope_acquire_trace_data(void)
     else
     {
       //More then 750 make it smaller
-      data = data - 750;
+      data = data - 750; 
     }
+    
+    //display_decimal(550, 20, data);
 
+/*
+      display_text(550, 10, "data"); 
+      display_decimal(600, 10, data);
+      display_text(550, 20, "timerH"); 
+      display_decimal(600, 20, timerH);
+      
+    */
+        
+    //if(scopesettings.long_memory) data=10;
+   
     //Only need a single count variable for both channels, since they run on the same sample rate
     //This can be changed to a global define
     scopesettings.nofsamples  = SAMPLES_PER_ADC;
@@ -4298,11 +484,8 @@ void scope_acquire_trace_data(void)
       //Check if always 50% trigger is enabled and the trigger is on this channel
       if(scopesettings.alwaystrigger50 && (scopesettings.triggerchannel == 0))
       {
-        //Use the channel 1 center value as trigger level
-        scopesettings.triggerlevel = scopesettings.channel1.center;
-
-        //Set the trigger vertical position position to match the new trigger level
-        scope_calculate_trigger_vertical_position();
+        //Use the channel 1 center value as trigger level  
+        scope_do_50_percent_trigger_setup();
       }
     }
 
@@ -4316,19 +499,162 @@ void scope_acquire_trace_data(void)
       if(scopesettings.alwaystrigger50 && scopesettings.triggerchannel)
       {
         //Use the channel 2 center value as trigger level
-        scopesettings.triggerlevel = scopesettings.channel2.center;
-
-        //Set the trigger vertical position position to match the new trigger level
-        scope_calculate_trigger_vertical_position();
+        scope_do_50_percent_trigger_setup();
       }
     }
 
+    //Need to improve on this for a more stable displaying. On the low sample rate settings it seems to flip between two positions.
+    //Determine the trigger position based on the selected trigger channel
+    scope_process_trigger(scopesettings.nofsamples); 
+    //disp_have_trigger = 0;
+    
+    //flag data displayed, 1-for next conversion ready
+    scopesettings.display_data_done = 1; 
+    //flag next conversion for long memory mode
+   
+    
+    //Display the trace data
+  //if((scopesettings.samplemode == 0)||(!scopesettings.long_memory)) 
+   // scope_display_trace_data(); //ak nebude dobre, dat do trace data podmienku pre vymazanie adoverload az ked data done =1
+  }
+  //Display the trace data
+  //if((scopesettings.samplemode == 0)||(!scopesettings.long_memory)) 
+      scope_display_trace_data();
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+void scope_acquire_trace_data_long(void)
+{
+  uint32 data;
+  
+  if((scopesettings.runstate)&&(scopesettings.display_data_done)&&(touchstate == 0))//runstate ok
+  //if((scopesettings.runstate) && (scopesettings.display_data_done))//runstate ok
+  {
+    //Set the trigger level
+    fpga_set_trigger_level();
+    
+    scopesettings.samplemode = 0;
+
+    //Write the time base setting to the FPGA
+    fpga_set_time_base(scopesettings.timeperdiv);
+
+    //Sampling with trigger circuit enabled (standard memory mode)
+    //if(scopesettings.long_memory) scopesettings.samplemode = 0; else scopesettings.samplemode = 1;
+
+    //Start the conversion
+    fpga_do_conversion();
+    
+    //Flag conversion in progres
+    scopesettings.display_data_done = 0;
+  
+    while((fpga_done_conversion()& 1)==0);
+    
+    //scopesettings.samplemode = 0;
+    
+    //fpga_average_trace_data_long(&scopesettings.channel1);
+    
+    //Start the conversion
+    //fpga_do_conversion();
+  //while((fpga_done_conversion()& 1)==0);
+  
+  //Check until conversion done or touch panel active
+  //if((fpga_done_conversion())&&(scopesettings.runstate)&&(touchstate == 0)) 
+  //{
+    //Check if in single mode
+    if(scopesettings.triggermode == 1)
+    {
+      //Switch to stopped
+      scopesettings.runstate = 0;//ok
+
+      //Show this on the screen
+      scope_run_stop_text();
+      
+      //Check in which state the right menu is in
+      //Button back to inactive state
+      if(scopesettings.rightmenustate == 0) scope_run_stop_button(0);
+    }
+
+    //Get trigger point information
+    //Later on used to send to the FPGA with command 0x1F
+    data = fpga_prepare_for_transfer();
+
+    //Just using the same calculation for every setting solves the frequency calculation error
+    //The signal representation still is correct and the trigger point seems to be more valid also
+    //The original uses time base dependent processing here, but this seems to do the trick on all ranges
+    //The software needs to verify the trigger to make it more stable
+    
+    if(data < 750)
+    {
+      //Less then 750 make it bigger
+      data = data + 3345;
+    }
+    else
+    {
+      //More then 750 make it smaller
+      data = data - 750; 
+    }
+    
+    /*
+           display_set_fg_color(BLACK_COLOR);
+      //Fill the settings background
+      display_fill_rect(550, 0, 100, 220);  //x , y , sirka, vyska
+      display_set_fg_color(WHITE_COLOR);
+      display_set_font(&font_2);
+      //display_text(650, 10, buffertime);
+
+      display_text(550, 10, "data"); 
+      display_decimal(600, 10, data);
+     //data=10;
+     
+     */
+    
+    //if(scopesettings.long_memory) data=10;
+   
+    //Only need a single count variable for both channels, since they run on the same sample rate
+    //This can be changed to a global define
+    scopesettings.nofsamples  = SAMPLES_PER_ADC;
+    scopesettings.samplecount = SAMPLE_COUNT;
+
+    //Check if channel 1 is enabled
+    if(scopesettings.channel1.enable)
+    {
+      //Get the samples for channel 1
+      fpga_read_sample_data(&scopesettings.channel1, data);
+
+      //Check if always 50% trigger is enabled and the trigger is on this channel
+      if(scopesettings.alwaystrigger50 && (scopesettings.triggerchannel == 0))
+      {
+        //Use the channel 1 center value as trigger level  
+        scope_do_50_percent_trigger_setup();
+      }
+    }
+
+    //Check if channel 2 is enabled
+    if(scopesettings.channel2.enable)
+    {
+      //Get the samples for channel 2
+      fpga_read_sample_data(&scopesettings.channel2, data);
+
+      //Check if always 50% trigger is enabled and the trigger is on this channel
+      if(scopesettings.alwaystrigger50 && scopesettings.triggerchannel)
+      {
+        //Use the channel 2 center value as trigger level
+        scope_do_50_percent_trigger_setup();
+      }
+    }
 
     //Need to improve on this for a more stable displaying. On the low sample rate settings it seems to flip between two positions.
     //Determine the trigger position based on the selected trigger channel
-    scope_process_trigger(scopesettings.nofsamples);
-
+    scope_process_trigger(scopesettings.nofsamples); 
+    
+    //flag data displayed, 1-for next conversion ready
+    scopesettings.display_data_done = 1; 
+    //flag next conversion for long memory mode
+    
   }
+  //Display the trace data
+  //if((scopesettings.samplemode == 0)||(!scopesettings.long_memory)) 
+      scope_display_trace_data();
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -4353,15 +679,14 @@ void scope_process_trigger(uint32 count)
     buffer = (uint8 *)channel2tracebuffer;
   }
 
-  disp_have_trigger = 0;
-
+   disp_have_trigger = 0;
+  
   //Set a starting point for checking on trigger
   //Count is half a sample buffer!!
-  index = count - 10;
-  count = 20;
-
+  index = count - 20; // 6  //10 bolo
+  count = 40;   //5 20
+  
   //Need a better check here, maybe over a wider range of samples
-
   while(count--)
   {
     sample1 = buffer[index];
@@ -4369,6 +694,7 @@ void scope_process_trigger(uint32 count)
 
     if(((scopesettings.triggeredge == 0) && (sample1 < level) && (sample2 >= level)) ||
        ((scopesettings.triggeredge == 1) && (sample1 >= level) && (sample2 < level)))
+
     {
       //Set the current index as trigger point
       disp_trigger_index = index;
@@ -4381,7 +707,7 @@ void scope_process_trigger(uint32 count)
     }
 
     //Select next sample to check
-    index++;
+    index--;
   }
 }
 
@@ -4391,10 +717,23 @@ uint32 scope_do_baseline_calibration(void)
 {
   uint32 flag = 1;
   uint32 voltperdiv;
+  uint8 backup_invert_ch1;
+  uint8 backup_invert_ch2;
+  //uint8 backup_samplerate;
+  //uint8 backup_timeperdiv; 
 
   //Disable the trigger circuit
   scopesettings.samplemode = 0;
 
+  //Switch back to AUTO trigger mode to avoid lockup in NORMAL or SINGLE mode
+  scopesettings.triggermode = 0;
+  
+  //Show it on the display
+  scope_trigger_settings(0);
+  
+  //Also set the FPGA to the AUTO trigger mode
+  fpga_set_trigger_mode();
+  
   //Set number of samples
   //This can be changed to a global define
   scopesettings.samplecount = SAMPLE_COUNT;
@@ -4403,6 +742,20 @@ uint32 scope_do_baseline_calibration(void)
   //Send the command for setting the trigger level to the FPGA
   fpga_write_cmd(0x17);
   fpga_write_byte(0);
+  
+  //Sample rate ant time per div settings backup
+  //backup_samplerate = scopesettings.samplerate;
+  //backup_timeperdiv = scopesettings.timeperdiv;
+  
+  //Invert channel settings backup and OFF
+  backup_invert_ch1 = scopesettings.channel1.invert;
+  backup_invert_ch2 = scopesettings.channel2.invert;
+  scopesettings.channel1.invert = 0;
+  scopesettings.channel2.invert = 0;
+  
+  //Set offset to 0
+  scopesettings.channel1.dcoffset = 0;
+  scopesettings.channel2.dcoffset = 0;
 
   //Clear the compensation values before doing the calibration
   calibrationsettings.adc1compensation = 0;
@@ -4468,13 +821,32 @@ uint32 scope_do_baseline_calibration(void)
     scopesettings.channel2.adc2compensation = calibrationsettings.adc2compensation;
   }
 
+  //Set a default sample rate and time per division setting
+  //scopesettings.timeperdiv = 23;//12
+  //scopesettings.samplerate = time_per_div_sample_rate[23];//12
+  
+  //Restore backup time per div and sample rate
+  //scopesettings.timeperdiv = backup_timeperdiv;
+  //scopesettings.samplerate = backup_samplerate;
+
   //Load the normal operation settings back into the FPGA
   fpga_set_channel_voltperdiv(&scopesettings.channel1);
   fpga_set_channel_offset(&scopesettings.channel1);
   fpga_set_channel_voltperdiv(&scopesettings.channel2);
   fpga_set_channel_offset(&scopesettings.channel2);
   fpga_set_sample_rate(scopesettings.samplerate);
-
+  
+  //Show the new settings
+  scope_acqusition_settings(0);
+  
+  //Restore invert channel settings
+  scopesettings.channel1.invert = backup_invert_ch1;
+  scopesettings.channel2.invert = backup_invert_ch2;
+  
+  //Display the channel menu select buttons and their settings
+  scope_channel_settings(&scopesettings.channel1, 0);
+  scope_channel_settings(&scopesettings.channel2, 0);
+ 
   return(flag);
 }
 
@@ -4500,14 +872,14 @@ uint32 scope_do_channel_calibration(void)
     calibrationsettings.samplevoltperdiv = voltperdiv;
     fpga_set_channel_voltperdiv(&calibrationsettings);
 
-    //Wait 50ms to allow the relays to settle
-    timer0_delay(50);
+    //Wait 60ms to allow the relays to settle
+    timer0_delay(60);//50
 
     //Start with the first set of averages
     samplerateindex = 0;
 
     //Do the measurements on two sample rates. 200MSa/s and 50KSa/s
-    for(samplerate=0;samplerate<18;samplerate+=11)
+    for(samplerate=0;samplerate<18;samplerate+=11)//ok      //0 a 11  4 a 7   
     {
       //Set the selected sample rate
       fpga_set_sample_rate(samplerate);
@@ -4519,11 +891,13 @@ uint32 scope_do_channel_calibration(void)
       calibrationsettings.dc_calibration_offset[voltperdiv] = HIGH_DC_OFFSET;
       fpga_set_channel_offset(&calibrationsettings);
 
-      //Wait 25ms before sampling
-      timer0_delay(25);
+      //Wait 30ms before sampling
+      timer0_delay(30);//25
 
-      //Start the conversion and wait until done or touch panel active
+      //Start the conversion
       fpga_do_conversion();
+      //Wait until conversion done or touch panel active
+      while (fpga_done_conversion() == 0);
 
       //Get the data from a sample run
       fpga_read_sample_data(&calibrationsettings, 100);
@@ -4535,11 +909,13 @@ uint32 scope_do_channel_calibration(void)
       calibrationsettings.dc_calibration_offset[voltperdiv] = LOW_DC_OFFSET;
       fpga_set_channel_offset(&calibrationsettings);
 
-      //Wait 25ms before sampling
-      timer0_delay(25);
+      //Wait 30ms before sampling
+      timer0_delay(30);
 
-      //Start the conversion and wait until done or touch panel active
+      //Start the conversion
       fpga_do_conversion();
+      //Wait until conversion done or touch panel active
+      while (fpga_done_conversion() == 0);
 
       //Get the data from a sample run
       fpga_read_sample_data(&calibrationsettings, 100);
@@ -4585,11 +961,13 @@ uint32 scope_do_channel_calibration(void)
     //Set the new DC channel offset in the FPGA
     fpga_set_channel_offset(&calibrationsettings);
 
-    //Wait 50ms before sampling
-    timer0_delay(50);
+    //Wait 60ms before sampling
+    timer0_delay(60);
 
-    //Start the conversion and wait until done or touch panel active
+    //Start the conversion
     fpga_do_conversion();
+    //Wait until conversion done or touch panel active
+    while (fpga_done_conversion() == 0);
 
     //Get the data from a sample run
     fpga_read_sample_data(&calibrationsettings, 100);
@@ -4632,18 +1010,258 @@ uint32 scope_do_channel_calibration(void)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+void scope_input_calibration(void)
+{
+    int32   voltsCH1 = 1;
+    int32   voltsCH2 = 1;
+    int32   valueCH1;
+    int32   valueCH2;
+    
+    int32   calibVolt = 0;
+    uint8   vic = 0;        //vic - Value Input Calibration
+            
+    PVOLTCALCDATA vcdCH1;
+    PVOLTCALCDATA vcdCH2;
+    
+    //Clear flag error input calibration
+    calibrationfail = 0;
+    
+    switch (calibrationopen)
+      {
+      case 3:  //Signal calibration 300mV
+            
+      //Enable channel 1 & channel 2
+      scopesettings.channel1.enable = 1;
+      scopesettings.channel2.enable = 1;
+      
+      //Invert channel mode OFF
+      scopesettings.channel1.invert = 0;
+      scopesettings.channel2.invert = 0;
+    
+      //Set the channel to DC coupling ( settings->coupling = 0; )
+      scopesettings.channel1.coupling = 0;  //0-DC
+      scopesettings.channel2.coupling = 0;  //0-DC
+      
+      fpga_set_channel_coupling(&scopesettings.channel1);
+      fpga_set_channel_coupling(&scopesettings.channel2);
+    
+      //Set the channel magnification 1x
+      scopesettings.channel1.magnification = 1;   
+      scopesettings.channel2.magnification = 1;
+     
+      //Signal calibration 300mV
+      calibVolt = 30000;
+    
+      //choice value input_calibration[X] 5 for 100mV/div
+      vic = 5; 
+    
+      //Set sample 100mV/div ( 5->100mV, 4->200mV, 3->500mV, 2->1V, 1->2.5V, 0->5V )
+      scopesettings.channel1.displayvoltperdiv = vic;    
+      scopesettings.channel2.displayvoltperdiv = vic;    
+     
+      //Set offset to 0
+      scopesettings.channel1.dcoffset = 0;
+      scopesettings.channel2.dcoffset = 0;
+      
+      //Set fpga samplevoltperdiv = displayvoltperdiv; Set fpga dcoffset
+      match_volt_per_div_settings(&scopesettings.channel1);
+      match_volt_per_div_settings(&scopesettings.channel2);
+      
+      //Disable the trigger circuit
+      scopesettings.samplemode = 0;
+
+      //Switch back to AUTO trigger mode to avoid lockup in NORMAL or SINGLE mode
+      scopesettings.triggermode = 0;
+  
+      //Show it on the display
+      scope_trigger_settings(0);
+  
+      //Also set the FPGA to the AUTO trigger mode
+      fpga_set_trigger_mode();
+    
+      //Set a default sample rate and time per division setting
+      scopesettings.timeperdiv = 20;//9+11 //9 is 500KSa 200us/div 12 is 5MSa/s 20us/div
+      scopesettings.samplerate = time_per_div_sample_rate[20];//9+11 200us/div
+    
+      //Set the new sample rate in the FPGA
+      fpga_set_sample_rate(scopesettings.samplerate);
+      //Set the new timeperdiv rate in the FPGA
+      fpga_set_time_base(scopesettings.timeperdiv);
+
+      //Show the new settings
+      scope_acqusition_settings(0);
+      
+      //To make sure the scope will be running after auto set, set the run mode to running
+      //scopesettings.runstate = 1;//ok
+  
+      //Show this on the screen
+      //scope_run_stop_text();
+      //scope_run_stop_button(0);
+    
+      break;
+      //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      case 4:    
+      //Signal calibration 600mV
+      calibVolt = 60000;
+      //choice value input_calibration[X]
+      vic = 4; 
+    
+      //Set sample 100mV/div ( 5->100mV, 4->200mV, 3->500mV, 2->1V, 1->2.5V, 0->5V )
+      scopesettings.channel1.displayvoltperdiv = vic;    
+      scopesettings.channel2.displayvoltperdiv = vic;    
+    
+      break;
+      //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      case 5:  
+      //Signal calibration 1.5V
+      calibVolt = 150000;
+    
+      //choice value input_calibration[X]
+      vic = 3; 
+    
+      //Set sample 100mV/div ( 5->100mV, 4->200mV, 3->500mV, 2->1V, 1->2.5V, 0->5V )
+      scopesettings.channel1.displayvoltperdiv = vic;    
+      scopesettings.channel2.displayvoltperdiv = vic;    
+    
+      break;    
+      //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      case 6:  
+      //Signal calibration 3V
+      calibVolt = 300000;
+    
+      //choice value input_calibration[X]
+      vic = 2; 
+    
+      //Set sample 100mV/div ( 5->100mV, 4->200mV, 3->500mV, 2->1V, 1->2.5V, 0->5V )
+      scopesettings.channel1.displayvoltperdiv = vic;    
+      scopesettings.channel2.displayvoltperdiv = vic;    
+
+      break;    
+      //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      case 7:  
+      //Signal calibration 7.5V
+      calibVolt = 750000;
+    
+      //choice value input_calibration[X]
+      vic = 1; 
+    
+      //Set sample 100mV/div ( 5->100mV, 4->200mV, 3->500mV, 2->1V, 1->2.5V, 0->5V )
+      scopesettings.channel1.displayvoltperdiv = vic;    
+      scopesettings.channel2.displayvoltperdiv = vic;    
+
+      break;    
+      //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      case 8:  
+      //Signal calibration 15V
+      calibVolt = 1500000;
+      //calibVolt = 1280000;
+    
+      //choice value input_calibration[X] 5 for 100mV/div etc.
+      vic = 0; 
+    
+      //Set sample 100mV/div ( 5->100mV, 4->200mV, 3->500mV, 2->1V, 1->2.5V, 0->5V )
+      scopesettings.channel1.displayvoltperdiv = vic;    
+      scopesettings.channel2.displayvoltperdiv = vic;    
+     
+      break;   
+      //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
+      default: break; 
+    }
+    //----------------------------------- FOR ALLL -------------------------------------------  
+  
+    //Set fpga samplevoltperdiv=displayvoltperdiv; Set fpga dcoffset
+    match_volt_per_div_settings(&scopesettings.channel1);
+    match_volt_per_div_settings(&scopesettings.channel2);
+    
+    //Adjust the trigger level to 50% setting
+    //scope_do_50_percent_trigger_setup();  //netreba lebo triger off
+    
+    //Display the channel menu select buttons and their settings
+    scope_channel_settings(&scopesettings.channel1, 0);
+    scope_channel_settings(&scopesettings.channel2, 0);
+    
+    
+    //Calculate the voltage based on the channel settings
+    vcdCH1 = (PVOLTCALCDATA)&volt_calc_data[scopesettings.channel1.magnification][scopesettings.channel1.displayvoltperdiv];
+    vcdCH2 = (PVOLTCALCDATA)&volt_calc_data[scopesettings.channel2.magnification][scopesettings.channel2.displayvoltperdiv];
+    
+    //Start the conversion
+    fpga_do_conversion();
+    //Wait until conversion done or touch panel active
+    while (fpga_done_conversion() == 0);
+  
+    //Get the data from a sample run
+    fpga_read_sample_data(&scopesettings.channel1, 100);
+    fpga_read_sample_data(&scopesettings.channel2, 100);
+    
+    //calculate Vmax
+    //valueCH1 = scopesettings.channel1.max-128;
+    //valueCH2 = scopesettings.channel2.max-128;
+    valueCH1 = scopesettings.channel1.average-128;
+    valueCH2 = scopesettings.channel2.average-128;
+    //valueCH1 = scopesettings.channel1.center-128;
+    //valueCH2 = scopesettings.channel2.center-128;
+
+    //Start default input_calibration value
+    scopesettings.channel1.input_calibration[vic] = 3000000;
+            
+    //modify input_calibration for specify value for CH1
+    while (voltsCH1 != calibVolt)   
+      {
+      scopesettings.channel1.input_calibration[vic]++;
+      if (scopesettings.channel1.input_calibration[vic] > 4000000) {calibrationfail = 1;break;}
+      voltsCH1 = (valueCH1 * scopesettings.channel1.input_calibration[vic]) >> VOLTAGE_SHIFTER;
+      voltsCH1 *= vcdCH1->mul_factor; 
+      }
+    
+    //Start default input_calibration value
+    scopesettings.channel2.input_calibration[vic] = 3000000;
+    
+    //modify input_calibration for specify value for CH2
+    while (voltsCH2 != calibVolt) 
+      {
+      scopesettings.channel2.input_calibration[vic]++;
+      if (scopesettings.channel2.input_calibration[vic] > 4000000) {calibrationfail = 1;break;}
+      voltsCH2 = (valueCH2 * scopesettings.channel2.input_calibration[vic]) >> VOLTAGE_SHIFTER;
+      voltsCH2 *= vcdCH2->mul_factor; 
+      }
+    
+    //For 50mV  is calibration 100mV*2 ( only software calculation )  
+    if ( calibrationopen == 3 )
+        {
+        scopesettings.channel1.input_calibration[6] = scopesettings.channel1.input_calibration[5]*2;  
+        scopesettings.channel2.input_calibration[6] = scopesettings.channel2.input_calibration[5]*2; 
+        }
+
+    //FAILED - show the calibration FAILED text
+    if (calibrationfail) {scope_show_Input_calibration_fail(); calibrationopen = 9;}
+        else calibrationopen++;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
 void scope_do_50_percent_trigger_setup(void)
 {
+  uint32 center50 = 0;
+    
   //Check which channel is the active trigger channel
   if(scopesettings.triggerchannel == 0)
   {
-    //Use the channel 1 center value
-    scopesettings.triggerlevel = scopesettings.channel1.center;
+    //Use the channel 1 center value   
+    //Get the sample and adjust the data for the correct voltage per div setting
+    center50 = ((scopesettings.channel1.center-128) * scopesettings.channel1.input_calibration[scopesettings.channel1.samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+    //scopesettings.channel1.triggerverticalposition = center50 + scopesettings.channel1.traceposition;
+    
+    //scopesettings.channel1.triggerverticalposition = center50 + scopesettings.channel1.traceposition - scopesettings.channel1.dcoffset/2;
+    
+    scopesettings.channel1.triggerverticalposition = center50 + scopesettings.channel1.traceposition;// + scopesettings.channel1.dcoffset;  
   }
   else
   {
     //Use the channel 2 center value
-    scopesettings.triggerlevel = scopesettings.channel2.center;
+    //Get the sample and adjust the data for the correct voltage per div setting
+    center50 = ((scopesettings.channel2.center-128) * scopesettings.channel2.input_calibration[scopesettings.channel2.samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+    scopesettings.channel2.triggerverticalposition = center50 + scopesettings.channel2.traceposition;
   }
 
   //Set the trigger vertical position position to match the new trigger level
@@ -4651,24 +1269,44 @@ void scope_do_50_percent_trigger_setup(void)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-
 void scope_do_auto_setup(void)
-{
+{ 
+    if (!scopesettings.new_autosetup) scope_do_auto_setup_old();
+    else scope_do_auto_setup_new();
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_do_auto_setup_old(void)
+{   
   PCHANNELSETTINGS settings;
+  
+  register uint32 multiply;
 
   int32  screentime;
   int32  timeperdiv;
-  int32  samplerate;
+  int32  samplerate = 0;
+    
+  uint32 flags = 0;
+  uint32 voltperdiv;
+  uint32 overload = 0;
 
-  uint32 dochannel1 = scopesettings.channel1.enable;
-  uint32 dochannel2 = scopesettings.channel2.enable;
-
+  uint32 minvpplevel;
+  uint32 center1;
+  uint32 center2;
+  uint32 offset;
+  uint32 max;
+  uint32 min;    
+  uint32 p2pCH1 = 0; 
+  uint32 p2pCH2 = 0;
+  uint32 center;  
+  
   //No need to do auto setup if no channel is enabled
-  if((dochannel1 == 0) && (dochannel2 == 0))
+  if((scopesettings.channel1.enable == 0) && (scopesettings.channel2.enable == 0))
   {
     return;
   }
-
+  
   //Disable the trigger circuit
   scopesettings.samplemode = 0;
   
@@ -4683,37 +1321,62 @@ void scope_do_auto_setup(void)
   fpga_set_trigger_mode();
   
   //To make sure the scope will be running after auto set, set the run mode to running
-  scopesettings.runstate = 0;
+  scopesettings.runstate = 1;//ok
   
   //Show this on the screen
   scope_run_stop_text();
-  //End. 09-03-2022
-
+  scope_run_stop_button(0);
+  
   //Set number of samples
   //This can be changed to a global define
   scopesettings.samplecount = SAMPLE_COUNT;
   scopesettings.nofsamples  = SAMPLES_PER_ADC;
 
   //Send the command for setting the trigger level to the FPGA
-  fpga_write_cmd(0x17);
-  fpga_write_byte(0);
-
-  //Setup channel 1 if enabled
-  if(dochannel1)
+  //fpga_write_cmd(0x17);
+  //fpga_write_byte(0);
+  
+  //-*************************************************************************************
+  
+  //Check on which bottom check level needs to be used
+  if((scopesettings.channel1.enable) && (scopesettings.channel2.enable))
   {
-    //Use the most sensitive hardware setting and set it in the FPGA
-    scopesettings.channel1.samplevoltperdiv = 5;
-    fpga_set_channel_voltperdiv(&scopesettings.channel1);
+    //Both channels enabled use lower value??
+    minvpplevel = 70; //70
+  }
+  else
+  {
+    //Only one channel enabled use this value??
+    minvpplevel = 110;//110 130 140 150
+  }
+  
+  //Setup for channel 1 if it is enabled
+  if(scopesettings.channel1.enable)
+  {
+    //Trace offset on low end
+    center1 = 200;//200
+    scopesettings.channel1.traceposition = 200;
+    scopesettings.channel1.dcoffset = 0;
+    fpga_set_channel_offset(&scopesettings.channel1);
+    
+    //Signal channel is enabled and needs to be done
+    flags |= 0x01;
   }
 
-  //Setup channel 2 if enabled
-  if(dochannel2)
+  //Setup for channel 2 if it is enabled
+  if(scopesettings.channel2.enable)
   {
-    //Use the most sensitive hardware setting and set it in the FPGA
-    scopesettings.channel2.samplevoltperdiv = 5;
-    fpga_set_channel_voltperdiv(&scopesettings.channel2);
+    //Trace offset on low end
+    center2 = 200;//200
+    scopesettings.channel2.traceposition = 200;
+    scopesettings.channel2.dcoffset = 0;
+    fpga_set_channel_offset(&scopesettings.channel2);
+    
+    //Signal channel is enabled and needs to be done
+    flags |= 0x02;
   }
 
+  //-**************************************************************************
   //Select the channel to work with
   if(scopesettings.triggerchannel == 0)
   {
@@ -4724,31 +1387,71 @@ void scope_do_auto_setup(void)
     settings = &scopesettings.channel2;
   }
 
-  //Wait 50ms to allow the relays to settle
+  settings->samplevoltperdiv = 0;//0
+  //Set the volts per div for this channel
+  fpga_set_channel_voltperdiv(settings);
+  //Wait 50ms to allow the circuit to settle
   timer0_delay(50);
-
-  //Do the measurements on four sample rates. 200MSa/s, 2MSa/s, 20KSa/s and 1000Sa/s
-  for(samplerate=0;samplerate<4;samplerate++)
+ 
+  settings->frequencyvalid = 0;
+  //settings->ADoverload = 0;
+  overload = 0;
+  
+  //----------------------------------------------------------------------------
+     
+  while((!settings->frequencyvalid)&&(!overload))
   {
-    //Set the selected sample rate
-    fpga_set_sample_rate(samplerate_for_autosetup[samplerate]);
-
-    //Set the matching time base
-    fpga_set_time_base(sample_rate_time_per_div[samplerate_for_autosetup[samplerate]]);
-
-    //Start the conversion and wait until done or touch panel active
-    fpga_do_conversion();
-
-    //Get the data from a sample run
-    fpga_read_sample_data(settings, 100);
-
-    //Check if there is a frequency reading and break the loop if so
-    if(settings->frequencyvalid)
+    for(samplerate=0;samplerate<4;samplerate++)// 6ide do 5ky    //4 do 3
     {
-      break;
-    }
-  }
+        //Set the selected sample rate
+        fpga_set_sample_rate(samplerate_for_autosetup[samplerate]);
 
+        //Set the matching time base
+        fpga_set_time_base(sample_rate_time_per_div[samplerate_for_autosetup[samplerate]]);
+
+        settings->ADoverload = 0;
+        
+        //Start the conversion
+        fpga_do_conversion();
+        //Wait until conversion done or touch panel active
+        while (fpga_done_conversion() == 0);
+    
+        //Get the data from a sample run
+        fpga_read_sample_data(settings, 5);//100
+        
+        //Check if there is a frequency reading and break the loop if so
+        if(settings->frequencyvalid)
+        {
+        break;
+        }
+   
+        if((settings->samplevoltperdiv < 6)&&(settings->ADoverload == 0)) 
+        {
+            settings->samplevoltperdiv++;
+            //Set the volts per div for this channel
+            fpga_set_channel_voltperdiv(settings);
+            //Wait 50ms to allow the circuit to settle
+            timer0_delay(50);
+            //match_volt_per_div_settings(settings);
+            //samplerate=0;
+        } 
+        else 
+        {   overload = 1;
+            if(settings->ADoverload) {if(settings->samplevoltperdiv > 0)settings->samplevoltperdiv--;fpga_set_channel_voltperdiv(settings);timer0_delay(50);}
+            settings->frequencyvalid = 0;
+            break;
+        }
+    }
+  }//end while
+  
+  //Start the conversion
+  fpga_do_conversion();
+  //Wait until conversion done or touch panel active
+  while (fpga_done_conversion() == 0);
+  
+  //Get the data from a sample run
+  fpga_read_sample_data(settings, 5);//100
+  
   //When there is a frequency reading determine the needed time per division setting
   if(settings->frequencyvalid)
   {
@@ -4774,280 +1477,792 @@ void scope_do_auto_setup(void)
     }
 
     //Select the found time per division
-    scopesettings.timeperdiv = timeperdiv;
-    scopesettings.samplerate = time_per_div_sample_rate[timeperdiv];
+    scopesettings.timeperdiv = timeperdiv+11;
+    scopesettings.samplerate = time_per_div_sample_rate[timeperdiv+11];
   }
   else
   {
     //Set a default sample rate and time per division setting
-    scopesettings.timeperdiv = 12;
-    scopesettings.samplerate = time_per_div_sample_rate[12];
+    scopesettings.timeperdiv = 23;//12
+    scopesettings.samplerate = time_per_div_sample_rate[23];//12
   }
-
-  //Range the input sensitivity on the enabled channels
-  //Check on which bottom check level needs to be used
-  //When both channels are enabled and in normal display mode use separate sections of the screen for each channel.
-  if(dochannel1 && dochannel2 && (scopesettings.xymodedisplay == 0))
-  {
-    //Both channels enabled then use a lower level. Smaller section of the display available per channel so lower value
-    scopesettings.channel1.maxscreenspace = 1900;
-    scopesettings.channel2.maxscreenspace = 1900;
-
-    //Give both traces it's own location on screen
-    scopesettings.channel1.traceposition = 300;
-    scopesettings.channel2.traceposition = 100;
-
-    //Get the sample data for the not trigger source channel when a valid frequency has been determined
-    if(settings->frequencyvalid)
-    {
-      //Check which channel is the trigger source
-      if(scopesettings.triggerchannel == 0)
-      {
-        //Channel 1 is trigger source so get channel 2 data
-        fpga_read_sample_data(&scopesettings.channel2, 100);
-      }
-      else
-      {
-        //Channel 2 is trigger source so get channel 1 data
-        fpga_read_sample_data(&scopesettings.channel1, 100);
-      }
-    }
-  }
-  else
-  {
-    //Only one channel enabled then more screen space available for it so higher value
-    scopesettings.channel1.maxscreenspace = 3900;
-    scopesettings.channel2.maxscreenspace = 3900;
-
-    //Used channel will be set on the middle of the display
-    scopesettings.channel1.traceposition = 200;
-    scopesettings.channel2.traceposition = 200;
-  }
-
+  
   //Set the new sample rate in the FPGA
   fpga_set_sample_rate(scopesettings.samplerate);
 
   //Show the new settings
   scope_acqusition_settings(0);
 
-  //Check the channels on valid voltage readings with the already done conversion, but only when valid frequency
-  if(settings->frequencyvalid)
-  {
-    //Check if channel 1 is enabled and check its range if so
-    if(dochannel1)
+//-------------------------------------------------------------------------------------------------------------------------  
+     
+   //Walk through the sensitivity settings until enabled channels are done
+  for(voltperdiv=0;voltperdiv<6 && flags!=0;voltperdiv++)
+  {     
+    //Check if channel still needs to be done
+    if(flags & 0x01)
     {
-      dochannel1 = scope_check_channel_range(&scopesettings.channel1);
+      //Set the current sensitivity
+      scopesettings.channel1.displayvoltperdiv = voltperdiv;
+      match_volt_per_div_settings(&scopesettings.channel1);
     }
-
-    //Check if channel 2 is enabled and check its range if so
-    if(dochannel2)
+    
+    //Check if channel still needs to be done
+    if(flags & 0x02)
     {
-      dochannel2 = scope_check_channel_range(&scopesettings.channel2);
+      //Set the current sensitivity
+      scopesettings.channel2.displayvoltperdiv = voltperdiv;
+      match_volt_per_div_settings(&scopesettings.channel2);
     }
-  }
-
-  //If one or either channel not in range another conversion is needed
-  if(dochannel1 || dochannel2)
-  {
-    //Check if channel 1 still needs to be done
-    if(dochannel1)
-    {
-      //Use the 500mV/div setting and set it in the FPGA
-      scopesettings.channel1.samplevoltperdiv = 3;
-      fpga_set_channel_voltperdiv(&scopesettings.channel1);
-    }
-
-    //Check if channel 2 still needs to be done
-    if(dochannel2)
-    {
-      //Use the 500mV/div setting and set it in the FPGA
-      scopesettings.channel2.samplevoltperdiv = 3;
-      fpga_set_channel_voltperdiv(&scopesettings.channel2);
-    }
-
-    //Wait 50ms to allow the relays to settle
-    timer0_delay(50);
-
-    //Start the conversion and wait until done
+    
+    
+  //-********************************************************************************************
+    //Reset ADoverload flag(flags);
+    scopesettings.channel1.ADoverload = 0;
+    scopesettings.channel2.ADoverload = 0;
+      
+    //Start the conversion
     fpga_do_conversion();
-
-    //Check if channel 1 still needs to be done
-    if(dochannel1)
+    //Wait until conversion done or touch panel active
+    while (fpga_done_conversion() == 0);
+    //---------------- CH1 ---------------------------------------------------
+    //Get the data from a sample run
+    fpga_read_sample_data(&scopesettings.channel1, 5);//100
+    fpga_read_sample_data(&scopesettings.channel2, 5);//100
+    
+    //Check the channel data if not yet done
+    if(flags & 0x01)
     {
-      //Get the data from a sample run
-      fpga_read_sample_data(&scopesettings.channel1, 100);
-
-      //Check the range again
-      dochannel1 = scope_check_channel_range(&scopesettings.channel1);
-    }
-
-    //Check if channel 2 still needs to be done
-    if(dochannel2)
-    {
-      //Get the data from a sample run
-      fpga_read_sample_data(&scopesettings.channel2, 100);
-
-      //Check the range again
-      dochannel2 = scope_check_channel_range(&scopesettings.channel2);
-    }
-
-    //If one or either channel not in range another conversion is needed
-    if(dochannel1 || dochannel2)
-    {
-      //Check if channel 1 still needs to be done
-      if(dochannel1)
-      {
-        //Use the 2.5V/div setting and set it in the FPGA
-        scopesettings.channel1.samplevoltperdiv = 1;
-        fpga_set_channel_voltperdiv(&scopesettings.channel1);
+    settings = &scopesettings.channel1;
+    
+    multiply=(settings->input_calibration[settings->samplevoltperdiv]);//*(settings->dc_shift_center)/100; ;
+    
+    //Get the sample and adjust the data  
+    max = ((settings->maxDC * multiply ) >> VOLTAGE_SHIFTER);//3289650
+    //center = ((settings->center * multiply ) >> VOLTAGE_SHIFTER);//3289650
+    min = ((settings->minDC * multiply ) >> VOLTAGE_SHIFTER);//3289650
+    p2pCH1 = ((settings->peakpeakDC * multiply ) >> VOLTAGE_SHIFTER);//3289650
+    /*
+        //Get the sample and adjust the data  
+    max = settings->maxAS;//3289650
+    //center = ((settings->center * multiply ) >> VOLTAGE_SHIFTER);//3289650
+    min = settings->minAS;//3289650
+    p2pCH1 = settings->peakpeakAS;//3289650
+    */
+    
+    
+      //Check if signal in good range 
+      if((max >= 391) || (min < 60) || (p2pCH1 > minvpplevel))//301 100 391-60
+      { //When signal in range stop scanning the channel
+        if (settings->ADoverload) 
+            {
+            if(settings->samplevoltperdiv > 0)settings->samplevoltperdiv--;
+            match_volt_per_div_settings(settings);
+            }
+        
+        flags &= 0x2;
       }
+    }    
 
-      //Check if channel 2 still needs to be done
-      if(dochannel2)
+    //Check the channel data if not yet done
+    if(flags & 0x02)
+    {   
+    settings = &scopesettings.channel2;
+    
+    multiply=(settings->input_calibration[settings->samplevoltperdiv]);
+    //multiply = 3289650;
+    //Get the sample and adjust the data
+    max = (settings->maxDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    //center = ((settings->center) * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    min = (settings->minDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    p2pCH2 = (settings->peakpeakDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    
+      //Check if signal in good range 
+      if((max >= 391) || (min < 60) || (p2pCH2 > minvpplevel)) 
       {
-        //Use the 2.5V/div setting and set it in the FPGA
-        scopesettings.channel2.samplevoltperdiv = 1;
-        fpga_set_channel_voltperdiv(&scopesettings.channel2);
+        //When signal in range stop scanning the channel
+         if (settings->ADoverload) 
+            {
+            if(settings->samplevoltperdiv > 0)settings->samplevoltperdiv--;
+            match_volt_per_div_settings(settings);
+            }
+         flags &= 0x1;
       }
-
-      //Wait 50ms to allow the relays to settle
-      timer0_delay(50);
-
-      //Start the conversion and wait until done
-      fpga_do_conversion();
-
-      //Check if channel 1 still needs to be done
-      if(dochannel1)
-      {
-        //Get the data from a sample run
-        fpga_read_sample_data(&scopesettings.channel1, 100);
-
-        //Check the range again
-        dochannel1 = scope_check_channel_range(&scopesettings.channel1);
-      }
-
-      //Check if channel 2 still needs to be done
-      if(dochannel2)
-      {
-        //Get the data from a sample run
-        fpga_read_sample_data(&scopesettings.channel2, 100);
-
-        //Check the range again
-        dochannel2 = scope_check_channel_range(&scopesettings.channel2);
-      }
-
-      //If one or either channel not in range the least sensitive setting needs to be used
-      if(dochannel1 || dochannel2)
-      {
-        //Check if channel 1 still not done
-        if(dochannel1)
-        {
-          //Set the lowest sensitivity for this channel
-          scopesettings.channel1.samplevoltperdiv = 0;
-        }
-
-        //Check if channel 2 still not done
-        if(dochannel2)
-        {
-          //Set the lowest sensitivity for this channel
-          scopesettings.channel2.samplevoltperdiv = 0;
-        }
-      }
-    }
+    }    
   }
+  
+  //Start the conversion
+  fpga_do_conversion();
+  //Wait until conversion done or touch panel active
+  while (fpga_done_conversion() == 0);
+  
+  //--------------------------- CH1 --------------------------------------------
+  
+  //Get the data from a sample run
+  fpga_read_sample_data(&scopesettings.channel1, 5);//100
+  fpga_read_sample_data(&scopesettings.channel2, 5);//100
 
-  //Check if channel 1 is enabled and set the new settings if so
+   
+  //Check if channel enabled
   if(scopesettings.channel1.enable)
   {
-    //Set the new setting in the FPGA
-    fpga_set_channel_voltperdiv(&scopesettings.channel1);
-
-    //Copy the found sample volt per division setting to the display setting
-    scopesettings.channel1.displayvoltperdiv = scopesettings.channel1.samplevoltperdiv;
+    settings = &scopesettings.channel1;
+      
+    //Check if on fore last sensitivity still not done
+    if(flags & 0x01)
+    {
+      //Switch to last sensitivity if so
+      settings->displayvoltperdiv = 6;
+      match_volt_per_div_settings(&scopesettings.channel1);
+    }
     
-    //Update the display
-    scope_channel_settings(&scopesettings.channel1, 0);
-  }
+   //If DC mode calculate to offset
+   if(!settings->coupling)
+   {
+    
+    //multiply=(settings->input_calibration[settings->samplevoltperdiv]);
+    //center = (((settings->centerAS) * multiply ) >> VOLTAGE_SHIFTER);//3289650
+    center = settings->centerDC+73;
+    //center= (center*settings->dc_shift_center)/100; 
+    //center= (center+73); 
+     
 
-  //Check if channel 2 is enabled and set the new settings if so
+    //Adjust the center line based on targeted center
+    if(center < center1)
+    {
+      //Calculate a new trace offset
+      //settings->traceposition += ((center1 - center)*112)/100;  //120 mensie cislo posuva hore priebeh
+      settings->traceposition += ((center1 - center)*(settings->dc_shift_center))/100;  //120 mensie cislo posuva hore priebeh
+      //settings->traceposition += ((center1 - center)-(settings->dc_shift_center));  //120 mensie cislo posuva hore priebeh
+      //settings->traceposition += (center1 - center);  //120 mensie cislo posuva hore priebeh
+      
+      //Make sure it is not out of range
+      if(settings->traceposition > 399)//385
+      {
+          settings->traceposition = 399;
+      }
+    }
+    else
+    {//kladny offset
+      //Calculate the needed offset
+      //offset = ((center - center1)*112)/100;    //110
+      offset = ((center - center1)*settings->dc_shift_center)/100;    //110
+      //offset = ((center - center1)-settings->dc_shift_center);    //110
+      //offset = (center - center1);    //110
+       
+      //Check if current setting large enough to subtract the offset
+      if(settings->traceposition > offset)
+      {
+          //Take of the found offset
+          settings->traceposition -= offset;
+      }
+      else
+      {
+          //Limit on zero
+          settings->traceposition = 0;
+      }
+    }
+    
+    //Write the new offset to the FPGA
+    settings->dcoffset = (center1 - (settings->traceposition))*2;
+   }//end dc copuling 
+  }//end channel1 enable
+  
+  //--------------------------------- CH2 --------------------------------------
+  //Check if channel enabled
   if(scopesettings.channel2.enable)
   {
-    //Set the new setting in the FPGA
-    fpga_set_channel_voltperdiv(&scopesettings.channel2);
-
-    //Copy the found sample volt per division setting to the display setting
-    scopesettings.channel2.displayvoltperdiv = scopesettings.channel2.samplevoltperdiv;
+    settings = &scopesettings.channel2;
     
-    //Update the display
-    scope_channel_settings(&scopesettings.channel2, 0);
-  }
+    //Check if on fore last sensitivity still not done
+    if(flags & 0x02)
+    {
+      //Switch to last sensitivity if so
+      settings->displayvoltperdiv = 6;
+      match_volt_per_div_settings(&scopesettings.channel2);
+    }
+    
+    //multiply=(settings->input_calibration[settings->samplevoltperdiv]);
+    //center = ((settings->center) * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    center = settings->centerDC+73;
 
+   //If DC mode calculate to offset
+   if(!settings->coupling)
+   {
+    //Adjust the center line based on targeted center
+    if(center < center2)
+    {
+        //Calculate a new trace offset
+        //settings->traceposition += ((center2 - center)*112)/100;
+        settings->traceposition += ((center2 - center)*settings->dc_shift_center)/100;
+      
+        //Make sure it is not out of range
+        if(settings->traceposition > 399)//385
+        {
+            settings->traceposition = 399;
+        }
+    }
+    else
+    {
+      //Calculate the needed offset
+      //offset = ((center - center2)*112)/100;
+      offset = ((center - center2)*settings->dc_shift_center)/100;
+       
+      //Check if current setting large enough to subtract the offset
+      if(settings->traceposition > offset)
+      {
+          //Take of the found offset
+          settings->traceposition -= offset;
+      }
+      else
+      {
+          //Limit on zero
+          settings->traceposition = 0;
+      }
+    }
+    
+    //Write the new offset to the FPGA
+    settings->dcoffset = (center2 - (settings->traceposition))*2;
+   }//end dc copuling 
+  }//end channel2 enable
+  
+//--------------------------- End CH1 & CH2 ------------------------------------
+  
+  //Check on which bottom check level needs to be used
+  if((scopesettings.channel1.enable) && (scopesettings.channel2.enable))
+  {
+      if ((scopesettings.channel1.traceposition + 100 ) < 399) scopesettings.channel1.traceposition += 100;
+      if ((scopesettings.channel2.traceposition - 100 ) > 0)   scopesettings.channel2.traceposition -= 100;
+      
+      //scopesettings.channel1.traceposition = 399-copesettings.channel1.traceposition ;
+      //scopesettings.channel1.traceposition = 399-copesettings.channel1.traceposition ;
+      
+      //while ((scopesettings.channel1.traceposition+p2pCH1)<299) scopesettings.channel1.traceposition++;
+      //while ((scopesettings.channel2.traceposition-p2pCH2)>0)   scopesettings.channel2.traceposition--;
+      
+      
+      //if ((scopesettings.channel1.traceposition + p2pCH1 ) < 399) scopesettings.channel1.traceposition += p2pCH1;
+      //if ((scopesettings.channel2.traceposition - p2pCH2 ) > 0)   scopesettings.channel2.traceposition -= p2pCH2;
+      
+      
+      //if ((scopesettings.channel1.traceposition + minvpplevel ) < 399) scopesettings.channel1.traceposition += minvpplevel;
+      //if ((scopesettings.channel2.traceposition - minvpplevel ) > 0)   scopesettings.channel2.traceposition -= minvpplevel;
+  }
+  
+  //If AC mode set to offset to zero
+  //if(scopesettings.channel1.coupling) scopesettings.channel1.dcoffset = 0;  //1-AC
+  //if(scopesettings.channel2.coupling) scopesettings.channel2.dcoffset = 0;  //1-AC
+  
+  //Write the new offset to the FPGA
+  fpga_set_channel_offset(&scopesettings.channel1);
+  fpga_set_channel_offset(&scopesettings.channel2);
+  
+  //Display the new channel setting
+  scope_channel_settings(&scopesettings.channel1, 0);
+  scope_channel_settings(&scopesettings.channel2, 0);
+  
+  //Show it on the display
+  scope_trigger_settings(0);
+  
+  //Also set the FPGA to the AUTO trigger mode
+  fpga_set_trigger_mode();
+  
   //Adjust the trigger level to 50% setting
   scope_do_50_percent_trigger_setup();
+  
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------------------
 
-uint32 scope_check_channel_range(PCHANNELSETTINGS settings)
-{
-  uint32 screenpixels;
-  uint32 range;
-  uint32 notdone = 0;
+void scope_do_auto_setup_new(void)
+{   
+  PCHANNELSETTINGS settings;
+  
+  register uint32 multiply;
 
-  //Convert the peak peak reading to screen pixels
-  screenpixels = (settings->peakpeak * signal_adjusters[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+  int32  screentime;
+  int32  timeperdiv;
+  int32  samplerate = 0;
+    
+  uint32 flags = 0;
+  uint32 voltperdiv;
+  //uint32 overload = 0;
 
-  //Check if there is any signal at all to avoid divide by zero
-  if(screenpixels)
+  uint32 minvpplevel;
+  uint32 center1;
+  uint32 center2;
+  uint32 offset;
+  uint32 max;
+  uint32 min;    
+  uint32 p2pCH1 = 0; 
+  uint32 p2pCH2 = 0;
+  uint32 center;  
+  
+  //No need to do auto setup if no channel is enabled
+  if((scopesettings.channel1.enable == 0) && (scopesettings.channel2.enable == 0))
   {
-    //Calculate a fixed point range to determine the volts per division setting, based on the available screen space
-    range = settings->maxscreenspace / screenpixels;
+    return;
+  }
+  
+  //Disable the trigger circuit
+  scopesettings.samplemode = 0;
+  
+  //Modification on 09-03-2022. Begin
+  //Switch back to AUTO trigger mode to avoid lockup in NORMAL or SINGLE mode
+  scopesettings.triggermode = 0;
+  
+  //Show it on the display
+  scope_trigger_settings(0);
+  
+  //Also set the FPGA to the AUTO trigger mode
+  fpga_set_trigger_mode();
+  
+  //To make sure the scope will be running after auto set, set the run mode to running
+  scopesettings.runstate = 1;//ok
+  
+  //Show this on the screen
+  scope_run_stop_text();
+  scope_run_stop_button(0);
+  
+  //Set number of samples
+  //This can be changed to a global define
+  scopesettings.samplecount = SAMPLE_COUNT;
+  scopesettings.nofsamples  = SAMPLES_PER_ADC;
 
-    //Check if signal is at least 10 times smaller then the max range
-    if(range >= 100)
-    {
-      //If so go three sensitivity settings up. (e.g. 500mV/div ==> 50mV/div)
-      settings->samplevoltperdiv = 3;
-    }
-    //Else check if signal is at least 5 times smaller then the max range
-    else if(range >= 50)
-    {
-      //If so go two sensitivity settings up. (e.g. 500mV/div ==> 100mV/div)
-      settings->samplevoltperdiv += 2;
-    }
-    //Else check if signal is at least 2.5 times smaller then the max range
-    else if(range >= 25)
-    {
-      //If so go one sensitivity setting up. (e.g. 500mV/div ==> 200mV/div)
-      settings->samplevoltperdiv += 1;
-    }
-    //Else check if signal is bigger then the max range
-    else if(range < 10)
-    {
-      //Out of range so not done
-      notdone = 1;
-    }
-
-    //Check if volt per division not out of range
-    if(settings->samplevoltperdiv > 6)
-    {
-      //Keep it on max if so
-      settings->samplevoltperdiv = 6;
-    }
+  //Send the command for setting the trigger level to the FPGA
+  //fpga_write_cmd(0x17);
+  //fpga_write_byte(0);
+  if (scopesettings.timeperdiv < 14)
+  {
+  scopesettings.timeperdiv = 23;//12
+  scopesettings.samplerate = time_per_div_sample_rate[23];//12
+  }
+  
+  //Set the new sample rate in the FPGA
+  fpga_set_sample_rate(scopesettings.samplerate);
+  
+  //-*************************************************************************************
+  
+  //Check on which bottom check level needs to be used
+  if((scopesettings.channel1.enable) && (scopesettings.channel2.enable))
+  {
+    //Both channels enabled use lower value??
+    minvpplevel = 70; 
   }
   else
   {
-    //When there is no signal use the most sensitive setting
-    settings->samplevoltperdiv = 6;
+    //Only one channel enabled use this value??
+    minvpplevel = 110;//110 130
+  }
+  
+  //Setup for channel 1 if it is enabled
+  if(scopesettings.channel1.enable)
+  {
+    //Trace offset on low end
+    center1 = 200;//200;
+    scopesettings.channel1.traceposition = 200;
+    scopesettings.channel1.dcoffset = 0;
+    fpga_set_channel_offset(&scopesettings.channel1);
+    
+    //Signal channel is enabled and needs to be done
+    flags |= 0x01;
   }
 
-  return(notdone);
+  //Setup for channel 2 if it is enabled
+  if(scopesettings.channel2.enable)
+  {
+    //Trace offset on low end
+    center2 = 200;//200;
+    scopesettings.channel2.traceposition = 200;
+    scopesettings.channel2.dcoffset = 0;
+    fpga_set_channel_offset(&scopesettings.channel2);
+    
+    //Signal channel is enabled and needs to be done
+    flags |= 0x02;
+  }
+
+  //-********************************************************* 
+   //Walk through the sensitivity settings until enabled channels are done
+  for(voltperdiv=0;voltperdiv<6 && flags!=0;voltperdiv++)
+  {     
+    //Check if channel still needs to be done
+    if(flags & 0x01)
+    {
+      //Set the current sensitivity
+      scopesettings.channel1.displayvoltperdiv = voltperdiv;
+      match_volt_per_div_settings(&scopesettings.channel1);
+    }
+    
+    //Check if channel still needs to be done
+    if(flags & 0x02)
+    {
+      //Set the current sensitivity
+      scopesettings.channel2.displayvoltperdiv = voltperdiv;
+      match_volt_per_div_settings(&scopesettings.channel2);
+    }
+    
+    
+  //-********************************************************************************************
+    //Reset ADoverload flag(flags);
+    scopesettings.channel1.ADoverload = 0;
+    scopesettings.channel2.ADoverload = 0;
+      
+    //Start the conversion
+    fpga_do_conversion();
+    //Wait until conversion done or touch panel active
+    while (fpga_done_conversion() == 0);
+    //---------------- CH1 ---------------------------------------------------
+    //Get the data from a sample run
+    fpga_read_sample_data(&scopesettings.channel1, 5);//100
+    fpga_read_sample_data(&scopesettings.channel2, 5);//100
+    
+    //Check the channel data if not yet done
+    if(flags & 0x01)
+    {
+    settings = &scopesettings.channel1;
+    
+    multiply=(settings->input_calibration[settings->samplevoltperdiv]);
+    
+    //Get the sample and adjust the data  
+    max = (settings->maxDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    //center = (settings->center * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    min = (settings->minDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    p2pCH1 = (settings->peakpeakDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    
+      //Check if signal in good range 
+      if((max >= 391) || (min < 60) || (p2pCH1 > minvpplevel))//301 100
+      { //When signal in range stop scanning the channel
+        if (settings->ADoverload) 
+            {
+            if(settings->samplevoltperdiv > 0)settings->samplevoltperdiv--;
+            match_volt_per_div_settings(settings);
+            }
+        
+        flags &= 0x2;
+      }
+    }    
+
+    //Check the channel data if not yet done
+    if(flags & 0x02)
+    {   
+    settings = &scopesettings.channel2;
+    
+    multiply=(settings->input_calibration[settings->samplevoltperdiv]);
+    
+    //Get the sample and adjust the data
+    max = (settings->maxDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    //center = ((settings->center) * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    min = (settings->minDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    p2pCH2 = (settings->peakpeakDC * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    
+      //Check if signal in good range 
+      if((max >= 391) || (min < 60) || (p2pCH2 > minvpplevel)) 
+      {
+        //When signal in range stop scanning the channel
+         if (settings->ADoverload) 
+            {
+            if(settings->samplevoltperdiv > 0)settings->samplevoltperdiv--;
+            match_volt_per_div_settings(settings);
+            }
+         flags &= 0x1;
+      }
+    }    
+  }
+  
+  //Start the conversion
+  fpga_do_conversion();
+  //Wait until conversion done or touch panel active
+  while (fpga_done_conversion() == 0);
+  
+  //--------------------------- CH1 --------------------------------------------
+  
+  //Get the data from a sample run
+  fpga_read_sample_data(&scopesettings.channel1, 5);//100
+  fpga_read_sample_data(&scopesettings.channel2, 5);//100
+
+   
+  //Check if channel enabled
+  if(scopesettings.channel1.enable)
+  {
+    settings = &scopesettings.channel1;
+      
+    //Check if on fore last sensitivity still not done
+    if(flags & 0x01)
+    {
+      //Switch to last sensitivity if so
+      settings->displayvoltperdiv = 6;
+      match_volt_per_div_settings(&scopesettings.channel1);
+    }
+    
+   //If DC mode calculate to offset
+   if(!settings->coupling)
+   {
+    
+    //center = ((settings->center) * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    //center = settings->center;
+    center = settings->centerDC+73;
+
+    //Adjust the center line based on targeted center
+    if(center < center1)
+    {
+      //Calculate a new trace offset
+      //settings->traceposition += ((center1 - center)*112)/100;  //120 mensie cislo posuva hore priebeh
+      if (settings->invert) settings->traceposition -= ((center1 - center)*settings->dc_shift_center)/100; 
+        else settings->traceposition += ((center1 - center)*settings->dc_shift_center)/100;  //120 mensie cislo posuva hore priebeh
+      
+      //Make sure it is not out of range
+      if(settings->traceposition > 399)//385
+      {
+          settings->traceposition = 399;
+      }
+    }
+    else
+    {
+      //Calculate the needed offset
+      //offset = ((center - center1)*112)/100;    //110
+        offset = ((center - center1)*settings->dc_shift_center)/100;    //110
+       
+      //Check if current setting large enough to subtract the offset
+      if(settings->traceposition > offset)
+      {
+          //Take of the found offset (of inverting ON or OFF)
+          if (settings->invert) settings->traceposition += offset; else settings->traceposition -= offset;
+      }
+      else
+      {
+          //Limit on zero
+          settings->traceposition = 0;
+      }
+    }
+    
+    //Write the new offset to the FPGA
+    settings->dcoffset = (center1 - (settings->traceposition))*2;
+   }//end dc copuling 
+  }//end channel1 enable
+  
+  //--------------------------------- CH2 --------------------------------------
+  //Check if channel enabled
+  if(scopesettings.channel2.enable)
+  {
+    settings = &scopesettings.channel2;
+    
+    //Check if on fore last sensitivity still not done
+    if(flags & 0x02)
+    {
+      //Switch to last sensitivity if so
+      settings->displayvoltperdiv = 6;
+      match_volt_per_div_settings(&scopesettings.channel2);
+    }
+    
+    //center = ((settings->center) * multiply ) >> VOLTAGE_SHIFTER;//3289650
+    //center = settings->center;
+    center = settings->centerDC+73;
+
+   //If DC mode calculate to offset
+   if(!settings->coupling)
+   {
+    //Adjust the center line based on targeted center
+    if(center < center2)
+    {
+        //Calculate a new trace offset
+        //settings->traceposition += ((center2 - center)*112)/100;
+        if (settings->invert) settings->traceposition -= ((center2 - center)*settings->dc_shift_center)/100;
+            else settings->traceposition += ((center2 - center)*settings->dc_shift_center)/100;
+      
+        //Make sure it is not out of range
+        if(settings->traceposition > 399)//385
+        {
+            settings->traceposition = 399;
+        }
+    }
+    else
+    {
+      //Calculate the needed offset
+      //offset = ((center - center2)*112)/100;
+      offset = ((center - center2)*settings->dc_shift_center)/100;
+       
+      //Check if current setting large enough to subtract the offset
+      if(settings->traceposition > offset)
+      {
+          //Take of the found offset (of inverting ON or OFF)
+          if (settings->invert) settings->traceposition += offset; else settings->traceposition -= offset;
+      }
+      else
+      {
+          //Limit on zero
+          settings->traceposition = 0;
+      }
+    }
+    
+    //Write the new offset to the FPGA
+    settings->dcoffset = (center2 - (settings->traceposition))*2;
+   }//end dc copuling 
+  }//end channel2 enable
+  
+//--------------------------- End CH1 & CH2 ------------------------------------
+  
+  //Check on which bottom check level needs to be used
+  if((scopesettings.channel1.enable) && (scopesettings.channel2.enable))
+  {
+      if ((scopesettings.channel1.traceposition + 100 ) < 399) scopesettings.channel1.traceposition += 100;
+      if ((scopesettings.channel2.traceposition - 100 ) > 0)   scopesettings.channel2.traceposition -= 100;
+      
+      //scopesettings.channel1.traceposition = 399-copesettings.channel1.traceposition ;
+      //scopesettings.channel1.traceposition = 399-copesettings.channel1.traceposition ;
+      
+      //while ((scopesettings.channel1.traceposition+p2pCH1)<299) scopesettings.channel1.traceposition++;
+      //while ((scopesettings.channel2.traceposition-p2pCH2)>0)   scopesettings.channel2.traceposition--;
+      
+      
+      //if ((scopesettings.channel1.traceposition + p2pCH1 ) < 399) scopesettings.channel1.traceposition += p2pCH1;
+      //if ((scopesettings.channel2.traceposition - p2pCH2 ) > 0)   scopesettings.channel2.traceposition -= p2pCH2;
+      
+      
+      //if ((scopesettings.channel1.traceposition + minvpplevel ) < 399) scopesettings.channel1.traceposition += minvpplevel;
+      //if ((scopesettings.channel2.traceposition - minvpplevel ) > 0)   scopesettings.channel2.traceposition -= minvpplevel;
+  }
+  
+  //If AC mode set to offset to zero
+  //if(scopesettings.channel1.coupling) scopesettings.channel1.dcoffset = 0;  //1-AC
+  //if(scopesettings.channel2.coupling) scopesettings.channel2.dcoffset = 0;  //1-AC
+  
+  //Write the new offset to the FPGA
+  fpga_set_channel_offset(&scopesettings.channel1);
+  fpga_set_channel_offset(&scopesettings.channel2);
+  
+  //Display the new channel setting
+  scope_channel_settings(&scopesettings.channel1, 0);
+  scope_channel_settings(&scopesettings.channel2, 0);
+  
+  //******************************************************************************************************************
+  //------------------------------------------------------------------------------------------------------------------
+    //Select the channel to work with
+  if(scopesettings.triggerchannel == 0)
+  {
+    settings = &scopesettings.channel1;
+  }
+  else
+  {
+    settings = &scopesettings.channel2;
+  }
+  
+    settings->frequencyvalid = 0;
+ 
+  //----------------------------------------------------------------------------
+     
+    for(samplerate=0;samplerate<4;samplerate++)// 6ide do 5ky    //4 do 3
+    {
+        /*
+        //Show the new settings
+        //scope_acqusition_settings(0);
+          display_set_fg_color(BLACK_COLOR);
+  //Fill the settings background
+  display_fill_rect(550, 0, 100, 220);  //x , y , sirka, vyska
+  //Display the text with the green color
+  //display_set_fg_color(GREEN_COLOR);
+  display_set_fg_color(WHITE_COLOR);
+  display_set_font(&font_2);
+  display_text(550, 0, "Xtouch");
+  display_decimal(550, 10, samplerate);
+  
+  scopesettings.samplerate = samplerate_for_autosetup[samplerate];
+  scopesettings.timeperdiv = sample_rate_time_per_div[samplerate_for_autosetup[samplerate]];
+  
+            //Show the new settings
+  scope_acqusition_settings(0);
+        timer0_delay(1000);
+        */
+  
+        //Set the selected sample rate
+        fpga_set_sample_rate(samplerate_for_autosetup[samplerate]);
+
+        //Set the matching time base
+        fpga_set_time_base(sample_rate_time_per_div[samplerate_for_autosetup[samplerate]]);
+
+        //Start the conversion
+        fpga_do_conversion();
+        //Wait until conversion done or touch panel active
+        while (fpga_done_conversion() == 0);
+    
+        //Get the data from a sample run
+        fpga_read_sample_data(settings, 100);//100
+        
+        //Check if there is a frequency reading and break the loop if so
+        if(settings->frequencyvalid)
+        {
+        break;
+        }
+   
+    }
+  
+  //When there is a frequency reading determine the needed time per division setting
+  if(settings->frequencyvalid)
+  {
+    //Can't use the frequency here since it is based on the scopesettings.samplerate variable, which is not used here
+    //Calculate the time in nanoseconds for getting three periods on the screen
+    screentime = (float)settings->periodtime * sample_time_converters[samplerate_for_autosetup[samplerate]];
+
+    //Match the found time to the nearest time per division setting
+    for(timeperdiv=0;timeperdiv<24;timeperdiv++)
+    {
+      //When the found time is higher than the selected time per division quit the search
+      if(screentime > time_per_div_matching[timeperdiv])
+      {
+        break;
+      }
+    }
+
+    //Check if not on the first setting
+    if(timeperdiv)
+    {
+      //If so take one of to get to the right one to use. Also ensures not selecting a non existing setting if none found
+      timeperdiv--;
+    }
+
+    //Select the found time per division
+    scopesettings.timeperdiv = timeperdiv+11;
+    scopesettings.samplerate = time_per_div_sample_rate[timeperdiv+11];
+  }
+  else
+  {
+    //Set a default sample rate and time per division setting
+    scopesettings.timeperdiv = 23;//12
+    scopesettings.samplerate = time_per_div_sample_rate[23];//12
+  }
+  
+  //Set the new sample rate in the FPGA
+  fpga_set_sample_rate(scopesettings.samplerate);
+
+  //Show the new settings
+  scope_acqusition_settings(0);
+  
+  //Start the conversion
+  fpga_do_conversion();
+  //Wait until conversion done or touch panel active
+  while (fpga_done_conversion() == 0);
+    
+  //Get the data from a sample run
+  fpga_read_sample_data(settings, 100);//100
+   
+  //------------------------------------------------------------------------------------------------------------------
+  //******************************************************************************************************************
+  
+  //Adjust the trigger level to 50% setting
+  scope_do_50_percent_trigger_setup();
+  
+  //Show it on the display
+  scope_trigger_settings(0);
+  
+  //Also set the FPGA to the AUTO trigger mode
+  fpga_set_trigger_mode();
+ 
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_display_trace_data(void)
 {
+  PTHUMBNAILDATA thumbnaildata;     
   //See if it is possible to rework this to fixed point. A 32 bit mantissa is not accurate enough though
 
   //On the scope the last pixel interleaving is not working properly. Don't know why.
@@ -5059,24 +2274,28 @@ void scope_display_trace_data(void)
   //  The user changes the sample rate or the time per div setting. Might need to block the setting of the sample rate when stopped because that makes no change to the current sample buffer.
   //  The user moves pointers around. Trace up and down should work, and trigger left and right. Changing the trigger level should not do anything, or even be disabled
 
-
-
   //Need to compensate for the position being on the left side of the pointer
-  uint32 triggerposition = scopesettings.triggerhorizontalposition + 7;
+  //uint32 triggerposition = scopesettings.triggerhorizontalposition+4; //+7
+  int32 triggerposition = scopesettings.triggerhorizontalposition; //+7
+  //int32 triggerposition = scopesettings.triggerhorizontalposition;//*disp_xpos_per_sample; //+7
 
   //Check if a trigger position has been found
   if(disp_have_trigger == 0)
   {
     //When not use the center of the sample buffer
-    disp_trigger_index = scopesettings.samplecount / 2;
-  }
+    //disp_trigger_index = (scopesettings.samplecount / 2)-4; // 
+    disp_trigger_index = (scopesettings.samplecount / 2); // 
+  } 
 
   //Make sure the two settings are in range of the tables!!!!
   //SKipp displaying if not????
 
-
   //The amount of x positions needed per sample is based on the number of pixels per division, the set time per division and the sample rate.
-  disp_xpos_per_sample = (50.0 * frequency_per_div[scopesettings.timeperdiv]) / sample_rate[scopesettings.samplerate];
+  if(scopesettings.long_mode) disp_xpos_per_sample = (5.0*frequency_per_div[scopesettings.timeperdiv]) / sample_rate[scopesettings.samplerate];
+    else disp_xpos_per_sample = (50.0 * frequency_per_div[scopesettings.timeperdiv]) / sample_rate[scopesettings.samplerate];
+  //disp_xpos_per_sample = (5.0 * frequency_per_div[scopesettings.timeperdiv]) / sample_rate[scopesettings.samplerate];
+  
+    //scope_test_longbase_value();
 
   //This gives the step size for going through the samples. Is also the linear interleaving step for the y direction
   disp_sample_step = 1.0 / disp_xpos_per_sample;
@@ -5093,13 +2312,13 @@ void scope_display_trace_data(void)
   else if(xrange > 725.0)
   {
     //Limit on max screen pixels to avoid disp_xend becoming 0x80000000 due to overflow
-    xrange = 725.0;
+    //xrange = 725.0;//comment
   }
 
   //Calculate the start and end x coordinates
   disp_xstart = triggerposition - xrange;
   disp_xend = triggerposition + xrange;
-
+  
   //Limit on actual start of trace display
   if(disp_xstart < 3)
   {
@@ -5107,13 +2326,20 @@ void scope_display_trace_data(void)
   }
 
   //And limit on the actual end of the trace display
-  if(disp_xend > 725)
+  if(disp_xend > 727)//725
   {
-    disp_xend = 725;
+    disp_xend = 727;
   }
-
+  
+  //And limit for long view the trace display
+  if(disp_xend < 1)
+  {
+    disp_xend = 1;
+  }
+  
   //Determine first sample to use based on a full screen worth of samples and the trigger position in relation to the number of pixels on the screen
-  disp_first_sample = disp_trigger_index - (((725.0 / disp_xpos_per_sample) * triggerposition) / 725.0) - 1;
+  //disp_first_sample = disp_trigger_index - (((725.0 / disp_xpos_per_sample) * triggerposition) / 725.0) - 1;
+  disp_first_sample = disp_trigger_index - (((727.0 / disp_xpos_per_sample) * triggerposition) / 727.0) - 1;
 
   //If below the first sample limit it on the first sample
   if(disp_first_sample < 0)
@@ -5127,23 +2353,19 @@ void scope_display_trace_data(void)
     disp_sample_step = (scopesettings.samplecount) / 2;
   }
 
-
-
-
   //If samplestep > 1 might be an idea to draw the in between samples on the same x position to avoid aliasing
   //If sample step < 1 then skip drawing on x positions. The draw line function does the linear interpolation
 
-
-
   //Use a separate buffer to clear the screen
-  display_set_screen_buffer(displaybuffer1);
+  display_set_screen_buffer(displaybuffertmp);//1
 
   //Clear the trace portion of the screen
-  display_set_fg_color(0x00000000);
-  display_fill_rect(2, 46, 728, 434);
+  display_set_fg_color(BLACK_COLOR);
+  display_fill_rect(2, 48, 728, 432);
+  //display_fill_rect(2, 44, 728, 434);       //opravit rozmery
 
-  //Check if not in waveform view mode with grid disabled
-  if((scopesettings.waveviewmode == 0) || scopesettings.gridenable == 0)
+  //Check if not in waveform view mode (Scope mode) with grid disabled
+  if((!scopesettings.waveviewmode) || (scopesettings.gridenable))
   {
     //Draw the grid lines and dots based on the grid brightness setting
     scope_draw_grid();
@@ -5154,21 +2376,52 @@ void scope_display_trace_data(void)
   {
     //The calculations done above need to go here??
 
-
     //Check if channel1 is enabled
     if(scopesettings.channel1.enable)
-    {
-      //This can be reduced in parameters by using the channel structure as input and add the color as item in the structure
+    {          
+        //Average mode active only auto and normal mode, no waveview mode
+        if((scopesettings.average_mode)&&(!scopesettings.waveviewmode)&&((scopesettings.triggermode==0)||(scopesettings.triggermode==2)))
+        {
+            
+            for (size_t i = 0; i < MAX_SAMPLE_BUFFER_SIZE; i++) 
+            {  
+                //scopesettings.channel1.tracebuffer[i]=0;
+                scopesettings.channel1.tracebuffer[i] = ((scopesettings.channel1.tracebuffer[i]) + (channel1tracebufferAVG[i]))/2;
+                channel1tracebufferAVG[i]=scopesettings.channel1.tracebuffer[i];
+            }
+             
+        }
 
-      //Go and do the actual trace drawing
-      scope_display_channel_trace(&scopesettings.channel1);
+
+    scope_display_channel_linear_trace(&scopesettings.channel1);
+       
+    //scope_display_channel_sinx_trace(&scopesettings.channel1);
+    
+    //clear flag overload ADC   channel 1      
+    if(scopesettings.display_data_done==0) scopesettings.channel1.ADoverload = 0;
     }
 
     //Check if channel2 is enabled
     if(scopesettings.channel2.enable)
-    {
-      //Go and do the actual trace drawing
-      scope_display_channel_trace(&scopesettings.channel2);
+    {  
+        //Average mode active only auto and normal mode, no waveview mode
+        if((scopesettings.average_mode)&&(!scopesettings.waveviewmode)&&((scopesettings.triggermode==0)||(scopesettings.triggermode==2)))
+        {
+            for (size_t i = 0; i < MAX_SAMPLE_BUFFER_SIZE; i++) 
+            {  
+                //scopesettings.channel2.tracebuffer[i]=0;
+                scopesettings.channel2.tracebuffer[i] = ((scopesettings.channel2.tracebuffer[i]) + (channel2tracebufferAVG[i]))/2;
+                channel2tracebufferAVG[i]=scopesettings.channel2.tracebuffer[i];
+            }
+        }  
+        
+    //This can be reduced in parameters by using the channel structure as input and add the color as item in the structure 
+    //Go and do the actual trace drawing
+        
+    scope_display_channel_linear_trace(&scopesettings.channel2);
+    
+    //clear flag overload ADC   channel 2        
+    if(scopesettings.display_data_done==0) scopesettings.channel2.ADoverload = 0;
     }
 
     //Displaying of FFT needs to be added here.
@@ -5216,22 +2469,29 @@ void scope_display_trace_data(void)
   scope_draw_pointers();
 
   //Show the enabled measurements on the screen
-  scope_display_measurements();    //Still needs implementing
+  scope_display_measurements();  
 
   //Check if in waveform view
   if(scopesettings.waveviewmode)
   {
     //Display the file name
     //Use white text and font_0
-    display_set_fg_color(0x00FFFFFF);
+    display_set_fg_color(WHITE_COLOR);
     display_set_font(&font_0);
-    display_text(550, 48, viewfilename);
+    
+    if(onoffRTC) //if RTCon view rtc info
+      {
+      thumbnaildata = &viewthumbnaildata[viewcurrentindex];
+      decodethumbnailfilename(thumbnaildata->filename);
+      display_text(488, 70, filenameRTC);   //500 48 , 490 58
+      }   else display_text(555, 70, viewfilename); //550 48
   }
   
   //Copy it to the actual screen buffer
-  display_set_source_buffer(displaybuffer1);
+  display_set_source_buffer(displaybuffertmp);//1
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
-  display_copy_rect_to_screen(2, 46, 728, 434);
+  display_copy_rect_to_screen(2, 48, 728, 432);
+  //display_copy_rect_to_screen(2, 44, 728, 434);       //opravit rozmery
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -5244,7 +2504,10 @@ int32 scope_get_x_sample(PCHANNELSETTINGS settings, int32 index)
   sample = (int32)settings->tracebuffer[index] - 128;
 
   //Get the sample and adjust the data for the correct voltage per div setting
-  sample = (sample * signal_adjusters[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+  sample = (sample * settings->input_calibration[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+  
+  //increase sample and adjust the data for the correct value DCshift on DC mode
+  //sample += ((settings->dcoffset*100)/settings->dc_shift_size);
 
   //Scale the sample based on the two volt per div settings when they differ
   if(settings->displayvoltperdiv != settings->samplevoltperdiv)
@@ -5254,7 +2517,18 @@ int32 scope_get_x_sample(PCHANNELSETTINGS settings, int32 index)
   }
   
   //Offset the sample on the screen
-  sample = settings->traceposition + sample;
+  //****************************************************************************
+  if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
+    else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+  //sample = settings->traceposition + sample + (settings->dcoffset*100)/220;
+  // ak je softverove nasobenie 50mV 1x, 100mV 1x, dc posun nasobit *2 
+  //if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
+    //else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+  //if(settings->displayvoltperdiv == 6) sample = (settings->traceposition) + sample*4; else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+  //if(settings->displayvoltperdiv == 6) sample = ((settings->traceposition)) + sample;
+  //else sample = settings->traceposition + sample;
+  //sample = 202+ sample;
+  //****************************************************************************
 
   //Limit sample on min displayable
   if(sample < 0)
@@ -5263,13 +2537,13 @@ int32 scope_get_x_sample(PCHANNELSETTINGS settings, int32 index)
   }
 
   //Limit the sample on max displayable
-  if(sample > 401)
+  if(sample > 399)//401 403
   {
-    sample = 401;
+    sample = 399;//401 403
   }
 
   //The x center position has an extra offset compared to the y trace position
-  return(sample + 165);
+  return(sample + 163);//165
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -5282,7 +2556,10 @@ int32 scope_get_y_sample(PCHANNELSETTINGS settings, int32 index)
   sample = (int32)settings->tracebuffer[index] - 128;
 
   //Get the sample and adjust the data for the correct voltage per div setting
-  sample = (sample * signal_adjusters[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+  sample = (sample * settings->input_calibration[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+  
+  //increase sample and adjust the data for the correct value DCshift on DC mode
+  //sample += ((settings->dcoffset*100)/settings->dc_shift_size);
 
   //Scale the sample based on the two volt per div settings when they differ
   if(settings->displayvoltperdiv != settings->samplevoltperdiv)
@@ -5292,8 +2569,18 @@ int32 scope_get_y_sample(PCHANNELSETTINGS settings, int32 index)
   }
   
   //Offset the sample on the screen
-  sample = settings->traceposition + sample;
-
+  //****************************************************
+  //220 - nastavi poziciu signalu na 0 pri aplikacii offsetu, mensia hodnota posuva signal vyssie
+  //sample = settings->traceposition + sample + (settings->dcoffset*100)/220;//220 OK,  204
+  //sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+  //if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
+    //else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+  if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
+  //if(settings->displayvoltperdiv == 6) sample = ((settings->traceposition)) + sample + ((settings->dcoffset*100)/settings->dc_shift_size); //else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+  else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+  //else sample = settings->traceposition + sample;
+  //****************************************************************************
+  
   //Limit sample on min displayable
   if(sample < 0)
   {
@@ -5301,18 +2588,97 @@ int32 scope_get_y_sample(PCHANNELSETTINGS settings, int32 index)
   }
 
   //Limit the sample on max displayable
-  if(sample > 401)
+  if(sample > 399)//401  403 ok
   {
-    sample = 401;
+    sample = 399;//401
   }
 
   //Display y coordinates are inverted to signal orientation
-  return(448 - sample);
+  return(448 - sample);//448
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void scope_display_channel_trace(PCHANNELSETTINGS settings)
+void scope_display_channel_sinx_trace(PCHANNELSETTINGS settings)
+{
+    /*
+  double inputindex;
+
+  register int32 previousindex;
+  register int32 currentindex;
+  register int32 sample1 = 0;
+  register int32 sample2 = 0;
+  register uint32 lastx = disp_xstart;
+  register uint32 xpos = disp_xstart + 1;
+*/
+  //register PDISPLAYPOINTS tracepoints = settings->tracepoints;
+
+  //Set the trace color for the current channel if overload change to red
+  if (settings->ADoverload)display_set_fg_color(RED_COLOR); 
+        else display_set_fg_color(settings->color);
+
+  //Get the processed sample
+ // sample1 = scope_get_y_sample(settings, disp_first_sample);
+  
+  
+    int pole[N];
+   int sincpole[N];  // Array for interpolated signal (same size as input)
+
+    for (int i = 0; i < N; i++) {
+        //pole[i] = scope_get_y_sample(settings, disp_first_sample+i); // Predpokladáme signál 50 Hz
+        pole[i] = scope_get_y_sample(settings, i); 
+        //pole[i] = 200-(scopesettings.channel1.tracebuffer[i] - 128);
+    }
+
+    // Time points for the interpolated signal (700 samples)
+    double t_interp[N];
+    for (int i = 0; i < N; i++) {
+        t_interp[i] = (double)i / (N - 1) * 400;  // Scale to [0, 400]
+    }
+
+    // Time points for the sampled signal (scaled to [0, 400])
+    double t_sampled[N];
+    for (int i = 0; i < N; i++) {
+        t_sampled[i] = (double)i / (N - 1) * 400;  // Scale to [0, 400]
+    }
+
+    // Perform sinc interpolation
+    sinc_interpolation(t_interp, t_sampled, pole, sincpole, N);
+
+    //display_draw_horz_line(uint32 ypos, uint32 xstart, uint32 xend);
+    
+    for (int i = 20; i < N; i++) {
+        //printf("t_interp[%d] = %f, sincpole[%d] = %f\n", i, t_interp[i], i, sincpole[i]);
+        
+        display_draw_horz_line(sincpole[i], i, i);
+        //display_draw_horz_line(pole[i], i, i);
+        //display_draw_horz_line(i+50, i, i);
+        //display_draw_horz_line(i+100, i, i+1);
+    }
+    
+    /*
+    // Výpis pôvodného signálu
+    printf("Original Signal (700 samples):\n");
+    for (int i = 0; i < N; i++) {
+        printf("t_sampled[%d] = %f, pole[%d] = %f\n", i, t_sampled[i], i, pole[i]);
+    }
+
+    // Výpis interpolovaného signálu
+    printf("\nInterpolated Signal (Sinc Interpolation):\n");
+    for (int i = 0; i < INTERPOLATED_SIZE; i++) {
+        printf("t_interp[%d] = %f, sincpole[%d] = %f\n", i, t_interp[i], i, sincpole[i]);
+    }
+*/
+    
+
+
+  
+  
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_display_channel_linear_trace(PCHANNELSETTINGS settings)
 {
   double inputindex;
 
@@ -5326,7 +2692,11 @@ void scope_display_channel_trace(PCHANNELSETTINGS settings)
   register PDISPLAYPOINTS tracepoints = settings->tracepoints;
 
   //Set the trace color for the current channel
-  display_set_fg_color(settings->color);
+  //display_set_fg_color(settings->color);
+  
+  //Set the trace color for the current channel if overload change to red
+  if (settings->ADoverload)display_set_fg_color(RED_COLOR); 
+        else display_set_fg_color(settings->color);
 
   //Get the processed sample
   sample1 = scope_get_y_sample(settings, disp_first_sample);
@@ -5367,7 +2737,7 @@ void scope_display_channel_trace(PCHANNELSETTINGS settings)
 
       //One more tracepoint
       settings->noftracepoints++;
-
+      
       //Need to draw a line here
       display_draw_line(lastx, sample1, xpos, sample2);
 
@@ -5382,7 +2752,7 @@ void scope_display_channel_trace(PCHANNELSETTINGS settings)
   {
     //Calculate the scaler for the last y value based on the x distance from the last drawn position to the end of the screen
     //divided by the x distance it takes to where the next position should be drawn (Number of x steps per sample)
-    double scaler =  (725.0 - lastx) / disp_xpos_per_sample;    // (1 / samplestep);
+    double scaler =  (727.0 - lastx) / disp_xpos_per_sample;    // (1 / samplestep);    //725
 
     //Get the processed sample
     sample2 = scope_get_y_sample(settings, inputindex);
@@ -5406,9 +2776,9 @@ void scope_display_channel_trace(PCHANNELSETTINGS settings)
 
 void scope_display_cursor_measurements(void)
 {
-  uint32 height = 5;
-  uint32 ch1ypos = 52;
-  uint32 ch2ypos = 52;
+  uint32 height = 5;//5
+  uint32 ch1ypos = 54;//52
+  uint32 ch2ypos = 54;//52
   uint32 delta;
   char   displaytext[10];
 
@@ -5419,11 +2789,11 @@ void scope_display_cursor_measurements(void)
     if(scopesettings.timecursorsenable)
     {
       //Add height for two text lines
-      height += 32;
+      height += 28;//32  30
 
       //Shift the voltage text positions down
-      ch1ypos += 32;
-      ch2ypos += 32;
+      ch1ypos += 30;
+      ch2ypos += 30;//32
     }
 
     //Check if volt cursor is enabled
@@ -5433,35 +2803,34 @@ void scope_display_cursor_measurements(void)
       if(scopesettings.channel1.enable)
       {
         //Add height for one text line
-        height += 16;
+        height += 50;//16  48
 
         //Shift the channel 2 voltage text down
-        ch2ypos += 16;
+        ch2ypos += 50;//16  48 
       }
 
       //Check if channel 2 is enabled
       if(scopesettings.channel2.enable)
       {
         //Add height for one text line
-        height += 16;
+        height += 50;//16  48 52
       }
     }
 
     //Set gray background for the cursor measurements
-    display_set_fg_color(0x00404040);
+    display_set_fg_color(GREY_COLOR);
 
     //Draw rounded rectangle depending on what is enabled.
-    display_fill_rounded_rect(5, 49, 102, height, 2);
+    display_fill_rounded_rect(25, 49, 88, height, 2);//5   47
 
     //Use white text and font_0
-    display_set_fg_color(0x00FFFFFF);
+    display_set_fg_color(WHITE_COLOR);
     display_set_font(&font_0);
 
     //Check if time cursor is enabled
     if(scopesettings.timecursorsenable)
     {
       //Time texts are always on the top two lines
-
       //Get the time delta based on the cursor positions
       delta = scopesettings.timecursor2position - scopesettings.timecursor1position;
 
@@ -5473,7 +2842,7 @@ void scope_display_cursor_measurements(void)
 
       //Format the time for displaying
       scope_print_value(displaytext, delta, tcd->time_scale, "T ", "s");
-      display_text(10, 52, displaytext);
+      display_text(30, 50, displaytext);//10 52
 
       //Calculate the frequency for this time. Need to adjust for it to stay within 32 bits
       delta /= 10;
@@ -5481,14 +2850,18 @@ void scope_display_cursor_measurements(void)
 
       //Format the frequency for displaying
       scope_print_value(displaytext, delta, tcd->freq_scale, "F ", "Hz");
-      display_text(10, 68, displaytext);
+      display_text(30, 66, displaytext);//10 68
     }
 
     //Check if volt cursor is enabled
     if(scopesettings.voltcursorsenable)
     {
       PVOLTCALCDATA vcd;
-      uint32        volts;
+      int16        Y_1;
+      int16        Y_2;
+      int32        Y1;
+      int32        Y2;
+      uint32       dY;
 
       //Get the volts delta based on the cursor positions
       delta = scopesettings.voltcursor2position - scopesettings.voltcursor1position;
@@ -5496,31 +2869,101 @@ void scope_display_cursor_measurements(void)
       //Check if channel 1 is enabled
       if(scopesettings.channel1.enable)
       {
+        //Use yellow text for font_0
+        display_set_fg_color(CHANNEL1_COLOR);
+        //display_set_font(&font_0);
+        
+        //Get the volts Y_1 based on the cursor position
+        Y_1 = 449 - scopesettings.voltcursor1position - scopesettings.channel1.traceposition;//447
+        //Get the volts Y_2 based on the cursor position
+        Y_2 = 449 - scopesettings.voltcursor2position - scopesettings.channel1.traceposition;//447
+        
         //Calculate the voltage based on the channel 1 settings
         vcd = (PVOLTCALCDATA)&volt_calc_data[scopesettings.channel1.magnification][scopesettings.channel1.displayvoltperdiv];
 
         //Multiply with the scaling factor for the channel 1 settings
-        volts = delta * vcd->mul_factor;
+        Y1 = Y_1 * vcd->mul_factor;
+        Y2 = Y_2 * vcd->mul_factor;
+        dY = delta * vcd->mul_factor;
 
-        //Channel 1 text has a variable position
-        //Format the voltage for displaying
-        scope_print_value(displaytext, volts, vcd->volt_scale, "V1 ", "V");
-        display_text(10, ch1ypos, displaytext);
+        
+        //Check if measures is V or A
+        if(scopesettings.channel1.V_A == 0)
+        {   //Channel 1 text has a variable position
+            //Format the voltage for displaying
+            scope_print_value(displaytext, Y1, vcd->volt_scale, "Y1 ", "V");
+            display_text(30, ch1ypos, displaytext);
+            scope_print_value(displaytext, Y2, vcd->volt_scale, "Y2 ", "V");
+            display_text(30, ch1ypos+32, displaytext);
+        
+            //Use orange text for font_0
+            display_set_fg_color(ORANGE_COLOR);
+            scope_print_value(displaytext, dY, vcd->volt_scale, "dY ", "V");
+            display_text(30, ch1ypos+16, displaytext);
+        }
+        else
+        {
+            scope_print_value(displaytext, Y1, vcd->volt_scale, "Y1 ", "A");
+            display_text(30, ch1ypos, displaytext);
+            scope_print_value(displaytext, Y2, vcd->volt_scale, "Y2 ", "A");
+            display_text(30, ch1ypos+32, displaytext);
+        
+            //Use orange text for font_0
+            display_set_fg_color(ORANGE_COLOR);
+            scope_print_value(displaytext, dY, vcd->volt_scale, "dY ", "A");
+            display_text(30, ch1ypos+16, displaytext);
+        }
       }
-
+    //************************************************************************************************
       //Check if channel 2 is enabled
       if(scopesettings.channel2.enable)
       {
+        //Use blue text for font_0
+        display_set_fg_color(CHANNEL2_COLOR);
+        //display_set_font(&font_0);
+        
+        //Get the volts Y_1 based on the cursor position
+        Y_1 = 449 - scopesettings.voltcursor1position - scopesettings.channel2.traceposition;//447
+        //Get the volts Y_2 based on the cursor position
+        Y_2 = 449 - scopesettings.voltcursor2position - scopesettings.channel2.traceposition;
+        
         //Calculate the voltage based on the channel 2 settings
         vcd = (PVOLTCALCDATA)&volt_calc_data[scopesettings.channel2.magnification][scopesettings.channel2.displayvoltperdiv];
 
         //Multiply with the scaling factor for the channel 2 settings
-        volts = delta * vcd->mul_factor;
+        Y1 = Y_1 * vcd->mul_factor;
+        Y2 = Y_2 * vcd->mul_factor;
+        dY = delta * vcd->mul_factor;
 
-        //Channel 2 text has a variable position
-        //Format the voltage for displaying
-        scope_print_value(displaytext, volts, vcd->volt_scale, "V2 ", "V");
-        display_text(10, ch2ypos, displaytext);
+        
+        //Check if measures is V or A
+        if(scopesettings.channel2.V_A == 0)    
+        {   //Channel 2 text has a variable position
+            //Format the voltage for displaying
+            scope_print_value(displaytext, Y1, vcd->volt_scale, "Y1 ", "V");
+            display_text(30, ch2ypos, displaytext);
+            scope_print_value(displaytext, Y2, vcd->volt_scale, "Y2 ", "V");
+            display_text(30, ch2ypos+32, displaytext);
+            
+            //Use magenta blue text for font_0
+            display_set_fg_color(0x9999FF);
+            scope_print_value(displaytext, dY, vcd->volt_scale, "dY ", "V");
+            display_text(30, ch2ypos+16, displaytext);
+        }
+        else 
+        {   scope_print_value(displaytext, Y1, vcd->volt_scale, "Y1 ", "A");
+            display_text(30, ch2ypos, displaytext);
+            scope_print_value(displaytext, Y2, vcd->volt_scale, "Y2 ", "A");
+            display_text(30, ch2ypos+32, displaytext);
+            
+            //Use magenta blue text for font_0
+            display_set_fg_color(0x9999FF);
+            scope_print_value(displaytext, dY, vcd->volt_scale, "dY ", "A");
+            display_text(30, ch2ypos+16, displaytext);
+        }
+        
+        
+        
       }
     }
   }
@@ -5530,15 +2973,15 @@ void scope_display_cursor_measurements(void)
 
 void scope_display_measurements(void)
 {
-  //Check if channel1 is active
-  if(scopesettings.channel1.enable)
+  //Check if channel1 is active and hide measurements is 0-off and set short time base 
+  if((scopesettings.channel1.enable)&&(!scopesettings.hide_values_CH1)&&(!scopesettings.long_mode))
   {
     //Display the enabled measurements if it is active
     scope_display_channel_measurements(&scopesettings.channel1, scopesettings.measuresstate[0], 5, CHANNEL1_COLOR);
   }
 
-  //Check if channel2 is active
-  if(scopesettings.channel2.enable)
+  //Check if channel2 is active and hide measurements is 0-off and set short time base 
+  if((scopesettings.channel2.enable)&&(!scopesettings.hide_values_CH2)&&(!scopesettings.long_mode))
   {
     //Display the enabled measurements if it is active
     scope_display_channel_measurements(&scopesettings.channel2, scopesettings.measuresstate[1], 366, CHANNEL2_COLOR);
@@ -5572,7 +3015,7 @@ void scope_display_channel_measurements(PCHANNELSETTINGS settings, uint8 *measur
 
   x  = xstart;
   xe = xstart + 359;
-  y  = 456;
+  y  = 426; //456 move up - long base
   
   //Process the twelve possible measurements for this channel
   for(i=0;i<12;i++)
@@ -5581,7 +3024,7 @@ void scope_display_channel_measurements(PCHANNELSETTINGS settings, uint8 *measur
     if(measuresstate[i])
     {
       //Set gray background for the measurements tile
-      display_set_fg_color(0x00404040);
+      display_set_fg_color(GREY_COLOR);
 
       //Fill rounded rectangle for the tile
       display_fill_rounded_rect(x, y, 118, 22, 2);
@@ -5593,12 +3036,12 @@ void scope_display_channel_measurements(PCHANNELSETTINGS settings, uint8 *measur
       display_fill_rounded_rect(x + 3, y + 3, 45, 16, 2);
       
       //Use black text and font_0 for the name
-      display_set_fg_color(0x00000000);
+      display_set_fg_color(BLACK_COLOR);
       display_set_font(&font_0);
       display_text(x + 6, y + 3, (char *)measurement_names[i]);
 
       //Measurement in white text
-      display_set_fg_color(0x00FFFFFF);
+      display_set_fg_color(WHITE_COLOR);
       
       //Erase any previous text
       measurementtext[0] = 0;
@@ -5776,13 +3219,13 @@ void scope_display_duty_plus(PCHANNELSETTINGS settings)
 void scope_display_duty_min(PCHANNELSETTINGS settings)
 {
   char *buffer;
-  
+
   //Only when the frequency is valid calculate the time
   if(settings->frequencyvalid)
   {
     //Format the time for displaying
     buffer = scope_print_decimal(measurementtext, (((uint64)settings->lowtime * 1000) / settings->periodtime), 1, 0);
-    
+
     //Add the duty cycle sign
     strcpy(buffer, "%");
     
@@ -5821,7 +3264,7 @@ void scope_display_voltage(PCHANNELSETTINGS settings, int32 value)
   vcd = (PVOLTCALCDATA)&volt_calc_data[settings->magnification][settings->displayvoltperdiv];
 
   //Adjust the data for the correct voltage per div setting
-  volts = (value * signal_adjusters[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
+  volts = (value * settings->input_calibration[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
 
   //Scale the data based on the two volt per div settings when they differ
   if(settings->displayvoltperdiv != settings->samplevoltperdiv)
@@ -5834,7 +3277,9 @@ void scope_display_voltage(PCHANNELSETTINGS settings, int32 value)
   volts *= vcd->mul_factor;
 
   //Format the voltage for displaying
-  scope_print_value(measurementtext, volts, vcd->volt_scale, "", "V");
+  if(settings->V_A == 0) scope_print_value(measurementtext, volts, vcd->volt_scale, "", "V");
+    else scope_print_value(measurementtext, volts, vcd->volt_scale, "", "A");
+  
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -5924,10 +3369,11 @@ char *scope_print_decimal(char *buffer, int32 value, uint32 decimals, uint32 neg
       {
         //If so put it in
         b[--i] = '.';
+        if ((value/10) == 0) b[--i] = '0';  //if 0.xxV then 0 before .
       }
 
       //Take of the current digit
-      value /= 10;
+      value /= 10; 
     }
   }
 
@@ -5987,20 +3433,22 @@ void scope_prepare_setup_for_file(void)
   //Put in a version number for the waveform view file
   ptr[1] = WAVEFORM_FILE_VERSION;
   
-  //Leave space for file version and checksum data
+  //Leave space for file version and checksum data  21
   index = CHANNEL1_SETTING_OFFSET;
   
-  //Copy the needed channel 1 settings and measurements
+  //Copy the needed channel 1 settings and measurements 
   ptr[index++] = scopesettings.channel1.enable;
   ptr[index++] = scopesettings.channel1.displayvoltperdiv;
   ptr[index++] = scopesettings.channel1.samplevoltperdiv;
   ptr[index++] = scopesettings.channel1.fftenable;
   ptr[index++] = scopesettings.channel1.coupling;
   ptr[index++] = scopesettings.channel1.magnification;
+  ptr[index++] = scopesettings.channel1.V_A;
   ptr[index++] = scopesettings.channel1.traceposition;
   ptr[index++] = scopesettings.channel1.min;
   ptr[index++] = scopesettings.channel1.max;
   ptr[index++] = scopesettings.channel1.average;
+  ptr[index++] = scopesettings.channel1.rms;
   ptr[index++] = scopesettings.channel1.center;
   ptr[index++] = scopesettings.channel1.peakpeak;
   ptr[index++] = scopesettings.channel1.frequencyvalid;
@@ -6008,21 +3456,25 @@ void scope_prepare_setup_for_file(void)
   ptr[index++] = scopesettings.channel1.lowtime;
   ptr[index++] = scopesettings.channel1.hightime;
   ptr[index++] = scopesettings.channel1.periodtime;
+  ptr[index++] = scopesettings.channel1.dcoffset;
+  ptr[index++] = scopesettings.channel1.invert;
 
-  //Leave some space for channel 1 settings changes
+  //Leave some space for channel 2 settings changes 21
   index = CHANNEL2_SETTING_OFFSET;
   
-  //Copy the needed channel 2 settings and measurements
+  //Copy the needed channel 2 settings and measurements 
   ptr[index++] = scopesettings.channel2.enable;
   ptr[index++] = scopesettings.channel2.displayvoltperdiv;
   ptr[index++] = scopesettings.channel2.samplevoltperdiv;
   ptr[index++] = scopesettings.channel2.fftenable;
   ptr[index++] = scopesettings.channel2.coupling;
   ptr[index++] = scopesettings.channel2.magnification;
+  ptr[index++] = scopesettings.channel2.V_A;
   ptr[index++] = scopesettings.channel2.traceposition;
   ptr[index++] = scopesettings.channel2.min;
   ptr[index++] = scopesettings.channel2.max;
   ptr[index++] = scopesettings.channel2.average;
+  ptr[index++] = scopesettings.channel2.rms;
   ptr[index++] = scopesettings.channel2.center;
   ptr[index++] = scopesettings.channel2.peakpeak;
   ptr[index++] = scopesettings.channel2.frequencyvalid;
@@ -6030,26 +3482,32 @@ void scope_prepare_setup_for_file(void)
   ptr[index++] = scopesettings.channel2.lowtime;
   ptr[index++] = scopesettings.channel2.hightime;
   ptr[index++] = scopesettings.channel2.periodtime;
+  ptr[index++] = scopesettings.channel2.dcoffset;
+  ptr[index++] = scopesettings.channel2.invert;
 
-  //Leave some space for channel 2 settings changes
+  //Leave some space for trigger information changes    11
   index = TRIGGER_SETTING_OFFSET;
   
-  //Copy the needed scope trigger settings
+  //Copy the needed scope trigger settings      
   ptr[index++] = scopesettings.timeperdiv;
   ptr[index++] = scopesettings.samplerate;
   ptr[index++] = scopesettings.triggermode;
   ptr[index++] = scopesettings.triggeredge;
   ptr[index++] = scopesettings.triggerchannel;
   ptr[index++] = scopesettings.triggerlevel;
-  ptr[index++] = scopesettings.triggerhorizontalposition;
+  //ptr[index++] = scopesettings.triggerhorizontalposition;
+  
+  ptr[index++] = scopesettings.triggerhorizontalposition>>16;         //int32 !!!
+  ptr[index++] = scopesettings.triggerhorizontalposition & 0xFFFF;    //int32 !!!
+  
   ptr[index++] = scopesettings.triggerverticalposition;
   ptr[index++] = disp_have_trigger;
   ptr[index++] = disp_trigger_index;
 
-  //Leave some space for trigger information changes
+  //Leave some space for other scope settings changes   10
   index = OTHER_SETTING_OFFSET;
   
-  //Copy the needed other scope settings
+  //Copy the needed other scope settings        
   ptr[index++] = scopesettings.movespeed;
   ptr[index++] = scopesettings.rightmenustate;
   ptr[index++] = scopesettings.screenbrightness;
@@ -6057,20 +3515,27 @@ void scope_prepare_setup_for_file(void)
   ptr[index++] = scopesettings.alwaystrigger50;
   ptr[index++] = scopesettings.xymodedisplay;
   ptr[index++] = scopesettings.confirmationmode;
+  ptr[index++] = scopesettings.long_mode;
+  ptr[index++] = scopesettings.average_mode; 
+  ptr[index++] = scopesettings.long_memory;
 
-  //Leave some space for other scope settings changes
+  //Leave some space for other cursor settings changes  6
   index = CURSOR_SETTING_OFFSET;
   
-  //Copy the cursor settings
+  //Copy the cursor settings                    
   ptr[index++] = scopesettings.timecursorsenable;
   ptr[index++] = scopesettings.voltcursorsenable;
   ptr[index++] = scopesettings.timecursor1position;
   ptr[index++] = scopesettings.timecursor2position;
   ptr[index++] = scopesettings.voltcursor1position;
   ptr[index++] = scopesettings.voltcursor2position;
+  ptr[index++] = scopesettings.lockcursors; //lock move cursors
   
-  //Leave some space for other cursor settings changes
   index = MEASUREMENT_SETTING_OFFSET;
+  
+  //Copy measurements HIDE states
+  ptr[index++] = scopesettings.hide_values_CH1;
+  ptr[index++] = scopesettings.hide_values_CH2;
   
   //Copy the measurements enable states
   for(channel=0;channel<2;channel++)
@@ -6107,10 +3572,11 @@ void scope_restore_setup_from_file(void)
 {
   uint32 *ptr = viewfilesetupdata;
   uint32 index = 0;
+  uint32  tmp = 0;
   uint32 channel;
   uint32 measurement;
 
-  //Leave space for file version and checksum data
+  //Leave space for file version and checksum data  21
   index = CHANNEL1_SETTING_OFFSET;
   
   //Copy the needed channel 1 settings and measurements
@@ -6120,10 +3586,12 @@ void scope_restore_setup_from_file(void)
   scopesettings.channel1.fftenable         = ptr[index++];
   scopesettings.channel1.coupling          = ptr[index++];
   scopesettings.channel1.magnification     = ptr[index++];
+  scopesettings.channel1.V_A               = ptr[index++];
   scopesettings.channel1.traceposition     = ptr[index++];
   scopesettings.channel1.min               = ptr[index++];
   scopesettings.channel1.max               = ptr[index++];
   scopesettings.channel1.average           = ptr[index++];
+  scopesettings.channel1.rms               = ptr[index++];
   scopesettings.channel1.center            = ptr[index++];
   scopesettings.channel1.peakpeak          = ptr[index++];
   scopesettings.channel1.frequencyvalid    = ptr[index++];
@@ -6131,8 +3599,10 @@ void scope_restore_setup_from_file(void)
   scopesettings.channel1.lowtime           = ptr[index++];
   scopesettings.channel1.hightime          = ptr[index++];
   scopesettings.channel1.periodtime        = ptr[index++];
+  scopesettings.channel1.dcoffset          = ptr[index++];
+  scopesettings.channel1.invert            = ptr[index++];
 
-  //Leave some space for channel 1 settings changes
+  //Leave some space for channel 2 settings changes 21
   index = CHANNEL2_SETTING_OFFSET;
   
   //Copy the needed channel 2 settings and measurements
@@ -6142,10 +3612,12 @@ void scope_restore_setup_from_file(void)
   scopesettings.channel2.fftenable         = ptr[index++];
   scopesettings.channel2.coupling          = ptr[index++];
   scopesettings.channel2.magnification     = ptr[index++];
+  scopesettings.channel2.V_A               = ptr[index++];
   scopesettings.channel2.traceposition     = ptr[index++];
   scopesettings.channel2.min               = ptr[index++];
   scopesettings.channel2.max               = ptr[index++];
   scopesettings.channel2.average           = ptr[index++];
+  scopesettings.channel2.rms               = ptr[index++];
   scopesettings.channel2.center            = ptr[index++];
   scopesettings.channel2.peakpeak          = ptr[index++];
   scopesettings.channel2.frequencyvalid    = ptr[index++];
@@ -6153,8 +3625,10 @@ void scope_restore_setup_from_file(void)
   scopesettings.channel2.lowtime           = ptr[index++];
   scopesettings.channel2.hightime          = ptr[index++];
   scopesettings.channel2.periodtime        = ptr[index++];
-
-  //Leave some space for channel 2 settings changes
+  scopesettings.channel2.dcoffset          = ptr[index++];
+  scopesettings.channel2.invert            = ptr[index++];
+  
+  //Leave some space for trigger information changes    11
   index = TRIGGER_SETTING_OFFSET;
   
   //Copy the needed scope trigger settings
@@ -6164,12 +3638,17 @@ void scope_restore_setup_from_file(void)
   scopesettings.triggeredge               = ptr[index++];
   scopesettings.triggerchannel            = ptr[index++];
   scopesettings.triggerlevel              = ptr[index++];
-  scopesettings.triggerhorizontalposition = ptr[index++];
+  //scopesettings.triggerhorizontalposition = ptr[index++];
+  
+  tmp                                     = ptr[index++];
+  scopesettings.triggerhorizontalposition = tmp<<16;
+  scopesettings.triggerhorizontalposition+= ptr[index++]; //int32 !!!
+  
   scopesettings.triggerverticalposition   = ptr[index++];
   disp_have_trigger                       = ptr[index++];
   disp_trigger_index                      = ptr[index++];
 
-  //Leave some space for trigger information changes
+  //Leave some space for other scope settings changes   10
   index = OTHER_SETTING_OFFSET;
   
   //Copy the needed other scope settings
@@ -6180,8 +3659,11 @@ void scope_restore_setup_from_file(void)
   scopesettings.alwaystrigger50  = ptr[index++];
   scopesettings.xymodedisplay    = ptr[index++];
   scopesettings.confirmationmode = ptr[index++];
+  scopesettings.long_mode        = ptr[index++];
+  scopesettings.average_mode     = ptr[index++];
+  scopesettings.long_memory      = ptr[index++];
+  scopesettings.long_memory      = 0;           //docasne zrusene
 
-  //Leave some space for other scope settings changes
   index = CURSOR_SETTING_OFFSET;
   
   //Copy the cursor settings
@@ -6191,9 +3673,14 @@ void scope_restore_setup_from_file(void)
   scopesettings.timecursor2position = ptr[index++];
   scopesettings.voltcursor1position = ptr[index++];
   scopesettings.voltcursor2position = ptr[index++];
+  scopesettings.lockcursors         = ptr[index++]; //lock move cursors
   
-  //Leave some space for other cursor settings changes
+  //Leave some space for other cursor settings changes  26
   index = MEASUREMENT_SETTING_OFFSET;
+  
+  //Copy measurements HIDE states
+  scopesettings.hide_values_CH1 = ptr[index++];
+  scopesettings.hide_values_CH2 = ptr[index++];
   
   //Copy the measurements enable states
   for(channel=0;channel<2;channel++)
@@ -6696,7 +4183,7 @@ void scope_save_view_item_file(int32 type)
 
   //Copy the filename from the thumbnail filename, since the global one got written over in the saving of the thumbnail
   //Might need a re write of the message setup
-  strcpy(viewfilename, viewthumbnaildata[0].filename);
+  strcpy(viewfilename, viewthumbnaildata[0].filename); 
   
   //Open the new file. On failure signal this and quit
   result = f_open(&viewfp, viewfilename, FA_CREATE_ALWAYS | FA_WRITE);
@@ -6758,7 +4245,7 @@ void scope_save_view_item_file(int32 type)
   }
 
   //When a picture is saved while viewing a waveform, reload the waveform lists
-  if((type == VIEW_TYPE_PICTURE) && (currentviewtype == VIEW_TYPE_WAVEFORM) && (scopesettings.waveviewmode == 1))
+  if((type == VIEW_TYPE_PICTURE) && (currentviewtype == VIEW_TYPE_WAVEFORM) && (scopesettings.waveviewmode))
   {
     //Restore the previous view type
     viewtype = currentviewtype;
@@ -6850,7 +4337,7 @@ int32 scope_load_trace_data(void)
             if((result = scope_check_waveform_file()) == 0)
             {
               //Switch to stopped and waveform viewing mode
-              scopesettings.runstate = 1;
+              scopesettings.runstate = 0;//ok
               scopesettings.waveviewmode = 1;
 
               //Show the normal scope screen
@@ -6895,7 +4382,7 @@ int32 scope_load_trace_data(void)
     return(VIEW_TRACE_LOAD_OK);
   }
 
-  //Remove the current item from the thumbnnails and delete the item from disk
+  //Remove the current item from the thumbnails and delete the item from disk
   scope_remove_item_from_thumbnails(1);
 
   //Save the thumbnail file
@@ -6964,7 +4451,7 @@ int32 scope_load_bitmap_data(void)
     return(VIEW_BITMAP_LOAD_OK);
   }
 
-  //Remove the current item from the thumbnnails and delete the item from disk
+  //Remove the current item from the thumbnails and delete the item from disk
   scope_remove_item_from_thumbnails(1);
 
   //Save the thumbnail file
@@ -7064,10 +4551,10 @@ void scope_display_thumbnails(void)
   uint32 button, x, y;
 
   //Set black color for background
-  display_set_fg_color(0x00000000);
+  display_set_fg_color(BLACK_COLOR);
 
   //Clear the thumbnail display area
-  display_fill_rect(0, 0, 730, 480);
+  display_fill_rect(0, 0, 730, 480); //733
 
   //Check if there are items to display
   if(viewavailableitems)
@@ -7117,12 +4604,8 @@ void scope_display_thumbnails(void)
       display_fill_rect(xpos + 38, y, 8, 8);
 
       //Channel 2 button
-      display_set_fg_color(CHANNEL1_COLOR);
+      display_set_fg_color(CHANNEL2_COLOR);
       display_fill_rect(xpos + 65, y, 8, 8);
-
-      //Acquisition button
-      display_set_fg_color(TRIGGER_COLOR);
-      display_fill_rect(xpos + 92, y, 8, 8);
 
       //Trigger menu button
       display_fill_rect(xpos + 132, y, 8, 8);
@@ -7159,6 +4642,11 @@ void scope_display_thumbnails(void)
       thumbnaildata = &viewthumbnaildata[index];
 
       //Display the thumbnail
+      
+      //Acquisition button, changing the color of the button depending on the time base mode (long- short)
+      if(thumbnaildata->long_mode)display_set_fg_color(ORANGE_COLOR); else display_set_fg_color(GREEN_COLOR);
+      display_fill_rect(xpos + 92, y-123, 8, 8);  //y-123 because of (Draw the right buttons) is y=8*15+3
+      
       //Need to make a distinction between normal display and xy display mode
       if(thumbnaildata->xydisplaymode == 0)
       {
@@ -7291,8 +4779,12 @@ void scope_display_thumbnails(void)
           thumbnaildata->triggerverticalposition = 92;
         }
 
+        
         //Draw the trigger level pointer
-        scope_thumbnail_draw_pointer(x, y + thumbnaildata->triggerverticalposition, THUMBNAIL_POINTER_LEFT, TRIGGER_COLOR);
+        //Check if trigger channel 1 or channel 2 is use
+        if(thumbnaildata->triggerchannel==0)
+          {scope_thumbnail_draw_pointer(x, y + thumbnaildata->triggerverticalposition, THUMBNAIL_POINTER_LEFT, CHANNEL1_COLOR);}
+            else {scope_thumbnail_draw_pointer(x, y + thumbnaildata->triggerverticalposition, THUMBNAIL_POINTER_LEFT, CHANNEL2_COLOR);}
 
         //Limit the position to the extremes
         if(thumbnaildata->triggerhorizontalposition < 3)
@@ -7310,13 +4802,18 @@ void scope_display_thumbnails(void)
       else
       {
 //Draw the pointers here
-
       }
 
       //Display the file name in the bottom left corner
-      display_set_fg_color(0x00FFFFFF);
+      display_set_fg_color(WHITE_COLOR);
       display_set_font(&font_2);
-      display_text(xpos + 7, ypos + 105, thumbnaildata->filename);
+      
+      if(onoffRTC) 
+            {
+            decodethumbnailfilename(thumbnaildata->filename);
+            display_text(xpos + 7, ypos + 105, filenameRTC);
+            }
+            else display_text(xpos + 7, ypos + 105, thumbnaildata->filename);
 
       //Skip to next coordinates
       xpos += VIEW_ITEM_XNEXT;
@@ -7379,13 +4876,20 @@ void scope_create_thumbnail(PTHUMBNAILDATA thumbnaildata)
   //Set the thumbnails filename
   strcpy(thumbnaildata->filename, viewfilename);
 
+  //ak je RTCon pripoj casovu znacku
+  if(onoffRTC) 
+    {
+    readnameRTC();
+    modnametoRTC(thumbnaildata->filename, filenameRTC);
+    } else modnameClearRTC(thumbnaildata->filename);
+
   //Calculate and limit pointer position for channel 1
   position = 441 - scopesettings.channel1.traceposition;
 
   //Limit on the top of the displayable region
-  if(position < 46)
+  if(position < 44)
   {
-    position = 46;
+    position = 44;
   }
   //Limit on the bottom of the displayable region
   else if(position > 441)
@@ -7395,15 +4899,15 @@ void scope_create_thumbnail(PTHUMBNAILDATA thumbnaildata)
 
   //Set the parameters for channel 1
   thumbnaildata->channel1enable        = scopesettings.channel1.enable;
-  thumbnaildata->channel1traceposition = (uint8)(((position - 46) * 10000) / 42210);
+  thumbnaildata->channel1traceposition = (uint8)(((position - 44) * 10000) / 42210);
 
   //Calculate and limit pointer position for channel 2
   position = 441 - scopesettings.channel2.traceposition;
 
   //Limit on the top of the displayable region
-  if(position < 46)
+  if(position < 44)
   {
-    position = 46;
+    position = 44;
   }
   //Limit on the bottom of the displayable region
   else if(position > 441)
@@ -7413,15 +4917,15 @@ void scope_create_thumbnail(PTHUMBNAILDATA thumbnaildata)
 
   //Set the parameters for channel 2
   thumbnaildata->channel2enable      = scopesettings.channel2.enable;
-  thumbnaildata->channel2traceposition = (uint8)(((position - 46) * 10000) / 42210);
+  thumbnaildata->channel2traceposition = (uint8)(((position - 44) * 10000) / 42210);
 
   //Calculate and limit pointer position for trigger level
   position = 441 - scopesettings.triggerverticalposition;
 
   //Limit on the top of the displayable region
-  if(position < 46)
+  if(position < 44)
   {
-    position = 46;
+    position = 44;
   }
   //Limit on the bottom of the displayable region
   else if(position > 441)
@@ -7429,12 +4933,19 @@ void scope_create_thumbnail(PTHUMBNAILDATA thumbnaildata)
     position = 441;
   }
 
-  //Set trigger information
-  thumbnaildata->triggerverticalposition   = (uint8)(((position - 46) * 10000) / 42210);
+  //Set trigger information vertical
+  thumbnaildata->triggerverticalposition   = (uint8)(((position - 44) * 10000) / 42210);
+  //Set trigger channel information (for color in thumbnail)
+  thumbnaildata->triggerchannel = scopesettings.triggerchannel;
+  
+   //Set trigger information horizontal
   thumbnaildata->triggerhorizontalposition = (scopesettings.triggerhorizontalposition * 10000) / 42899;
 
   //Set the xy display mode
   thumbnaildata->xydisplaymode = scopesettings.xymodedisplay;
+  
+  //Set the long time base display mode
+  thumbnaildata->long_mode = scopesettings.long_mode;
 
   //Set the display start and end x positions. Conversion to thumbnail x coordinates is dividing by 4,2899
   thumbnaildata->disp_xstart = (disp_xstart * 10000) / 42899;
@@ -7458,12 +4969,12 @@ void scope_create_thumbnail(PTHUMBNAILDATA thumbnaildata)
     }
   }
   else
-  {
+  { //X-Y MODE
     //Use less samples to not overwrite the second buffer
     uint32 index = disp_trigger_index - 317;
     uint32 last = index + 728;
 
-    uint8 *buffer1 = thumbnaildata->channel1data;
+    uint8 *buffer1 = thumbnaildata->channel1data;   
     uint8 *buffer2 = thumbnaildata->channel2data;
     
     //Copy and scale every 4th sample for this channel
@@ -7504,7 +5015,7 @@ void scope_thumbnail_set_trace_data(PCHANNELSETTINGS settings, uint8 *buffer)
   {
     //Adjust the y point to fit the thumbnail screen. First trace y position on screen is 47. The available height on the thumbnail is 95 pixels so divide by 4,2210
     *buffer++ = (uint8)(((thumbnailtracedata[index] - 47) * 10000) / 42210);
-
+     
     //Skip one more sample every third loop
     if(pattern == 2)
     {
@@ -7547,7 +5058,7 @@ void scope_thumbnail_calculate_trace_data(int32 xstart, int32 ystart, int32 xend
       //Set it in the buffer
       thumbnailtracedata[x] = yacc >> 16;
     }
-  }
+  } else thumbnailtracedata[xstart+1] = yacc >> 16;
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -7627,8 +5138,8 @@ void scope_display_selected_signs(void)
   uint32 ypos = VIEW_ITEM_SELECTED_YSTART;
 
   //Set the colors for displaying the selected sign. White sign on blue background
-  display_set_fg_color(0x00FFFFFF);
-  display_set_bg_color(0x000000FF);
+  display_set_fg_color(WHITE_COLOR);
+  display_set_bg_color(BLUE_COLOR);
 
   //Can't have more selects than items on the page
   while(index < viewitemsonpage)
@@ -7637,14 +5148,17 @@ void scope_display_selected_signs(void)
     switch(viewitemselected[index])
     {
       case VIEW_ITEM_SELECTED_NOT_DISPLAYED:
-        //Make a copy of the screen under the selected sign location
-        display_copy_rect_from_screen(xpos, ypos, 30, 30);
+        if (viewavailableitems)   //Are there items to choose from?
+            {
+            //Make a copy of the screen under the selected sign location
+            display_copy_rect_from_screen(xpos, ypos, 30, 30);
 
-        //Display the selected sign
-        display_copy_icon_use_colors(select_sign_icon, xpos, ypos, 30, 30);
+            //Display the selected sign
+            display_copy_icon_use_colors(select_sign_icon, xpos, ypos, 30, 30);
 
-        //Switch to displayed state
-        viewitemselected[index] = VIEW_ITEM_SELECTED_DISPLAYED;
+            //Switch to displayed state
+            viewitemselected[index] = VIEW_ITEM_SELECTED_DISPLAYED;
+            }
         break;
 
       case VIEW_ITEM_NOT_SELECTED_DISPLAYED:
@@ -7693,19 +5207,19 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
 
   //Save the screen rectangle where the message will be displayed
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
-  display_set_destination_buffer(displaybuffer2);
+  display_set_destination_buffer(displaybuffertmp);//2
   display_copy_rect_from_screen(260, 210, 280, 60);
 
   //Draw the background in grey
   display_set_fg_color(0x00202020);
-  display_fill_rect(260, 210, 280, 60);
+  display_fill_rect(260, 210, 279, 59);//280 60
 
   //Draw the border in a lighter grey
   display_set_fg_color(0x00303030);
-  display_draw_rect(260, 210, 280, 60);
+  display_draw_rect(260, 210, 279, 59);//280 60
 
   //White color for text and use font_3
-  display_set_fg_color(0x00FFFFFF);
+  display_set_fg_color(WHITE_COLOR);
   display_set_font(&font_3);
 
   switch(msgid)
@@ -7796,11 +5310,11 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
   else
   {
     //Wait for half a second
-    timer0_delay(500);
+    timer0_delay(700);//500
   }
 
   //Restore the original screen
-  display_set_source_buffer(displaybuffer2);
+  display_set_source_buffer(displaybuffertmp);//2
   display_copy_rect_to_screen(260, 210, 280, 60);
 
   //Need to restore the screen buffer pointer
@@ -7815,7 +5329,7 @@ void scope_load_configuration_data(void)
 {
 #if 0
   //Get the settings data form the flash memory
-  sys_spi_flash_read(0x001FD000, (uint8 *)settingsworkbuffer, sizeof(settingsworkbuffer));
+  //sys_spi_flash_read(0x001FD000, (uint8 *)settingsworkbuffer, sizeof(settingsworkbuffer));
 #else
   //Load the settings data from its sector on the SD card
   if(sd_card_read(SETTINGS_SECTOR, 1, (uint8 *)settingsworkbuffer) != SD_OK)
@@ -7835,6 +5349,8 @@ void scope_load_configuration_data(void)
   scopesettings.channel1.offsetcommand     = 0x32;
   scopesettings.channel1.adc1command       = 0x20;
   scopesettings.channel1.adc2command       = 0x21;
+  scopesettings.channel1.averagecommand    = 0x24;
+  
 
   //Set the menu and button data for channel 1
   scopesettings.channel1.color        = CHANNEL1_COLOR;
@@ -7855,6 +5371,7 @@ void scope_load_configuration_data(void)
   scopesettings.channel2.offsetcommand     = 0x35;
   scopesettings.channel2.adc1command       = 0x22;
   scopesettings.channel2.adc2command       = 0x23;
+  scopesettings.channel2.averagecommand    = 0x26;
 
   //Set the menu and button data for channel 2
   scopesettings.channel2.color        = CHANNEL2_COLOR;
@@ -7866,7 +5383,13 @@ void scope_load_configuration_data(void)
 
   //Set the trace and display buffer pointers for channel 2
   scopesettings.channel2.tracebuffer = (uint8 *)channel2tracebuffer;
-  scopesettings.channel2.tracepoints = channel2pointsbuffer;
+  scopesettings.channel2.tracepoints = channel2pointsbuffer; 
+  
+  
+  //Switch to RUN
+  scopesettings.runstate = 1;
+  //Ready for start new sample
+  scopesettings.display_data_done = 1;
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -7878,7 +5401,7 @@ void scope_save_configuration_data(void)
 
 #if 0
   //Write it to the flash
-  sys_spi_flash_write(0x001FD000, (uint8 *)settingsworkbuffer, sizeof(settingsworkbuffer));
+  //sys_spi_flash_write(0x001FD000, (uint8 *)settingsworkbuffer, sizeof(settingsworkbuffer));
 #else
   //Write the data to its sector on the SD card
   sd_card_write(SETTINGS_SECTOR, 1, (uint8 *)settingsworkbuffer);
@@ -7886,49 +5409,230 @@ void scope_save_configuration_data(void)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_load_input_calibration_data(void)
+{
+    uint16 buffer[256];
+    uint32 index;
+    uint32  checksum = 0;
+    uint16 *ptr;
+    uint32 *ptr32;
+    
+    //Load the settings data from its sector on the SD card
+    if(sd_card_read(INPUT_CALIBRATION_SECTOR, 1, (uint8 *)buffer) != SD_OK)
+    {
+    //Clear buffer
+    memset(buffer, 0, sizeof(buffer));
+    buffer[0] = 0xFFFF;                 //load default data
+    buffer[1] = 0;
+    }
+    
+    //Calculate a checksum over the loaded data
+    for(index=8;index<60;index++) 
+        {
+        checksum += buffer[index];
+        timer0_delay(1);    //So that FOR is not canceled during C translation
+        }
+  
+    //Check if the checksum is a match as well as the version number
+    if(((buffer[0] == (checksum >> 16))&&(buffer[1] == (checksum & 0xFFFF))&&(buffer[0]<0xFFFF)&&(buffer[0]>0))||(reload_cal_data == 1))
+    {       
+        //Point to the calibration settings
+        ptr = &settingsworkbuffer[CALIBRATION_SETTING_OFFSET];
+
+        //Restore the working set values from the saved values
+        for(index=0;index<6;index++,ptr++)
+        {
+            //Copy the data for both channels
+            scopesettings.channel1.dc_calibration_offset[index] = ptr[0];
+            scopesettings.channel2.dc_calibration_offset[index] = ptr[6];
+        }
+
+        //The last entry is a copy of the fore last value
+        scopesettings.channel1.dc_calibration_offset[6] = scopesettings.channel1.dc_calibration_offset[5];
+        scopesettings.channel2.dc_calibration_offset[6] = scopesettings.channel2.dc_calibration_offset[5];
+    
+        //Point to the calibration settings
+        ptr = &settingsworkbuffer[CALIBRATION_SETTING_OFFSET_C];
+
+        //Restore the ADC compensation values
+        scopesettings.channel1.adc1compensation = *ptr++;
+        scopesettings.channel1.adc2compensation = *ptr++;
+        scopesettings.channel2.adc1compensation = *ptr++;
+        scopesettings.channel2.adc2compensation = *ptr++; 
+         
+        //Point to the input calibration settings
+        ptr32 = (uint32*)&buffer[INPUT_CALIBRATION_SETTING_OFFSET];
+    
+        //Restore the Input calibration values from the saved values
+        for(index=0;index<7;index++,ptr32++)
+        {
+            //Copy the data for both channels
+            scopesettings.channel1.input_calibration[index] = ptr32[0];
+            scopesettings.channel2.input_calibration[index] = ptr32[8];
+        }
+        
+    //Point to the DC shift calibration settings        12
+    ptr32 = (uint32*)&buffer[DC_SHIFT_SETTING_OFFSET];//40
+    
+    scopesettings.channel1.dc_shift_center = ptr32[0];
+    scopesettings.channel1.dc_shift_size   = ptr32[1];
+    scopesettings.channel1.dc_shift_value  = ptr32[2];
+    
+    scopesettings.channel2.dc_shift_center = ptr32[4];
+    scopesettings.channel2.dc_shift_size   = ptr32[5];
+    scopesettings.channel2.dc_shift_value  = ptr32[6];
+    
+    }
+    else
+    {   
+        //Set default channel calibration values
+        for(index=0;index<7;index++)
+            {
+            //Set FPGA center level
+            scopesettings.channel1.dc_calibration_offset[index] = 860;//750
+            scopesettings.channel2.dc_calibration_offset[index] = 860;//750
+            }
+  
+        //Set default ADC compensation values
+        scopesettings.channel1.adc1compensation = 0;
+        scopesettings.channel1.adc2compensation = 0;
+        scopesettings.channel2.adc1compensation = 0;
+        scopesettings.channel2.adc2compensation = 0; 
+        
+        //Set default channel Input calibration values
+        for(index=0;index<7;index++)
+            {
+            //Set default Input calibration values
+            scopesettings.channel1.input_calibration[index] = signal_adjusters[index];
+            scopesettings.channel2.input_calibration[index] = signal_adjusters[index];
+            }
+        
+        scopesettings.channel1.dc_shift_center = 174;
+        scopesettings.channel1.dc_shift_size   = 220;
+        scopesettings.channel1.dc_shift_value  = 385;
+    
+        scopesettings.channel2.dc_shift_center = 174;
+        scopesettings.channel2.dc_shift_size   = 220;
+        scopesettings.channel2.dc_shift_value  = 385;
+    
+        calibrationfail = 1;    //Ready to input calibration
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_save_input_calibration_data(void)
+{
+    uint16 buffer[256];
+    uint32 index;
+    uint32  checksum = 0;
+    uint32 *ptr32;
+    
+    /*
+        scopesettings.channel1.dc_shift_center  = 112;
+        scopesettings.channel1.dc_shift_size  = 220;
+        scopesettings.channel1.dc_shift_value = 385;
+    
+        scopesettings.channel2.dc_shift_center  = 112;
+        scopesettings.channel2.dc_shift_size  = 220;
+        scopesettings.channel2.dc_shift_value = 385;
+     */
+     
+    
+    //Clear buffer
+    memset(buffer, 0x00, sizeof(buffer));
+    
+    //Point to the Input calibration settings                   28
+    ptr32 = (uint32*)&buffer[INPUT_CALIBRATION_SETTING_OFFSET];//8
+  
+    for(index=0;index<7;index++,ptr32++)
+        {
+        //Copy the data for both channels
+        ptr32[0] = scopesettings.channel1.input_calibration[index];
+        ptr32[8] = scopesettings.channel2.input_calibration[index];
+        }
+    
+    //Point to the DC shift calibration settings        12
+    ptr32 = (uint32*)&buffer[DC_SHIFT_SETTING_OFFSET];//40
+    
+    ptr32[0] = scopesettings.channel1.dc_shift_center;
+    ptr32[1] = scopesettings.channel1.dc_shift_size;
+    ptr32[2] = scopesettings.channel1.dc_shift_value;
+    
+    ptr32[4] = scopesettings.channel2.dc_shift_center;
+    ptr32[5] = scopesettings.channel2.dc_shift_size;
+    ptr32[6] = scopesettings.channel2.dc_shift_value;
+
+     //Calculate a checksum over the settings data
+    for(index=8;index<60;index++)   //40
+    {
+        checksum += buffer[index];
+        timer0_delay(1);    //So that FOR is not canceled during C translation
+    }
+      
+    //Save the checksum
+    buffer[0] = checksum >> 16;
+    buffer[1] = checksum;
+
+    //Write the data to its sector on the SD card
+    sd_card_write(INPUT_CALIBRATION_SECTOR, 1, (uint8 *)buffer);
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_reset_config_data(void)
 {
-  uint32 index;
+  //uint32 index;
   
   //Load a default configuration in case of settings in flash being corrupted
-
-  //Enable channel 1, dc coupling, 1x magnification, 50V/div, fft disabled and trace line in top part of the screen
+   
+  //Enable channel 1, ac coupling, 1x magnification, 50V/div, fft disabled and trace line in top part of the screen
   scopesettings.channel1.enable            = 1;
-  scopesettings.channel1.coupling          = 0;
-  scopesettings.channel1.magnification     = 0;
+  scopesettings.channel1.coupling          = 1; //1-AC
+  scopesettings.channel1.magnification     = 1; //1-1x
+  scopesettings.channel1.V_A               = 0; //0-Volt
   scopesettings.channel1.displayvoltperdiv = 0;
   scopesettings.channel1.samplevoltperdiv  = 0;
   scopesettings.channel1.fftenable         = 0;
   scopesettings.channel1.traceposition     = 300;
+  scopesettings.channel1.triggerverticalposition= 300;
+  scopesettings.channel1.dcoffset = 0;
+  scopesettings.channel1.invert = 0;            //1-invert channel
 
-  //Enable channel 2, dc coupling, 1x magnification, 50V/div, fft disabled and trace line in bottom part of the screen
+  //Enable channel 2, ac coupling, 1x magnification, 50V/div, fft disabled and trace line in bottom part of the screen
   scopesettings.channel2.enable            = 1;
-  scopesettings.channel2.coupling          = 0;
-  scopesettings.channel2.magnification     = 0;
+  scopesettings.channel2.coupling          = 1; //1-AC
+  scopesettings.channel2.magnification     = 1; //1-1x
+  scopesettings.channel2.V_A               = 0; //0-Volt
   scopesettings.channel2.displayvoltperdiv = 0;
   scopesettings.channel2.samplevoltperdiv  = 0;
   scopesettings.channel2.fftenable         = 0;
   scopesettings.channel2.traceposition     = 100;
+  scopesettings.channel2.triggerverticalposition= 100;
+  scopesettings.channel2.dcoffset = 0;
+  scopesettings.channel2.invert = 0;            //1-invert channel
 
   //Set trigger mode to auto, trigger edge to rising, trigger channel to channel 1, trigger position and trigger screen offset to center of the screen
   scopesettings.triggermode     = 0;
   scopesettings.triggeredge     = 0;
   scopesettings.triggerchannel  = 0;
-  scopesettings.triggerhorizontalposition = 362;
-  scopesettings.triggerverticalposition   = 200;
+  scopesettings.triggerhorizontalposition = 357;    //int32
+  scopesettings.triggerverticalposition   = 300;
 
   //Set move speed to fast
   scopesettings.movespeed = 0;
 
-  //Set time base to 20uS/div
-  scopesettings.timeperdiv = 12;
+  //Set time base to 200uS/div
+  scopesettings.timeperdiv = 20;//9+11 12+11
 
-  //Set the related acquisition speed which is 5MHz
-  scopesettings.samplerate = 5;
+  //Set the related acquisition speed which is 500KSa/s
+  scopesettings.samplerate = 8;//9 16 5+11
 
   //Enable some default measurements
-  //Not yet implemented display wise and am thinking of a different way of doing it so left for later
+  scopesettings.hide_values_CH1 = 0;
+  scopesettings.hide_values_CH2 = 0;
 
   //Turn time cursor off and set some default positions
   scopesettings.timecursorsenable   = 0;
@@ -7939,24 +5643,34 @@ void scope_reset_config_data(void)
   scopesettings.voltcursorsenable   = 0;
   scopesettings.voltcursor1position = 167;
   scopesettings.voltcursor2position = 328;
+  //Turn together move cursors
+  scopesettings.lockcursors         = 1;   //Lock move cursors
 
   //Set right menu to normal state
   scopesettings.rightmenustate = 0;
 
-  //Set screen brightness to high, grid brightness to low, always 50% trigger on, x-y display mode off and confirmation mode enabled
-  scopesettings.screenbrightness = 80;
+  //Set screen brightness to 20, grid brightness to 25, grid enable, always 50% trigger off, x-y display mode off and confirmation mode disabled
+  scopesettings.screenbrightness = 20;
   scopesettings.gridbrightness   = 25;
-  scopesettings.alwaystrigger50  = 1;
+  scopesettings.gridenable       = 1;  
+  scopesettings.alwaystrigger50  = 0;
   scopesettings.xymodedisplay    = 0;
-  scopesettings.confirmationmode = 1;
+  scopesettings.confirmationmode = 0;
+  scopesettings.long_mode        = 0;   //Set the sort time base display mode
+  scopesettings.average_mode     = 0;   //No average displayed data
+  scopesettings.long_memory      = 0;   //No long memory mode
+  scopesettings.new_autosetup    = 1;   //New auto setup
+  scopesettings.maxlight         = 0;   //Max light disable
   
-  //Set default channel calibration values
-  for(index=0;index<7;index++)
-  {
-    //Set FPGA center level
-    scopesettings.channel1.dc_calibration_offset[index] = 750;
-    scopesettings.channel2.dc_calibration_offset[index] = 750;
-  }
+  //triggerlong = 0;
+  //triger50 = 0;     //Clear flag for channel settings 50% button
+  onoffRTC = 0;     //RTC Off
+  USB_CH340 = 0;    //0-USB like MAss storage
+  //----------------------------------------------------------------------------
+  //Load input calibration value 
+  scope_load_input_calibration_data();
+  //----------------------------------------------------------------------------  
+  restore = 1;      //Flag - view restore text in display
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -7971,32 +5685,40 @@ void scope_save_config_data(void)
   //Set a version number for checking if the settings match the current firmware
   settingsworkbuffer[2] = SETTING_SECTOR_VERSION_HIGH;
   settingsworkbuffer[3] = SETTING_SECTOR_VERSION_LOW;
-  
-  //Point to the channel 1 settings
+   
+  //Point to the channel 1 settings                 11
   ptr = &settingsworkbuffer[CHANNEL1_SETTING_OFFSET];
   
   //Save the channel 1 settings
   *ptr++ = scopesettings.channel1.enable;
   *ptr++ = scopesettings.channel1.coupling;
   *ptr++ = scopesettings.channel1.magnification;
+  *ptr++ = scopesettings.channel1.V_A;
   *ptr++ = scopesettings.channel1.displayvoltperdiv;
   *ptr++ = scopesettings.channel1.samplevoltperdiv;
   *ptr++ = scopesettings.channel1.fftenable;
   *ptr++ = scopesettings.channel1.traceposition;
+  *ptr++ = scopesettings.channel1.triggerverticalposition;
+  *ptr++ = scopesettings.channel1.dcoffset;
+  *ptr++ = scopesettings.channel1.invert;          
 
-  //Point to the channel 2 settings
+  //Point to the channel 2 settings                 11
   ptr = &settingsworkbuffer[CHANNEL2_SETTING_OFFSET];
   
   //Save the channel 2 settings
   *ptr++ = scopesettings.channel2.enable;
   *ptr++ = scopesettings.channel2.coupling;
   *ptr++ = scopesettings.channel2.magnification;
+  *ptr++ = scopesettings.channel2.V_A;
   *ptr++ = scopesettings.channel2.displayvoltperdiv;
   *ptr++ = scopesettings.channel2.samplevoltperdiv;
   *ptr++ = scopesettings.channel2.fftenable;
   *ptr++ = scopesettings.channel2.traceposition;
+  *ptr++ = scopesettings.channel2.triggerverticalposition;
+  *ptr++ = scopesettings.channel2.dcoffset;
+  *ptr++ = scopesettings.channel2.invert;            
 
-  //Point to the trigger settings
+  //Point to the trigger settings                   9
   ptr = &settingsworkbuffer[TRIGGER_SETTING_OFFSET];
   
   //Save trigger settings
@@ -8006,10 +5728,11 @@ void scope_save_config_data(void)
   *ptr++ = scopesettings.triggeredge;
   *ptr++ = scopesettings.triggerchannel;
   *ptr++ = scopesettings.triggerlevel;
-  *ptr++ = scopesettings.triggerhorizontalposition;
+  *ptr++ = scopesettings.triggerhorizontalposition>>16;         //int32 !!!
+  *ptr++ = scopesettings.triggerhorizontalposition & 0xFFFF;    //int32 !!!
   *ptr++ = scopesettings.triggerverticalposition;
   
-  //Point to the other settings
+  //Point to the other settings                     13
   ptr = &settingsworkbuffer[OTHER_SETTING_OFFSET];
   
   //Save the other settings
@@ -8020,8 +5743,16 @@ void scope_save_config_data(void)
   *ptr++ = scopesettings.gridbrightness;
   *ptr++ = scopesettings.alwaystrigger50;
   *ptr++ = scopesettings.xymodedisplay;
-
-  //Point to the cursor settings
+  *ptr++ = scopesettings.long_mode;
+  *ptr++ = scopesettings.average_mode;
+  *ptr++ = scopesettings.long_memory;
+  *ptr++ = scopesettings.new_autosetup;
+  *ptr++ = scopesettings.maxlight;
+  
+  
+  *ptr++ = onoffRTC;
+  
+  //Point to the cursor settings                    7
   ptr = &settingsworkbuffer[CURSOR_SETTING_OFFSET];
   
   //Save the time cursor settings
@@ -8033,11 +5764,16 @@ void scope_save_config_data(void)
   *ptr++ = scopesettings.voltcursorsenable;
   *ptr++ = scopesettings.voltcursor1position;
   *ptr++ = scopesettings.voltcursor2position;
+  //Save cursor settings
+  *ptr++ = scopesettings.lockcursors;   //lock move cursors
 
-  //Point to the first measurement enable setting
+  //Point to the first measurement enable setting   26
   ptr = &settingsworkbuffer[MEASUREMENT_SETTING_OFFSET];
-
+  
   //Save the measurements enable states
+  *ptr++ = scopesettings.hide_values_CH1;
+  *ptr++ = scopesettings.hide_values_CH2;
+
   for(channel=0;channel<2;channel++)
   {
     //12 measurements per channel
@@ -8048,19 +5784,19 @@ void scope_save_config_data(void)
     }
   }
 
-  //Point to the calibration settings
+  //Point to the calibration settings               12
   ptr = &settingsworkbuffer[CALIBRATION_SETTING_OFFSET];
 
   //Copy the working set values to the saved values
   for(index=0;index<6;index++,ptr++)
-  {
+    {
     //Copy the data for both channels
     ptr[0] = scopesettings.channel1.dc_calibration_offset[index];
     ptr[6] = scopesettings.channel2.dc_calibration_offset[index];
-  }
+    }
 
-  //Point to the calibration settings
-  ptr = &settingsworkbuffer[CALIBRATION_SETTING_OFFSET + 20];
+  //Point to the calibration settings               4
+  ptr = &settingsworkbuffer[CALIBRATION_SETTING_OFFSET_C];
   
   //Save the ADC compensation values
   *ptr++ = scopesettings.channel1.adc1compensation;
@@ -8068,8 +5804,10 @@ void scope_save_config_data(void)
   *ptr++ = scopesettings.channel2.adc1compensation;
   *ptr++ = scopesettings.channel2.adc2compensation;
   
+//-----------------------------------------------------------------
+  
   //Calculate a checksum over the settings data
-  for(index=2;index<256;index++)
+  for(index=2;index<256;index++)//256
   {
     checksum += settingsworkbuffer[index];
   }
@@ -8086,6 +5824,7 @@ void scope_restore_config_data(void)
   uint32  channel;
   uint32  index;
   uint32  checksum = 0;
+  uint32  tmp = 0;
   uint16 *ptr;
 
   //Calculate a checksum over the loaded data
@@ -8104,10 +5843,14 @@ void scope_restore_config_data(void)
     scopesettings.channel1.enable            = *ptr++;
     scopesettings.channel1.coupling          = *ptr++;
     scopesettings.channel1.magnification     = *ptr++;
+    scopesettings.channel1.V_A               = *ptr++;
     scopesettings.channel1.displayvoltperdiv = *ptr++;
     scopesettings.channel1.samplevoltperdiv  = *ptr++;
     scopesettings.channel1.fftenable         = *ptr++;
     scopesettings.channel1.traceposition     = *ptr++;
+    scopesettings.channel1.triggerverticalposition= *ptr++;
+    scopesettings.channel1.dcoffset          = *ptr++;
+    scopesettings.channel1.invert            = *ptr++;
 
     //Point to the channel 2 settings
     ptr = &settingsworkbuffer[CHANNEL2_SETTING_OFFSET];
@@ -8116,24 +5859,31 @@ void scope_restore_config_data(void)
     scopesettings.channel2.enable            = *ptr++;
     scopesettings.channel2.coupling          = *ptr++;
     scopesettings.channel2.magnification     = *ptr++;
+    scopesettings.channel2.V_A               = *ptr++;
     scopesettings.channel2.displayvoltperdiv = *ptr++;
     scopesettings.channel2.samplevoltperdiv  = *ptr++;
     scopesettings.channel2.fftenable         = *ptr++;
     scopesettings.channel2.traceposition     = *ptr++;
+    scopesettings.channel2.triggerverticalposition= *ptr++; 
+    scopesettings.channel2.dcoffset          = *ptr++;
+    scopesettings.channel2.invert            = *ptr++;
 
     //Point to the trigger settings
     ptr = &settingsworkbuffer[TRIGGER_SETTING_OFFSET];
 
     //Restore trigger settings
-    scopesettings.timeperdiv                = *ptr++;
-    scopesettings.samplerate                = *ptr++;
-    scopesettings.triggermode               = *ptr++;
-    scopesettings.triggeredge               = *ptr++;
-    scopesettings.triggerchannel            = *ptr++;
-    scopesettings.triggerlevel              = *ptr++;
-    scopesettings.triggerhorizontalposition = *ptr++;
-    scopesettings.triggerverticalposition   = *ptr++;
-
+    scopesettings.timeperdiv                 = *ptr++;
+    scopesettings.samplerate                 = *ptr++;
+    scopesettings.triggermode                = *ptr++;
+    scopesettings.triggeredge                = *ptr++;
+    scopesettings.triggerchannel             = *ptr++;
+    scopesettings.triggerlevel               = *ptr++;
+    tmp                                      = *ptr++; 
+    scopesettings.triggerhorizontalposition  =tmp<<16;
+    scopesettings.triggerhorizontalposition += *ptr++; //int32 !!!
+    //scopesettings.triggerhorizontalposition = 357;
+    scopesettings.triggerverticalposition    = *ptr++;
+    
     //Point to the other settings
     ptr = &settingsworkbuffer[OTHER_SETTING_OFFSET];
 
@@ -8143,9 +5893,21 @@ void scope_restore_config_data(void)
     scopesettings.confirmationmode = *ptr++;
     scopesettings.screenbrightness = *ptr++;
     scopesettings.gridbrightness   = *ptr++;
+    scopesettings.gridenable       = 1; 
     scopesettings.alwaystrigger50  = *ptr++;
     scopesettings.xymodedisplay    = *ptr++;
-
+    scopesettings.long_mode        = *ptr++;
+    scopesettings.average_mode     = *ptr++; 
+    scopesettings.long_memory      = *ptr++;
+    scopesettings.long_memory      = 0;           //docasne zrusene, aj v file setup zrusene
+    scopesettings.new_autosetup    = *ptr++;
+    scopesettings.maxlight         = *ptr++;
+    
+    
+    onoffRTC = *ptr++;
+    USB_CH340 = 0;    //0-USB like MAss storage, 1-serial port
+    //scopesettings.channel1.invert = 0; //signal inverted
+    
     //Point to the cursor settings
     ptr = &settingsworkbuffer[CURSOR_SETTING_OFFSET];
 
@@ -8158,11 +5920,16 @@ void scope_restore_config_data(void)
     scopesettings.voltcursorsenable   = *ptr++;
     scopesettings.voltcursor1position = *ptr++;
     scopesettings.voltcursor2position = *ptr++;
+    //Restore cursor settings
+    scopesettings.lockcursors         = *ptr++;
 
     //Point to the first measurement enable setting
     ptr = &settingsworkbuffer[MEASUREMENT_SETTING_OFFSET];
 
     //Restore the measurements enable states
+    scopesettings.hide_values_CH1 = *ptr++;
+    scopesettings.hide_values_CH2 = *ptr++;
+    
     for(channel=0;channel<2;channel++)
     {
       //12 measurements per channel
@@ -8173,29 +5940,10 @@ void scope_restore_config_data(void)
       }
     }
 
-    //Point to the calibration settings
-    ptr = &settingsworkbuffer[CALIBRATION_SETTING_OFFSET];
-
-    //Restore the working set values from the saved values
-    for(index=0;index<6;index++,ptr++)
-    {
-      //Copy the data for both channels
-      scopesettings.channel1.dc_calibration_offset[index] = ptr[0];
-      scopesettings.channel2.dc_calibration_offset[index] = ptr[6];
-    }
-
-    //The last entry is a copy of the fore last value
-    scopesettings.channel1.dc_calibration_offset[6] = scopesettings.channel1.dc_calibration_offset[5];
-    scopesettings.channel2.dc_calibration_offset[6] = scopesettings.channel2.dc_calibration_offset[5];
-    
-    //Point to the calibration settings
-    ptr = &settingsworkbuffer[CALIBRATION_SETTING_OFFSET + 20];
-
-    //Restore the ADC compensation values
-    scopesettings.channel1.adc1compensation = *ptr++;
-    scopesettings.channel1.adc2compensation = *ptr++;
-    scopesettings.channel2.adc1compensation = *ptr++;
-    scopesettings.channel2.adc2compensation = *ptr++;
+    //--------------------------------------------------------------------------
+    //Load input calibration value 
+    scope_load_input_calibration_data();
+    //-------------------------------------------------------------------------- 
   }
   else
   {

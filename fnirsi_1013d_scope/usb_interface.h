@@ -252,14 +252,19 @@
 #define STRING_DESCRIPTOR                      3
 #define INTERFACE_DESCRIPTOR                   4
 #define ENDPOINT_DESCRIPTOR                    5
-#define DEVICE_QUALIFIER_DESCRIPTOR            6
+#define DEVICE_QUALIFIER_DESCRIPTOR            6 //USB_REQ_GET_DESCRIPTOR                  0x06
 #define OTHER_SPEED_CONFIGURATION_DESCRIPTOR   7
 #define INTERFACE_POWER1_DESCRIPTOR            8
 #define INTERFACE_ASSOC_DESCRIPTOR            11
 #define HID_DESCRIPTOR_TYPE                   33
 #define REPORT_DESCRIPTOR                     34
+#define USB_DT_CS_INTERFACE                   36    //NOVE  doplnit kod
+
+//#define USB_DT_INTERFACE		0x04
+//#define USB_DT_CS_INTERFACE		(USB_TYPE_CLASS | USB_DT_INTERFACE)
 
 //----------------------------------------------------------------------------------------------------------------------------------
+
 
 typedef struct
 {
@@ -310,6 +315,50 @@ typedef struct
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+typedef struct {
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint8 bFirstInterface;
+	uint8 bInterfaceCount;
+	uint8 bFunctionClass;
+	uint8 bFunctionSubClass;
+	uint8 bFunctionProtocol;
+	uint8 iFunction;
+} __attribute__((packed)) USB_InterfaceAssocDescriptor;
+
+typedef struct
+{
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint8 bDescriptorSubType;
+	uint16 bcdCDC;
+} __attribute__ ((packed)) USB_CDC_HeaderDescriptor;
+
+typedef struct {
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint8 bDescriptorSubType;
+	uint8 bmCapabilities;
+	uint8 bDataInterface;
+} __attribute__((packed)) USB_CDC_CallMgmtDescriptor;
+
+typedef struct {
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint8 bDescriptorSubType;
+	uint8 bmCapabilities;
+} __attribute__ ((packed)) USB_CDC_AcmDescriptor;
+
+typedef struct {
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint8 bDescriptorSubType;
+	uint8 bMasterInterface0;
+	uint8 bSlaveInterface0;
+} __attribute__ ((packed)) USB_CDC_UnionDescriptor;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
 typedef struct
 {
   uint8  bLegth;
@@ -328,6 +377,43 @@ typedef struct
   USB_InterfaceDescriptor interface_descritor;
   USB_EndPointDescriptor  endpoint_descriptor[2];
 } __attribute__ ((packed)) Mass_Storage_Descriptor;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+/*
+typedef struct
+{
+  USB_ConfigDescriptor    configuration_descriptor;
+  USB_InterfaceDescriptor interface_descritor;
+  //USB_CommunicationsDescriptor comm_descriptor;
+  USB_EndPointDescriptor  endpoint_descriptor[3];
+} __attribute__ ((packed)) CH340_Descriptor;
+
+*/
+
+typedef struct {
+	USB_ConfigDescriptor    configuration_descriptor;
+	//USB_InterfaceAssocDescriptor    interface_assoc_descriptor;
+	USB_InterfaceDescriptor control_interface_descritor;
+	USB_CDC_HeaderDescriptor header_descriptor;
+	USB_CDC_CallMgmtDescriptor call_mgmt_descriptor;
+	USB_CDC_AcmDescriptor acm_descriptor;
+	USB_CDC_UnionDescriptor union_descriptor;
+	USB_EndPointDescriptor  hs_notify_descriptor;
+	USB_InterfaceDescriptor data_interface_descritor;
+	USB_EndPointDescriptor  endpoint_descriptor[2];
+//} __attribute__ ((packed)) cdc_confDesc
+} __attribute__ ((packed)) CH340_Descriptor;
+
+//***********************
+
+typedef struct {
+	uint32 dwDTERate;
+	uint8 bCharFormat;
+	uint8 bParityType;
+	uint8 bDataBits;
+} __attribute__ ((packed)) USB_CDC_LineCoding;
+
+//***********************
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
@@ -354,6 +440,7 @@ void usb_device_stall_tx_ep(void);
 void usb_device_stall_rx_ep(void);
 
 void usb_write_ep1_data(void *buffer, uint32 length);
+void usb_write_ep2_data(void *buffer, uint32 length);	///treba?
 
 //----------------------------------------------------------------------------------------------------------------------------------
 

@@ -21,7 +21,7 @@ FC=gfortran
 AS=arm-none-eabi-gcc
 
 # Macros
-CND_PLATFORM=GNU-Linux
+CND_PLATFORM=GNU_ARM-Linux
 CND_DLIB_EXT=so
 CND_CONF=Release
 CND_DISTDIR=dist
@@ -35,7 +35,12 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
+	${OBJECTDIR}/test.o \
+	${OBJECTDIR}/menu.o \
+	${OBJECTDIR}/DS3231.o \
 	${OBJECTDIR}/ccu_control.o \
+	${OBJECTDIR}/ch340_class.o \
+	${OBJECTDIR}/commands.o \
 	${OBJECTDIR}/diskio.o \
 	${OBJECTDIR}/display_control.o \
 	${OBJECTDIR}/display_lib.o \
@@ -69,7 +74,7 @@ OBJECTFILES= \
 
 
 # C Compiler Flags
-CFLAGS=-Wall -Wno-write-strings -Wno-char-subscripts -fno-stack-protector -DNO_STDLIB=1 -O3 -mcpu=cortex-m3 -mthumb
+CFLAGS=-Wall -Wno-write-strings -Wno-char-subscripts -fno-stack-protector -DNO_STDLIB=1 -mcpu='arm926ej-s' -O3 -mfloat-abi=soft
 
 # CC Compiler Flags
 CCFLAGS=
@@ -79,23 +84,48 @@ CXXFLAGS=
 FFLAGS=
 
 # Assembler Flags
-ASFLAGS=
+ASFLAGS=-x assembler-with-cpp -c -O0 -mcpu='arm926ej-s' -mthumb -Wall -fmessage-length=0
 
 # Link Libraries and Options
 LDLIBSOPTIONS=
 
 # Build Targets
 .build-conf: ${BUILD_SUBPROJECTS}
-	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/fnirsi_1013d_scope
+	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/fnirsi_1013d_scope.elf
 
-${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/fnirsi_1013d_scope: ${OBJECTFILES}
+${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/fnirsi_1013d_scope.elf: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
-	arm-none-eabi-gcc -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/fnirsi_1013d_scope ${OBJECTFILES} ${LDLIBSOPTIONS} -T./stm32f103-64k.ld -nostdlib
+	arm-none-eabi-gcc -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/fnirsi_1013d_scope.elf ${OBJECTFILES} ${LDLIBSOPTIONS} -T./fnirsi_1013d.ld -nostdlib -lgcc -lm
+
+${OBJECTDIR}/test.o: test.c
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/test.o test.c
+
+${OBJECTDIR}/menu.o: menu.c
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/menu.o menu.c
+
+${OBJECTDIR}/DS3231.o: DS3231.c
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/DS3231.o DS3231.c
 
 ${OBJECTDIR}/ccu_control.o: ccu_control.c
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/ccu_control.o ccu_control.c
+
+${OBJECTDIR}/ch340_class.o: ch340_class.c
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/ch340_class.o ch340_class.c	
+
+${OBJECTDIR}/commands.o: commands.c
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.c) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/commands.o commands.c
 
 ${OBJECTDIR}/diskio.o: diskio.c
 	${MKDIR} -p ${OBJECTDIR}
@@ -174,19 +204,19 @@ ${OBJECTDIR}/mass_storage_class.o: mass_storage_class.c
 
 ${OBJECTDIR}/memcmp.o: memcmp.s
 	${MKDIR} -p ${OBJECTDIR}
-	$(AS) $(ASFLAGS) -o ${OBJECTDIR}/memcmp.o memcmp.s
+	$(AS) $(ASFLAGS) -O2 -o ${OBJECTDIR}/memcmp.o memcmp.s
 
 ${OBJECTDIR}/memcpy.o: memcpy.s
 	${MKDIR} -p ${OBJECTDIR}
-	$(AS) $(ASFLAGS) -o ${OBJECTDIR}/memcpy.o memcpy.s
+	$(AS) $(ASFLAGS) -O2 -o ${OBJECTDIR}/memcpy.o memcpy.s
 
 ${OBJECTDIR}/memmove.o: memmove.s
 	${MKDIR} -p ${OBJECTDIR}
-	$(AS) $(ASFLAGS) -o ${OBJECTDIR}/memmove.o memmove.s
+	$(AS) $(ASFLAGS) -O2 -o ${OBJECTDIR}/memmove.o memmove.s
 
 ${OBJECTDIR}/memset.o: memset.s
 	${MKDIR} -p ${OBJECTDIR}
-	$(AS) $(ASFLAGS) -o ${OBJECTDIR}/memset.o memset.s
+	$(AS) $(ASFLAGS) -O2 -o ${OBJECTDIR}/memset.o memset.s
 
 ${OBJECTDIR}/power_and_battery.o: power_and_battery.c
 	${MKDIR} -p ${OBJECTDIR}
@@ -215,7 +245,7 @@ ${OBJECTDIR}/spi_control.o: spi_control.c
 
 ${OBJECTDIR}/start.o: start.s
 	${MKDIR} -p ${OBJECTDIR}
-	$(AS) $(ASFLAGS) -o ${OBJECTDIR}/start.o start.s
+	$(AS) $(ASFLAGS) -O2 -o ${OBJECTDIR}/start.o start.s
 
 ${OBJECTDIR}/statemachine.o: statemachine.c
 	${MKDIR} -p ${OBJECTDIR}

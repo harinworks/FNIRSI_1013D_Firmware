@@ -16,18 +16,38 @@
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-#define CHANNEL1_COLOR         0x00FFFF00
-#define CHANNEL2_COLOR         0x0000FFFF
-#define TRIGGER_COLOR          0x0000FF00
+#define CHANNEL1_COLOR         0x00FFFF00   //YELLOW_COLOR
+#define CHANNEL2_COLOR         0x0000FFFF   //BLUE_COLOR
+#define TRIGGER_COLOR          0x0000FF00   //GREEN_COLOR
 
-#define CHANNEL1_TRIG_COLOR    0x00CCCC00
-#define CHANNEL2_TRIG_COLOR    0x0000CCCC
+#define CHANNEL1_TRIG_COLOR    0x00CCCC00   //  
+#define CHANNEL2_TRIG_COLOR    0x0000CCCC   //
 
-#define XYMODE_COLOR           0x00FF00FF
+#define XYMODE_COLOR           0x00FF00FF   //MAGENTA_COLOR
 
-#define CURSORS_COLOR          0x0000AA11
+#define CURSORS_COLOR          0x0000AA11   //
 
-#define ITEM_ACTIVE_COLOR      0x00EF9311
+#define ITEM_ACTIVE_COLOR      0x00EF9311   //
+
+#define BLACK_COLOR            0x00000000   //*
+#define DARKGREY_COLOR         0x00181818   //*
+#define LIGHTGREY_COLOR        0x00333333   //* lebo dark?
+#define MIDLEGREY_COLOR        0x00383838   //*
+#define GREY_COLOR             0x00444444   //* 
+#define LIGHTGREY1_COLOR       0x00606060   //* 
+#define WHITE_COLOR            0x00FFFFFF   //*
+#define RED_COLOR              0x00FF0000   //*
+#define YELLOW_COLOR           0x00FFFF00   //*
+#define PALEYELLOW_COLOR       0x00FFFF80   //*
+#define DARKGREEN_COLOR        0x0000BB00   //*
+#define GREEN_COLOR            0x0000FF00   //*
+#define BLUE_COLOR             0x0000FFFF   //*
+#define DARKBLUE_COLOR         0x00000078   //* 55
+#define ORANGE_COLOR           0x00FF8000   //*
+#define MAGENTA_COLOR          0x00FF00FF   //*
+
+      //Light gray for the buttons
+      //display_set_fg_color(0x00303030);
 
 //----------------------------------------------------------------------------------------------------------------------------------
 

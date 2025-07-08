@@ -55,6 +55,7 @@ void display_set_fg_y_gradient(uint16 *buffer, uint32 ystart, uint32 yend, uint3
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+void display_draw_pixel(uint32 x, uint32 y);
 void display_draw_line(uint32 xstart, uint32 ystart, uint32 xend, uint32 yend);
 void display_draw_horz_line(uint32 ypos, uint32 xstart, uint32 xend);
 void display_draw_vert_line(uint32 xpos, uint32 ystart, uint32 yend);
