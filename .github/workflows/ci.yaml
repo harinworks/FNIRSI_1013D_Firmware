@@ -22,13 +22,9 @@ jobs:
         with:
           release: '10.3-2021.10'
 
-      - name: build-bootloader
-        run: |
-          make -C fnirsi_1013d_sd_card_bootloader
-
       - name: build-startup
         run: |
-          make -C fnirsi_1013d_startup_screen
+          make -C fnirsi_1014d_startup
 
       - name: build-scope
         run: |
@@ -39,8 +35,7 @@ jobs:
         with:
           name: fnirsi_1013d
           path: |
-            fnirsi_1013d_sd_card_bootloader/dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.bin
-            fnirsi_1013d_startup_screen/dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.bin
+            fnirsi_1014d_startup/dist/Debug/GNU_ARM-Linux/fnirsi_sd_card_bootloader.bin
             fnirsi_1013d_scope/dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin
             fnirsi_1013d_scope/dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin
           if-no-files-found: error
