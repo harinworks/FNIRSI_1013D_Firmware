@@ -756,13 +756,13 @@ void scope_test_ADoffset_value(void)
       //uint32 center = (scopesettings.channel1.center * signal_adjusters[scopesettings.channel1.displayvoltperdiv]) >> VOLTAGE_SHIFTER;   
       
        
- // uint32 offset;
+  // uint32 offset;
   uint32    max1;
   uint32    min1;    
   uint32    p2p1; 
   uint32    center1x; 
-  uint32    dcoffset;
-  uint32    dcoffsetm;
+  // uint32    dcoffset;
+  // uint32    dcoffsetm;
   
   register uint32 multiply;
   

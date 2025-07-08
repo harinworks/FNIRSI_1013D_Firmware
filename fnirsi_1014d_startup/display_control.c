@@ -48,9 +48,6 @@ void sys_disable_display(void)
 void sys_init_display(uint16 xsize, uint16 ysize, uint16 *address)
 {
   int32   time;
-  uint32 *ptr = DISPLAY_CONFIG_ADDRESS;
-  uint32  checksum = 0;
-  uint32  index;
   
   //Setup the used port D pins for LCD
   *PORTD_CFG0_REG = 0x22222227;   //PD00 is not used for the display
