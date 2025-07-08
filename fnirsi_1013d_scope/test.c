@@ -756,13 +756,13 @@ void scope_test_ADoffset_value(void)
       //uint32 center = (scopesettings.channel1.center * signal_adjusters[scopesettings.channel1.displayvoltperdiv]) >> VOLTAGE_SHIFTER;   
       
        
- // uint32 offset;
+  // uint32 offset;
   uint32    max1;
   uint32    min1;    
   uint32    p2p1; 
   uint32    center1x; 
-  uint32    dcoffset;
-  uint32    dcoffsetm;
+  // uint32    dcoffset;
+  // uint32    dcoffsetm;
   
   register uint32 multiply;
   
@@ -777,8 +777,8 @@ void scope_test_ADoffset_value(void)
     p2p1 = (scopesettings.channel1.peakpeak * scopesettings.channel1.input_calibration[scopesettings.channel1.displayvoltperdiv]) >> VOLTAGE_SHIFTER;
     dcoffset = (scopesettings.channel1.dcoffset * scopesettings.channel1.input_calibration[scopesettings.channel1.displayvoltperdiv]) >> VOLTAGE_SHIFTER;
     dcoffsetm = (scopesettings.channel1.dcoffset * multiply ) >> VOLTAGE_SHIFTER;//3289650
-       */
-    
+    */
+
     settings = &scopesettings.channel1;
     
     multiply=(settings->input_calibration[settings->samplevoltperdiv]);//*(settings->dc_shift_center)/100; ;
