@@ -31,8 +31,8 @@ uint8  havetouch;
 uint16 xtouch;
 uint16 ytouch;
 
-uint16 xtouch_tmp;  //len pre vyvojove ucely
-uint16 ytouch_tmp;  //len pre vyvojove ucely
+uint16 xtouch_tmp;  //for development purposes only
+uint16 ytouch_tmp;  //for development purposes only
 
 //To allow for the different touch panel configurations in the field these variables can be controlled in the display configuration file
 uint8 xswap;

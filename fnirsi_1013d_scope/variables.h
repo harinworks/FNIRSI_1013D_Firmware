@@ -565,8 +565,8 @@ extern uint8  havetouch;
 extern uint16 xtouch;
 extern uint16 ytouch;
 
-extern uint16 xtouch_tmp;       //len pre vyvojove ucely
-extern uint16 ytouch_tmp;       //len pre vyvojove ucely
+extern uint16 xtouch_tmp;       //for development purposes only
+extern uint16 ytouch_tmp;       //for development purposes only
 
 extern uint8 xswap;
 extern uint8 yswap;
