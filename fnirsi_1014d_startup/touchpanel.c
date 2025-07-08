@@ -132,6 +132,9 @@ void tp_i2c_setup(void)
   //Get maximum x and y value from configuration
   xmax = tp_config_data[1] | (tp_config_data[2] << 8);
   ymax = tp_config_data[3] | (tp_config_data[4] << 8);
+
+  if (xmax == 0) xmax = 800;
+  if (ymax == 0) ymax = 480;
   
   //Calculate scalers based on the set x and y max output values
   xscaler = (800 << 20) / xmax;
