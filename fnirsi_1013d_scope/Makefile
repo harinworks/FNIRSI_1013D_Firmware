@@ -64,7 +64,7 @@ build: .build-post
 	../bin/mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin
 
 # SD card package
-	../bin/flashfilepacker -o dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin -i dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin -l 0x9800
+	../bin/flashfilepacker -o dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin -i dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin -l 0x8000
 
 
 # clean

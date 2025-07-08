@@ -3,24 +3,28 @@
 #include "ccu_control.h"
 #include "usb_interface.h"
 #include "interrupt.h"
+#include "timer.h"
 
 #include "mass_storage_class.h"
+#include "ch340_class.h"
 
 #include <string.h>
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void usb_device_irq_handler(void);
+void usb_device_CH340_irq_handler(void);//*
 
 void usb_mass_storage_standard_request(void *dat);
+void usb_ch340_standard_request(void *dat);//*
 
 int32 usb_device_write_data_ep_pack(int32 ep, uint8 * databuf, int32 len);
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-uint8 current_speed = USB_SPEED_UNKNOWN;
+uint8  current_speed = USB_SPEED_UNKNOWN;
 uint32 usb_connect = 0;
-int32 usb_ep0_state = EP0_IDLE;
+int32  usb_ep0_state = EP0_IDLE;
 
 extern volatile uint32 msc_state;
 
@@ -35,6 +39,24 @@ union
   uint32           data[2];
   USB_Setup_Packet packet;
 } usb_setup_packet;
+
+USB_CDC_LineCoding port_line_coding = {
+		.dwDTERate = 9600,
+		.bCharFormat = 0,
+		.bParityType = 0,
+		.bDataBits = 8
+};
+
+unsigned int port_line_coding_flag;
+
+void set_line_codingstatic_ext(unsigned char * pdata)
+{
+			port_line_coding_flag = 0;
+			port_line_coding.dwDTERate = *(volatile unsigned int *)(pdata);
+			port_line_coding.bCharFormat = *(volatile unsigned char *)(pdata+4);
+			port_line_coding.bParityType = *(volatile unsigned char *)(pdata+5);
+			port_line_coding.bDataBits = *(volatile unsigned char *)(pdata+6);
+}
 
 //----------------------------------------------------------------------------------------------------------------------------------
 //In original code the register is written as byte, which might be wrong since some data is shifted 8 bits to the left
@@ -106,7 +128,19 @@ void usb_device_init(void)
   usb_device_disable();
   
   //Setup the interrupt handler for the USB interface
-  setup_interrupt(USB_IRQ_NUM, usb_device_irq_handler, 2);
+  
+  if(USB_CH340==1) 
+    {
+      setup_interrupt(USB_IRQ_NUM, usb_device_CH340_irq_handler, 2);    //for CH340
+      //Wait 200ms to allow the USB interface to disconnect before switching to CH340 mode
+      //Is only needed when loaded via FEL and not when booted from SD card
+      timer0_delay(200);
+      usb_device_enable();                                              //enable serial
+            timer0_delay(1000);
+      //set_baud_rate();
+
+    }
+    else setup_interrupt(USB_IRQ_NUM, usb_device_irq_handler, 2);       //for mass storage
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -124,6 +158,10 @@ void usb_device_enable(void)
 
   //Enable the needed interrupts
   *USBC_REG_INTUSBE = USBC_BP_INTUSB_SUSPEND | USBC_BP_INTUSB_RESUME | USBC_BP_INTUSB_RESET | USBC_BP_INTUSB_DISCONNECT;
+  
+  //Enable the needed interrupts ch340
+    //*USBC_REG_INTUSBE = USBC_BP_INTUSB_SOF | USBC_BP_INTUSB_SUSPEND | USBC_BP_INTUSB_RESUME | USBC_BP_INTUSB_RESET | USBC_BP_INTUSB_DISCONNECT;
+  if(USB_CH340==1) *USBC_REG_INTUSBE |= USBC_BP_INTUSB_SOF;
 
   //Enable EP0 interrupt
   *USBC_REG_INTTXE = 1;
@@ -198,7 +236,7 @@ void usb_write_to_fifo(void *FIFO, void *buffer, uint32 length)
     }
 
     //Check if 8 bit item to write
-    if(length & 1)
+    if(length & 1)	//for ch340 if(length) ?
     {
       //Write the 8 bit item
       (*(volatile uint8 *)FIFO) = *(uint8 *)buffer;
@@ -343,6 +381,17 @@ void usb_device_stall_rx_ep(void)
 void usb_write_ep1_data(void *buffer, uint32 length)
 {
   usb_write_to_fifo((void *)USBC_REG_EPFIFO1, buffer, length);
+  
+  //Clear possible under run error and signal packet send
+  //This bit needs to be cleared first, otherwise it fails for some reason
+  *USBC_REG_TXCSR &= ~USBC_BP_TXCSR_D_UNDER_RUN;
+  *USBC_REG_TXCSR |= USBC_BP_TXCSR_D_TX_READY;
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+//treba?
+void usb_write_ep2_data(void *buffer, uint32 length)
+{
+  usb_write_to_fifo((void *)USBC_REG_EPFIFO2, buffer, length);
   
   //Clear possible under run error and signal packet send
   //This bit needs to be cleared first, otherwise it fails for some reason
@@ -819,6 +868,604 @@ void usb_device_irq_handler(void)
     {
       //Have the mass storage code handle the request for data
       usb_mass_storage_in_ep_callback();
+    }
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//**************************** CH340 *****************************
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void usb_device_CH340_irq_handler(void)
+{
+  //Reading these registers clear all the active interrupt bits, but they still need active clearing
+  //So using the registers directly in the if statements does not work
+  register uint32 usbirq = *USBC_REG_INTUSB;
+  register uint32 txirq  = *USBC_REG_INTTX;
+  register uint32 rxirq  = *USBC_REG_INTRX;
+  
+  //Check on a RESET interrupt
+  if(usbirq & USBC_BP_INTUSB_RESET)
+  {
+    //Clear all pending miscellaneous interrupts
+    *USBC_REG_INTUSB = 0xFF;
+    
+    //Clear all pending receive interrupts
+    *USBC_REG_INTRX = 0xFFFF;
+
+    //Clear all pending transmit interrupts
+    *USBC_REG_INTTX = 0xFFFF;
+    
+    //Need to check if this needs to be this way
+    usb_connect = 1;
+    
+    usb_ep0_state = EP0_IDLE;
+    
+    //Set EP0 as active one
+    *USBC_REG_EPIND = 0;
+    
+    //Switch to default device address
+    *USBC_REG_FADDR = 0;
+    
+    return;
+  }
+
+  //Check on a RESUME interrupt
+  if(usbirq & USBC_BP_INTUSB_RESUME)
+  {
+    //Clear the interrupt
+    *USBC_REG_INTUSB = USBC_BP_INTUSB_RESUME;
+    
+    //Back to connected state
+    usb_connect = 1;
+    usb_ep0_state = EP0_IDLE;
+  }
+
+  //Check on a SUSPEND interrupt
+  if(usbirq & USBC_BP_INTUSB_SUSPEND)
+  {
+    //Clear the interrupt
+    *USBC_REG_INTUSB = USBC_BP_INTUSB_SUSPEND;
+    
+    //No longer connected
+    usb_connect = 0;
+    usb_ep0_state = EP0_IDLE;
+  }
+
+  //Check on a DISCONNECT interrupt
+  if(usbirq & USBC_BP_INTUSB_DISCONNECT)
+  {
+    //Clear the interrupt
+    *USBC_REG_INTUSB = USBC_BP_INTUSB_DISCONNECT;
+
+    //No longer connected
+    usb_connect = 0;
+    usb_ep0_state = EP0_IDLE;
+    
+    //Need to add code here to force the scope to go back to its normal mode???
+    //Use a flag that is checked in the touch scan for the usb on/off
+  }
+
+  //Check on start of frame interrupt
+  if(usbirq & USBC_BP_INTUSB_SOF)
+  {
+    //Clear the interrupt
+    *USBC_REG_INTUSB = USBC_BP_INTUSB_SOF;
+    
+    //Go and see if data needs to be send on EP2
+    usb_ch340_in_ep_callback();
+  }
+  
+  
+  //Check on an EP0 interrupt
+  if(txirq & USBC_INTTX_FLAG_EP0)
+  {
+    //Clear the interrupt
+    *USBC_REG_INTTX = USBC_INTTX_FLAG_EP0;
+
+    //When speed not previously set check what is negotiated by the host
+    if(current_speed == USB_SPEED_UNKNOWN)
+    {
+      //Check the speed negotiated by the host
+      if(*USBC_REG_PCTL & USBC_BP_POWER_D_HIGH_SPEED_FLAG)
+      {
+        current_speed = USB_SPEED_HIGH;
+      }
+      else
+      {
+        //Things will fail for low speed due to the end point size not being adjusted
+        //Think it would also need a different device descriptor or configuration
+        //Question is how big is the change it will be connected to a full speed only device
+        current_speed = USB_SPEED_FULL;
+      }
+    }
+    
+    //Set EP0 as active one
+    *USBC_REG_EPIND = 0;
+    
+    //Check if previous setup package was a set address command
+    if(usb_set_faddr)
+    {
+      //If so set the received device address in the USB device
+      *USBC_REG_FADDR = usb_faddr;
+      
+      //Only do this when requested
+      usb_set_faddr = 0;
+    }
+
+    //Clear stall status if needed
+    if(*USBC_REG_CSR0 & USBC_BP_CSR0_D_SENT_STALL)
+    {
+      //Clear the stall state. Is the only bit cleared when a 0 is written to it.
+      *USBC_REG_CSR0 = 0x00;
+
+      //Make sure system is back in idle state
+      usb_ep0_state = EP0_IDLE;
+    }
+    else
+    {
+      //Clear setup end when needed
+      if(*USBC_REG_CSR0 & USBC_BP_CSR0_D_SETUP_END)
+      {
+        //Signal setup end is serviced
+        *USBC_REG_CSR0 = USBC_BP_CSR0_D_SERVICED_SETUP_END;
+
+        //Make sure system is back in idle state
+        usb_ep0_state = EP0_IDLE;
+      }
+
+      //Handle the data based on the current state
+      switch(usb_ep0_state)
+      {
+        case EP0_IDLE:
+          //Check if a packet has been received
+          if(*USBC_REG_CSR0 & USBC_BP_CSR0_D_RX_PKT_READY)
+          {
+            //Count is only valid when receive packet ready bit is set
+            //A setup packet is always 8 bytes in length
+            if(*USBC_REG_COUNT0 == 8)
+            {
+              //Get 8 bytes of data from the FIFO into the setup packet structure
+              //Using a union for alignment to 32 bits
+              usb_setup_packet.data[0] = *USBC_REG_EPFIFO0;
+              usb_setup_packet.data[1] = *USBC_REG_EPFIFO0;
+              
+              //Signal packet has been serviced
+              *USBC_REG_CSR0 = USBC_BP_CSR0_D_SERVICED_RX_PKT_READY;
+
+              //No data to send yet
+              ep0_data_length = 0;
+              
+              //Handle the packet based on the type
+              switch(usb_setup_packet.packet.bRequestType & USB_TYPE_MASK)
+              {
+                case USB_TYPE_STANDARD:
+                  switch(usb_setup_packet.packet.bRequest)
+                  {
+                    case USB_REQ_GET_DESCRIPTOR:
+                    {
+                      //Handle the request based on the type of descriptor
+                      switch(usb_setup_packet.packet.wValue >> 8)
+                      {
+                        case DEVICE_DESCRIPTOR:
+                          ep0_data_length  = sizeof(USB_DeviceDescriptor);
+                          ep0_data_pointer = (uint8 *)&CH340_DevDesc;
+                          break;
+
+                        case CONFIGURATION_DESCRIPTOR:
+                            /*
+                          if(usb_setup_packet.packet.wLength == 9)  
+                          {
+                          ep0_data_length  = 9;
+                          ep0_data_pointer = (uint8 *)&CH340_ConfDesc;
+                          }
+                          else if(usb_setup_packet.packet.wLength == 8)  
+                          {
+                          ep0_data_length  = 8;
+                          ep0_data_pointer = (uint8 *)&CH340_ConfDesc;
+                          }else
+                          {  */ 
+                          ep0_data_length  = sizeof(CH340_ConfDesc);
+                          ep0_data_pointer = (uint8 *)&CH340_ConfDesc;
+                         // }
+                          break;
+                                    
+                        case STRING_DESCRIPTOR:
+                        {
+                          switch(usb_setup_packet.packet.wValue & 0xFF)
+                          {
+                            case 0:
+                              ep0_data_length  = sizeof(StringLangID);
+                              ep0_data_pointer = (uint8 *)&StringLangID;
+                              //ep0_data_length  = sizeof(str_isernum); //n
+                              //ep0_data_pointer = (uint8 *)&str_isernum;
+                              break;
+
+                            case 1:
+                              //ep0_data_length  = sizeof(StringSerialCH340);
+                              //ep0_data_pointer = (uint8 *)&StringSerialCH340;
+                              ep0_data_length  = sizeof(str_isernum); //n
+                              ep0_data_pointer = (uint8 *)&str_isernum;
+                              break;
+                              
+                            case 2:
+                              //ep0_data_length  = sizeof(StringProductCH340);
+                              //ep0_data_pointer = (uint8 *)&StringProductCH340;
+                              //str_ret[0] = (0x0300 | 38);
+                              ep0_data_length  = sizeof(str_ret); //n
+                              ep0_data_pointer = (uint8 *)&str_ret;
+                              break;
+                              
+                            case 3:
+                              ep0_data_length  = sizeof(str_isernum); //n
+                              ep0_data_pointer = (uint8 *)&str_isernum;
+                              //ep0_data_length  = sizeof(StringSerialCH340);
+                              //ep0_data_pointer = (uint8 *)&StringSerialCH340;
+                              break;
+                              
+                            case 4:
+                              ep0_data_length  = sizeof(str_config); //n
+                              ep0_data_pointer = (uint8 *)&str_config;
+                              break;
+                              
+                            case 5:
+                              ep0_data_length  = sizeof(str_interface1); //n
+                              ep0_data_pointer = (uint8 *)&str_interface1;
+                              break;
+                            
+                            case 6:
+                              ep0_data_length  = sizeof(str_interface2); //n
+                              ep0_data_pointer = (uint8 *)&str_interface2;
+                              break;  
+                              
+                            case 0xEE:
+                              //ep0_data_length  = sizeof(StringVendorCH340);
+                              //ep0_data_pointer = (uint8 *)&StringVendorCH340;
+                              //str_isernum[0] = (0x0300 | sizeof(str_isernum));
+                              ep0_data_length  = sizeof(str_isernum); //n
+                              ep0_data_pointer = (uint8 *)&str_isernum;  
+                              break;
+                            
+                            default:
+                              //ep0_data_length  = sizeof(StringSerialCH340);
+                              //ep0_data_pointer = (uint8 *)&StringSerialCH340;
+                              //str_isernum[0] = (0x0300 | sizeof(str_isernum));
+                              ep0_data_length  = sizeof(str_isernum); //n
+                              ep0_data_pointer = (uint8 *)&str_isernum;  
+                              break;
+                          }
+                        }
+                        break;
+                      }
+                    }
+                    break;
+
+                    case USB_REQ_SET_ADDRESS:
+                      //Signal device address needs to be set on the next interrupt
+                      usb_set_faddr = 1;
+                      
+                      //Save the received device address to be set in the USB device
+                      usb_faddr = usb_setup_packet.packet.wValue & 0x7F;
+                      break;
+
+                    case USB_REQ_SET_CONFIGURATION:
+                      //This needs attention to allow for full speed host connection
+                      //Need to check if the double FIFO setup is needed. The rest of the code does not make use of it for as far as I can tell
+                      //For the CH340 device three endpoints are used
+                      //EP1 IN for interrupt handling
+                      //EP2 OUT for receiving data from the host
+                      //EP2 IN for sending data to the host
+                    
+                      //Select the interrupt end point registers used for the CH340
+                      *USBC_REG_EPIND = 1;
+                      
+                      //EP IN configuration
+                      //Reset the end point to bulk and clear the FIFO
+                      *USBC_REG_TXCSR = USBC_BP_TXCSR_D_MODE | USBC_BP_TXCSR_D_CLEAR_DATA_TOGGLE | USBC_BP_TXCSR_D_FLUSH_FIFO;
+
+                      //For double buffering clear the FIFO again
+                      *USBC_REG_TXCSR = USBC_BP_TXCSR_D_FLUSH_FIFO;
+
+                      //Max 8 bytes per transaction
+                      //This setting is dependent on the negotiated device speed
+                      //Needs extra code to cope with that
+                      *USBC_REG_TXMAXP = 8;
+
+                      //The FIFO size is set based on 2^n * 8, so for 512 bytes it is 6
+                      //As double buffering is used this bit is also set
+                      *USBC_REG_TXFIFOSZ = USBC_BP_TXFIFOSZ_DPB | 6;
+                      
+                      //The base address of the third FIFO is set to the first free address
+                      *USBC_REG_TXFIFOAD = 256;
+
+                      //Enable the endpoint interrupts
+//                      *USBC_REG_INTRXE |= USBC_INTRX_FLAG_EP1;
+                      *USBC_REG_INTTXE |= USBC_INTTX_FLAG_EP1;
+                      
+                      //Select the data end point registers used for the CH340
+                      *USBC_REG_EPIND = 2;
+
+                      //EP OUT configuration                      
+                      //Reset the end point to bulk end point and clear the FIFO
+                      *USBC_REG_RXCSR = USBC_BP_RXCSR_D_CLEAR_DATA_TOGGLE | USBC_BP_RXCSR_D_FLUSH_FIFO;
+                      
+                      //For double buffering clear the FIFO again
+                      *USBC_REG_RXCSR = USBC_BP_RXCSR_D_FLUSH_FIFO;
+                        
+                      //Max 512 bytes per transaction
+                      //This setting is dependent on the negotiated device speed
+                      //Needs extra code to cope with that
+                      *USBC_REG_RXMAXP = 512;
+    
+                      //The FIFO size is set based on 2^n * 8, so for 512 bytes it is 6
+                      //As double buffering is used this bit is also set
+                      *USBC_REG_RXFIFOSZ = USBC_BP_RXFIFOSZ_DPB | 6;
+    
+                      //The base address of the first FIFO is set to zero
+                      *USBC_REG_RXFIFOAD = 0;
+    
+                      //EP IN configuration
+                      //Reset the end point to bulk and clear the FIFO
+                      *USBC_REG_TXCSR = USBC_BP_TXCSR_D_MODE | USBC_BP_TXCSR_D_CLEAR_DATA_TOGGLE | USBC_BP_TXCSR_D_FLUSH_FIFO;
+
+                      //For double buffering clear the FIFO again
+                      *USBC_REG_TXCSR = USBC_BP_TXCSR_D_FLUSH_FIFO;
+
+                      //Max 512 bytes per transaction
+                      //This setting is dependent on the negotiated device speed
+                      //Needs extra code to cope with that
+                      *USBC_REG_TXMAXP = 512;
+
+                      //The FIFO size is set based on 2^n * 8, so for 512 bytes it is 6
+                      //As double buffering is used this bit is also set
+                      *USBC_REG_TXFIFOSZ = USBC_BP_TXFIFOSZ_DPB | 6;
+                      
+                      //The base address of the second FIFO is set to the first free address (twice the receive FIFO size / 8)
+                      *USBC_REG_TXFIFOAD = 128;
+
+                      //Enable the endpoint interrupts
+                      *USBC_REG_INTRXE |= USBC_INTRX_FLAG_EP2;
+                      *USBC_REG_INTTXE |= USBC_INTTX_FLAG_EP2;
+  
+                      //Switch back to EP0
+                      *USBC_REG_EPIND = 0;
+
+                      //Send a null packet to acknowledge configuration
+                      *USBC_REG_CSR0 = USBC_BP_CSR0_D_TX_PKT_READY;
+                      break;
+
+                    case USB_REQ_CLEAR_FEATURE:
+                      //Might need more filtering. Looking at tinyusb project things are done differently
+                      //This is extra in the scope. Not sure if it is really needed
+                      
+                      //Select the intended endpoint
+                      *USBC_REG_EPIND = usb_setup_packet.packet.wIndex & 0x03;
+                      
+                      //Check the type of endpoint to halt
+                      if(usb_setup_packet.packet.wIndex & 0x80)
+                      {
+                        //Transmit endpoint
+                        *USBC_REG_TXCSR = USBC_BP_TXCSR_D_MODE | USBC_BP_TXCSR_D_CLEAR_DATA_TOGGLE | USBC_BP_TXCSR_D_FLUSH_FIFO;
+                      }
+                      else
+                      {
+                        //Receive endpoint
+                        *USBC_REG_RXCSR = USBC_BP_RXCSR_D_CLEAR_DATA_TOGGLE | USBC_BP_RXCSR_D_FLUSH_FIFO;
+                      }
+                      
+                      //Switch back to EP0
+                      *USBC_REG_EPIND = 0;
+                      break;
+                  }
+                  break;
+
+//********************************************************************************************************
+                  case USB_TYPE_CLASS:
+                  // CDC: GET_LINE_CODING //For mass storage check if this is a max LUN request
+                    if(usb_setup_packet.packet.bRequest == 0x21)
+                    {
+                      //if (usb_setup_packet.packet.wValue == 0xA1)  // GET_LINE_CODING
+                      //{
+                        // Pripraviť dáta pre odpoveď GET_LINE_CODING
+                        ep0_data_length  = sizeof(USB_CDC_LineCoding);  // Nastaviť dĺžku dát na veľkosť štruktúry LINE_CODING
+                        ep0_data_pointer = (uint8 *)&port_line_coding; // Ukazovateľ na štruktúru LINE_CODING s nastaveniami (baud rate, stop bits, atď.) 
+                      //}
+                    } 
+                    // CDC: SET_LINE_CODING
+                    else if (usb_setup_packet.packet.bRequest == 0x20) 
+                      {  
+                        //if (usb_setup_packet.packet.wValue == 0x21)  // SET_LINE_CODING
+                        //{
+                          //ep0_data_length = sizeof(USB_CDC_LineCoding);  
+                          //ep0_data_pointer = (uint8 *)&port_line_coding;  
+                        
+                        //void usb_ch340_out_ep_callback(void *fifo, int length)
+                        unsigned char tmp[7];
+                        usb_ch340_out_ep_callback(tmp, 7);
+                        usb_device_stall_rx_ep();
+
+                       // }
+
+                      }
+                  // CDC: SET_CONTROL_LINE_STATE
+                   else if (usb_setup_packet.packet.bRequest == 0x22) 
+                     {  
+                        //if (usb_setup_packet.packet.wValue == 0x21)  // SET_CONTROL_LINE_STATE
+                        //{
+                          // Tento príkaz slúži na nastavenie stavu riadiacich liniek (napr. DTR, RTS)
+                          // Môžete implementovať logiku na spracovanie týchto signálov
+                        //} 
+                    }  
+                break; 
+                
+//**********************************************************************************************************
+                  
+                case USB_TYPE_VENDOR:
+                  //For mass storage check if this is a max LUN request
+                  if(usb_setup_packet.packet.bRequest == 0x5F)
+                  {
+                    ep0_data_length  = sizeof(vendorVersion);
+                    ep0_data_pointer = (uint8 *)&vendorVersion;
+                  }
+                  else if(usb_setup_packet.packet.bRequest == 0x95)
+                  {
+                    if(usb_setup_packet.packet.wValue == 0x2518)
+                    {
+                      ep0_data_length  = sizeof(vendorAttach);
+                      ep0_data_pointer = (uint8 *)&vendorAttach;
+                    }
+                    else if((usb_setup_packet.packet.wValue == 0x0706) || (usb_setup_packet.packet.wValue == 0x0005))
+                    {
+                      ep0_data_length  = sizeof(vendorStatus);
+                      ep0_data_pointer = (uint8 *)&vendorStatus;
+                    }
+                  }
+                  break;
+              }
+              
+              //Check if there is data to send
+              if(ep0_data_length)
+              {
+                //Limit the length on what the host allows
+                if(ep0_data_length > usb_setup_packet.packet.wLength)
+                {
+                  ep0_data_length = usb_setup_packet.packet.wLength;
+                }
+
+                //Need a separate variable for checking if the data length is more then the end point FIFO size
+                uint32 length = ep0_data_length;
+
+                //Check if more data then the FIFO can hold
+                if(length > USB_EP0_FIFO_SIZE)
+                {
+                  //Limit it to the FIFO size
+                  length = USB_EP0_FIFO_SIZE;
+                }
+
+                //Write the data to the FIFO
+                usb_write_to_fifo((void *)USBC_REG_EPFIFO0, (void *)ep0_data_pointer, length);
+
+                //Take of the number of bytes done
+                ep0_data_length -= length;
+
+                //Signal a package ready to send
+                *USBC_REG_CSR0 = USBC_BP_CSR0_D_TX_PKT_READY;
+
+                //Check if there is more data to send to the host
+                if(ep0_data_length)
+                {
+                  //Point to the next bit of the data that needs to be send in the next packet
+                  ep0_data_pointer += length;
+
+                  //Switch to the state to send the remainder of the data
+                  usb_ep0_state = EP0_IN_DATA_PHASE;
+                }
+              }
+
+              //Check if done with data. This is only the case when not switched to another state
+              if(usb_ep0_state == EP0_IDLE)
+              {
+                //Signal done with this packet
+                *USBC_REG_CSR0 = USBC_BP_CSR0_D_DATA_END;
+              }
+            }
+            else
+            {
+              //Signal packet has been serviced and stall the end point
+              *USBC_REG_CSR0 = USBC_BP_CSR0_D_SERVICED_RX_PKT_READY | USBC_BP_CSR0_D_SEND_STALL;
+            }
+          }
+          break;
+
+        case EP0_IN_DATA_PHASE:
+          if(ep0_data_length)
+          {
+            uint32 length = ep0_data_length;
+
+            //Check if more data to send then the end point FIFO can handle
+            if(ep0_data_length > USB_EP0_FIFO_SIZE)
+            {
+              //If so limit it to the FIFO size
+              length = USB_EP0_FIFO_SIZE;
+            }
+
+            //Load the data into the FIFO
+            usb_write_to_fifo((void *)USBC_REG_EPFIFO0, (void *)ep0_data_pointer, length);
+            
+            //Take of the data length just send
+            ep0_data_length -= length;
+
+            //Signal data packet ready to send
+            *USBC_REG_CSR0 = USBC_BP_CSR0_D_TX_PKT_READY;
+            
+            //Check if there is more data that needs to be send
+            if(ep0_data_length)
+            {
+              //Point to the next data to send
+              ep0_data_pointer += length;
+            }
+            else
+            {
+              //Signal done with sending
+              *USBC_REG_CSR0 = USBC_BP_CSR0_D_DATA_END;
+
+              //Switch back to idle state when done
+              usb_ep0_state = EP0_IDLE;
+            }
+          }
+          break;
+      }
+    }
+  }    
+
+  //Check on data received for EP2
+  if(rxirq & USBC_INTRX_FLAG_EP2)
+  {
+    //Clear the interrupt
+    *USBC_REG_INTRX = USBC_INTTX_FLAG_EP2;
+
+    //Set EP2 as active one
+    *USBC_REG_EPIND = 2;
+
+    //Check if the end point is in a stall
+    if(*USBC_REG_RXCSR & USBC_BP_RXCSR_D_SENT_STALL)
+    {
+      //Clear the stall state
+      *USBC_REG_RXCSR &= ~(USBC_BP_RXCSR_D_SENT_STALL | USBC_BP_RXCSR_D_SEND_STALL);
+    }
+  
+    //Check if there is data to handle
+    if(*USBC_REG_RXCSR & USBC_BP_RXCSR_D_RX_PKT_READY)
+    {
+      //Handle the received data in the ch340 code
+      usb_ch340_out_ep_callback((void *)USBC_REG_EPFIFO2, *USBC_REG_RXCOUNT);
+
+      //Signal done with the packet and clear possible errors
+      *USBC_REG_RXCSR &= ~(USBC_BP_RXCSR_D_RX_PKT_READY | USBC_BP_RXCSR_D_OVERRUN);
+    }
+  }
+  
+  //Check on data transmitted for EP2
+  if(txirq & USBC_INTTX_FLAG_EP2)
+  {
+    //Clear the interrupt
+    *USBC_REG_INTTX = USBC_INTTX_FLAG_EP2;
+    
+    //Set EP2 as active one
+    *USBC_REG_EPIND = 2;
+
+    //Check if the end point is stalled
+    if(*USBC_REG_TXCSR & USBC_BP_TXCSR_D_SENT_STALL)
+    {
+      //Clear the stall state if so
+      *USBC_REG_TXCSR &= ~(USBC_BP_TXCSR_D_SENT_STALL | USBC_BP_TXCSR_D_SEND_STALL);
+    }
+
+    //Check if the FIFO is ready for more data
+    if((*USBC_REG_TXCSR & USBC_BP_TXCSR_D_TX_READY) == 0)
+    {
+      //Have the CH340 code handle the request for data
+      usb_ch340_in_ep_callback();
     }
   }
 }

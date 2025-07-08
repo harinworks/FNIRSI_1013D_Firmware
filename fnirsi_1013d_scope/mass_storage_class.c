@@ -33,7 +33,7 @@ const Mass_Storage_Descriptor Mass_Storage_ConfDesc =
     0x01, //NumInterfaces
     0x01, //Configuration Value
     0x00, //Configuration Description String Index
-    0xC0, //Self Powered, no remote wakeup
+    0xC0, //Self Powered, no remote wake up
     0x32 //Maximum power consumption 500 mA
   },
   {
@@ -278,7 +278,7 @@ void usb_mass_storage_out_ep_callback(void *fifo, int length)
               break;
 
             case SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL:
-              //Use this command to block the return to scope mode if the host says so!!!
+            //Use this command to block the return to scope mode if the host says so!!!
 
             //Ignore these commands for now
             case SCSI_CMD_TEST_UNIT_READY:
@@ -315,6 +315,15 @@ void usb_mass_storage_out_ep_callback(void *fifo, int length)
 
               //Switch to status state (No more data to send)
               msc_state = MSC_SEND_STATUS;
+              break;
+              
+            case SCSI_CMD_READ_FORMAT_CAPACITY: 
+             {
+                     usb_write_ep1_data((void *)scsi_capacity, sizeof(scsi_capacity));
+
+                //Switch to status state (No more data to send)
+                msc_state = MSC_SEND_STATUS;
+              }
               break;
 
             case SCSI_CMD_READ_10:

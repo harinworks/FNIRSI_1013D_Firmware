@@ -20,8 +20,6 @@
 #include "sin_cos_math.h"
 
 #include <string.h>
-
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -167,6 +165,23 @@ void display_set_fg_y_gradient(uint16 *buffer, uint32 ystart, uint32 yend, uint3
     gs += gd;
     bs += bd;
   }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void display_draw_pixel(uint32 x, uint32 y)
+{
+  register uint16 *ptr;
+
+  //Check on screen bounds
+  if((x >= 0) && (x < displaydata.width) && (y >= 0) && (y < displaydata.height))
+   {
+      //Point to the pixel in the screen buffer
+      ptr = displaydata.screenbuffer + ((y * displaydata.pixelsperline) + x);
+
+      //Fill the dot
+      *ptr = displaydata.fg_color;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -735,6 +750,10 @@ void display_fill_rect(uint32 xpos, uint32 ypos, uint32 width, uint32 height)
   uint16 *ptr;
   uint32  y;
   uint32  x;
+  
+  //Compensate for the last pixel 1.2 2023 fw0.023c
+  width--;
+  height--;
 
   //Calculate the last x and y position to compare against
   width += xpos;
@@ -1368,11 +1387,12 @@ void display_decimal(uint32 xpos, uint32 ypos, int32 value)
   char   b[13];
   uint32 u = value;
   uint32 i = 12;
-
+ 
   if(value == 0)
   {
     //Value is zero so just display a 0 character
-    display_text(xpos, ypos, "0");
+    //xpos+=4;
+    display_text(xpos+4, ypos, "0");
   }
   else
   {
@@ -1386,7 +1406,7 @@ void display_decimal(uint32 xpos, uint32 ypos, int32 value)
       u = -value;
     }
 
-    //Process the digits
+     //Process the digits
     while(u)
     {
       //Set current digit to decreased index
@@ -1402,7 +1422,8 @@ void display_decimal(uint32 xpos, uint32 ypos, int32 value)
       //If so put minus character in the buffer
       b[--i] = '-';
     }
-    
+ 
+    if (value<10) xpos+=4;
     display_text(xpos, ypos, &b[i]);
   }
 }
