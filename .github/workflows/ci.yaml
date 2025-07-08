@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install build-essential openocd
+
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: arm-none-eabi-gcc
+        uses: ryanwinter/arm-none-eabi-gcc@master
+        with:
+          release: '10.3-2021.10'
+
+      - name: build-bootloader
+        run: |
+          make -C fnirsi_1013d_sd_card_bootloader
+
+      - name: build-startup
+        run: |
+          make -C fnirsi_1013d_startup_screen
+
+      - name: build-scope
+        run: |
+          make -C fnirsi_1013d_scope
+
+      - name: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnirsi_1013d
+          path: |
+            fnirsi_1013d_sd_card_bootloader/dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.bin
+            fnirsi_1013d_startup_screen/dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.bin
+            fnirsi_1013d_scope/dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin
+            fnirsi_1013d_scope/dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin
+          if-no-files-found: error
