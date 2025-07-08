@@ -1,9 +1,6 @@
-# 27-02-2025
-# Check out EEVblog on this: https://www.eevblog.com/forum/testgear/fnirsi-1013d-100mhz-tablet-oscilloscope/2725/#lastPost
-# Member Atlan there has made improvements to my code and has it's own github page for it. https://github.com/Atlan4/Fnirsi1013D/tree/main/latest%20firmware%20version
-
-
 # FNIRSI_1013D_Firmware
+*FNIRSI_1013D_Firmware forked to be more futureproof and develop more methodically*
+
 New firmware for the FNIRSI-1013D osciloscope.
 
 This new firmware is offered without any warrenty and I take no responsibility for any damage.

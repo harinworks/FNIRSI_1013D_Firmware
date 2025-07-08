@@ -59,7 +59,8 @@ build: .build-post
 .build-post: .build-impl
 # Add your post 'build' code here...
 	arm-none-eabi-objcopy -O binary dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_from_sd_card.elf dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_from_sd_card.bin
-	./mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_from_sd_card.bin
+	../bin/mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_from_sd_card.bin
+
 
 # clean
 clean: .clean-post

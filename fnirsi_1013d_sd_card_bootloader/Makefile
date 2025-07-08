@@ -61,10 +61,12 @@ build: .build-post
 	arm-none-eabi-objcopy -O binary dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.elf dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.bin
 	
 # Fix the BROM header
-	./mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.bin
+	../bin/mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.bin
 
 # Copy to the startup screen directory
-	cp dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.bin ../fnirsi_1013d_startup_screen/dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin
+	$(MKDIR) -p ../fnirsi_1013d_startup_screen/dist/Debug/GNU_ARM-Linux
+	$(CP) dist/Debug/GNU_ARM-Linux/fnirsi_1013d_sd_card_bootloader.bin ../fnirsi_1013d_startup_screen/dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin
+
 
 # clean
 clean: .clean-post

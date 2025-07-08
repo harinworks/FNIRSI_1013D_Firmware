@@ -59,15 +59,17 @@ build: .build-post
 .build-post: .build-impl
 # Add your post 'build' code here...
 	arm-none-eabi-objcopy -O binary dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.elf dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.bin
-	
+
 # Fix the BROM header
-	./mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.bin
+	../bin/mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.bin
 
 # Add to scope SD package
-	./flashfilepacker -o dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin -i dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.bin -l 0x4000
+	../bin/flashfilepacker -o dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin -i dist/Debug/GNU_ARM-Linux/fnirsi_1013d_startup_screen.bin -l 0x4000
 
 # Copy to the scope directory
-	cp dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin ../fnirsi_1013d_scope/dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin
+	$(MKDIR) -p ../fnirsi_1013d_scope/dist/Debug/GNU_ARM-Linux
+	$(CP) dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin ../fnirsi_1013d_scope/dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin
+
 
 # clean
 clean: .clean-post

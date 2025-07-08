@@ -61,11 +61,10 @@ build: .build-post
 	arm-none-eabi-objcopy -O binary dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.elf dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin
 	
 # Fix the BROM header
-	./mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin
+	../bin/mksunxi dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin
 
 # SD card package
-	./flashfilepacker -o dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin -i dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin -l 0x9800
-
+	../bin/flashfilepacker -o dist/Debug/GNU_ARM-Linux/fnirsi_1013d.bin -i dist/Debug/GNU_ARM-Linux/fnirsi_1013d_scope.bin -l 0x9800
 
 
 # clean

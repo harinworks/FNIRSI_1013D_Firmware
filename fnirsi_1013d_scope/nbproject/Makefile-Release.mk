@@ -15,10 +15,10 @@ NM=nm
 CCADMIN=CCadmin
 RANLIB=ranlib
 CC=arm-none-eabi-gcc
-CCC=g++
-CXX=g++
+CCC=arm-none-eabi-g++
+CXX=arm-none-eabi-g++
 FC=gfortran
-AS=as
+AS=arm-none-eabi-gcc
 
 # Macros
 CND_PLATFORM=GNU-Linux
