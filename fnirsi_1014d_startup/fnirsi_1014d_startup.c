@@ -136,7 +136,7 @@ int main(void)
   
   //Display the text with yellow color
   display_set_fg_color(YELLOW_COLOR);
-  display_text(205, 430, "Many thanks to PECO, and small thanks to Atlan :)"); 
+  display_text(304, 430, "Harin Lee <me@hrin.org>");
   
  //*****************************************************************************
   
@@ -159,24 +159,24 @@ int main(void)
   
     display_set_fg_color(LIGHTGREY_COLOR);
     //Fill the settings background
-    display_fill_rect(40,  50, 122, 35);  //y55 d25 y52 d31
+    display_fill_rect(40,  50, 106, 35);  //y55 d25 y52 d31
     display_fill_rect(340, 50, 130, 35);  
-    display_fill_rect(620, 50, 138, 35);  
+    display_fill_rect(620, 50, 114, 35);  
   
     //Set green rect on default settings
     display_set_fg_color(GREEN_COLOR);
-    if(choice == 0) display_draw_rect(40,  50, 122, 35);  //PECO 40,  55, 122, 25
+    if(choice == 0) display_draw_rect(40,  50, 106, 35);  //SD 40,  55, 106, 25
     if(choice == 2) display_draw_rect(340, 50, 130, 35);  //FEL mode 340, 55, 130, 25
-    if(choice == 1) display_draw_rect(620, 50, 138, 35);  //FNIRSI 620, 55, 138, 25
+    if(choice == 1) display_draw_rect(620, 50, 114, 35);  //SPI 620, 55, 114, 25
   
     display_set_fg_color(WHITE_COLOR);
     //Setup the choices texts
-    display_text(50,  60, "PECO firmware");
+    display_text(50,  60, "SD firmware");
     display_text(350, 60, "Start FEL mode");
-    display_text(630, 60, "FNIRSI firmware");
+    display_text(630, 60, "SPI firmware");
   
     display_text(300, 150, "Reaming time to action:  s"); //Reaming time to action
-    display_text( 40, 430, "BOOT fw 0.05"); 
+    display_text( 40, 430, "BOOT fw git"); 
     
     //Display the text with green color
     display_set_fg_color(GREEN_COLOR);
@@ -213,28 +213,28 @@ int main(void)
     
         //Scan for where the touch is applied, PECO firmware - SDcart
         //if((xtouch >= 40) && (xtouch <= 160) && (ytouch >= 50) && (ytouch <= 90)) 
-        if((xtouch >= 40) && (xtouch <= 160) && (ytouch >= 45) && (ytouch <= 95))  
+        if((xtouch >= 40) && (xtouch < 146) && (ytouch >= 40) && (ytouch < 95))  
         {   choice = 0; havetouch = 1; waittime = 1;
             //Fill the settings background
-            display_fill_rect(40,  50, 122, 35);  
+            display_fill_rect(40,  50, 106, 35);  
             display_set_fg_color(LIGHTGREY_COLOR);
             //Fill the settings background
             display_draw_rect(340, 50, 130, 35);  //340, 55, 130, 25
-            display_draw_rect(620, 50, 138, 35); 
+            display_draw_rect(620, 50, 114, 35); 
             display_set_fg_color(BLACK_COLOR);
             //Setup the choices texts
-            display_text(50,  60, "PECO firmware");
+            display_text(50,  60, "SD firmware");
         }
          
         //Scan for where the touch is applied, FEL mode - RAM
-        if((xtouch >= 340) && (xtouch <= 470) && (ytouch >= 45) && (ytouch <= 95)) 
+        if((xtouch >= 340) && (xtouch < 480) && (ytouch >= 40) && (ytouch < 95)) 
         {   choice = 2; havetouch = 1; waittime = 1;
             //Fill the settings background
             display_fill_rect(340, 50, 130, 35);  
             display_set_fg_color(LIGHTGREY_COLOR);
             //Fill the settings background
-            display_draw_rect(40,  50, 122, 35); 
-            display_draw_rect(620, 50, 138, 35); 
+            display_draw_rect(40,  50, 106, 35); 
+            display_draw_rect(620, 50, 114, 35); 
             display_set_fg_color(BLACK_COLOR);
             //Setup the choices texts
             display_text(350, 60, "Start FEL mode");
@@ -242,17 +242,17 @@ int main(void)
           
         //Scan for where the touch is applied, Fnirsi firmware - SPI Flash
         //if((xtouch >= 620) && (xtouch <= 760) && (ytouch >= 50) && (ytouch <= 90)) 
-        if((xtouch >= 620) && (xtouch <= 760) && (ytouch >= 45) && (ytouch <= 95)) 
+        if((xtouch >= 620) && (xtouch < 734) && (ytouch >= 40) && (ytouch < 95)) 
         {   choice = 1; havetouch = 1; waittime = 1;
             //Fill the settings background
-            display_fill_rect(620, 50, 138, 35); 
+            display_fill_rect(620, 50, 114, 35); 
             display_set_fg_color(LIGHTGREY_COLOR);
             //Fill the settings background
-            display_draw_rect(40,  50, 122, 35); 
+            display_draw_rect(40,  50, 106, 35); 
             display_draw_rect(340, 50, 130, 35);  
             display_set_fg_color(BLACK_COLOR);
             //Setup the choices texts
-            display_text(630, 60, "FNIRSI firmware");
+            display_text(630, 60, "SPI firmware");
         } 
     
         if(waittime == 10) {havetouch = 1;} //10500 is 5sec, 5500 2.5s 

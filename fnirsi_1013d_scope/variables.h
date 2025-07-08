@@ -16,7 +16,7 @@
 //Version info
 //----------------------------------------------------------------------------------------------------------------------------------
 
-#define VERSION_STRING             "V0.026j"    
+#define VERSION_STRING             "git"    
 
 #define VERSION_STRING_XPOS             681     //690 
 #define VERSION_STRING_YPOS              24
