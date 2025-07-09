@@ -8,7 +8,7 @@ SECTIONS
   . = ORIGIN(ram);
   .text : 
   {
-    build/Debug/GNU_ARM-Linux/start.o (.text)
+    KEEP(*start.s.o (.text))
     *(.text);
   } >ram
 
