@@ -6976,7 +6976,7 @@ void scope_system_settings_year_item_value(void)
    //Display the text
   display_set_font(&font_3);
   readnameRTC();
-  display_decimal(496, 371, year);
+  display_decimal(495, 371, year);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------

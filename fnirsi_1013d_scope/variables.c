@@ -46,7 +46,7 @@ uint8 boot_menu_start;  //choice boot menu on start & choice start Peco, Fnirsi 
 //RTC DS3231 data
 //----------------------------------------------------------------------------------------------------------------------------------
 
-uint8   minute=00,hour=10,day=18,month=5,year=25;
+uint8   minute=0,hour=0,day=1,month=1,year=10;
 char    buffertime[9];
 char    filenameRTC[32];
 

@@ -153,13 +153,13 @@ void monthDown (void)
 //--------------------------------------------------
 void yearUp (void)
     {
-    if (year<40) year++; else year=25;
+    if (year<99) year++; else year=10;
     setdate();
     return;
     }
 void yearDown (void)
     {
-    if (year>25) year--; else year=40;
+    if (year>10) year--; else year=99;
     setdate();
     return;
     }
