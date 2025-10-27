@@ -29,7 +29,7 @@ void scope_calculate_trigger_vertical_position();
 
 //void scope_start_acquire_trace_data(void);
 void scope_acquire_trace_data(void);
-void scope_acquire_trace_data_long(void);
+//void scope_acquire_trace_data_long(void);
 
 void scope_process_trigger(uint32 count);   
 
@@ -125,6 +125,7 @@ int32 scope_display_picture_item(void);
 void scope_display_selected_signs(void);
 
 void scope_display_file_status_message(int32 msgid, int32 alwayswait);
+//void scope_display_file_status_message(int32 msgid, int32 index, int32 alwayswait);
 
 //----------------------------------------------------------------------------------------------------------------------------------
 // Configuration data functions

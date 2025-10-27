@@ -16,9 +16,9 @@
 //Version info
 //----------------------------------------------------------------------------------------------------------------------------------
 
-#define VERSION_STRING             "git"    
+#define VERSION_STRING             "v0.26v5" //often check TP
 
-#define VERSION_STRING_XPOS             681     //690 
+#define VERSION_STRING_XPOS             698//690//681     //690 
 #define VERSION_STRING_YPOS              24
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -47,12 +47,13 @@
 
 #define VIEW_ITEMS_PER_PAGE              16
 
-#define VIEW_TYPE_MASK                    1
+#define VIEW_TYPE_MASK                    3//1
 
 #define VIEW_TYPE_PICTURE                 0
 #define VIEW_TYPE_WAVEFORM                1
+#define VIEW_TYPE_REF                     2
 
-#define VIEW_MAX_TYPES                    2
+#define VIEW_MAX_TYPES                    3//2
 
 #define VIEW_ITEM_SELECTED_XSTART        77
 #define VIEW_ITEM_SELECTED_YSTART        45
@@ -96,15 +97,15 @@
 #define CHANNEL1_SETTING_OFFSET          8     //24 all, used 11*16bit=11   used 21*16bit
 #define CHANNEL2_SETTING_OFFSET          32    //24 all, used 11*16bit      used 21*16bit 
 #define TRIGGER_SETTING_OFFSET           56    //24 all, used  9*16bit      used 11*16bit
-#define OTHER_SETTING_OFFSET             80    //24 all, used 13*16bit      used 10*16bit 
-#define CURSOR_SETTING_OFFSET            104   //16 all, used  7*16bit      used  7*16bit
-#define MEASUREMENT_SETTING_OFFSET       120   //32 all, used 26*16bit      used 26*16bit
-#define CALIBRATION_SETTING_OFFSET       152   //16 all, used 12*16bit   
-#define CALIBRATION_SETTING_OFFSET_C     168   // 8 all, used  4*16bit    
-                                       //176 next  
+#define OTHER_SETTING_OFFSET             80    //40 all, used 28*16bit      used 10*16bit 
+#define CURSOR_SETTING_OFFSET            120   //16 all, used  7*16bit      used  7*16bit
+#define MEASUREMENT_SETTING_OFFSET       136   //32 all, used 28*16bit      used 26*16bit
+#define CALIBRATION_SETTING_OFFSET       168   //16 all, used 12*16bit   
+#define CALIBRATION_SETTING_OFFSET_C     184   // 8 all, used  4*16bit    
+                                       //192 next  max is VIEW_NUMBER_OF_SETTINGS
                                                 
 #define SETTING_SECTOR_VERSION_HIGH  0x0100    // 0x0100    //load default settings
-#define SETTING_SECTOR_VERSION_LOW   0x0012    //>0x0002    //nova verzia ma ma 2 na 709 sector
+#define SETTING_SECTOR_VERSION_LOW   0x0014    //>0x0002    //nova verzia ma ma 2 na 709 sector
 
 #define WAVEFORM_FILE_VERSION    0x01000002    //Version 1.0.0.2
 
@@ -138,7 +139,11 @@
 #define MESSAGE_BMP_HEADER_MISMATCH      11
 
 #define MESSAGE_WAV_VERSION_MISMATCH     12
-#define MESSAGE_WAV_CHECKSUM_ERROR       13
+#define MESSAGE_ERROR_VERSION_MISMATCH   13
+
+#define MESSAGE_WAV_CHECKSUM_ERROR       14//13
+
+#define MESSAGE_REF_BUFF_EMPTY_ERROR     15//14
 
 //----------------------------------------------------------------------------------------------------------------------------------
 //Number of bits used for fixed point calculations on the voltages
@@ -161,25 +166,92 @@
 
 #define KEY_MENU_XPOS          KEY_BUTTON_XPOS
 
-#define KEY_MENU_YPOS                        50//46
-#define KEY_MENU_WIDTH                      297//334//290//183 sirka
-#define KEY_MENU_HEIGHT                     394//362//300//314//252
+#define KEY_MENU_YPOS                        50//
+#define KEY_MENU_WIDTH                      297// sirka
+#define KEY_MENU_HEIGHT                     394//
 
 #define KEY_TOUCHED_COLOR            0x000000FF
 
 //----------------------------------------------------------------------------------------------------------------------------------
+//MENU button 
+
+#define MENU_BUTTON_XPOS        0
+#define MENU_BUTTON_YPOS        3
+#define MENU_BUTTON_WIDTH      70
+#define MENU_BUTTON_HEIGHT     38
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//Main menu (2, 46, 147, 292)
+
+#define MAIN_MENU_XPOS            2
+#define MAIN_MENU_YPOS           46
+#define MAIN_MENU_WIDTH         147
+#define MAIN_MENU_HEIGHT        292
+
+//Menu system settings
+#define SYSTEM_MENU_XPOS                     150
+#define SYSTEM_MENU_YPOS          MAIN_MENU_YPOS//46
+#define SYSTEM_MENU_WIDTH                    244
+#define SYSTEM_MENU_HEIGHT                   413
+
+//Screen brightness settings
+#define S_BRIGHTNESS_MENU_XPOS               395// nema byt 396 tj 2pixely medzera ?
+#define S_BRIGHTNESS_MENU_YPOS    MAIN_MENU_YPOS//46
+#define S_BRIGHTNESS_MENU_WIDTH              331
+#define S_BRIGHTNESS_MENU_HEIGHT              58
+
+//Grid brightness settings
+#define G_BRIGHTNESS_MENU_XPOS               395
+#define G_BRIGHTNESS_MENU_YPOS               104//46
+#define G_BRIGHTNESS_MENU_WIDTH              331
+#define G_BRIGHTNESS_MENU_HEIGHT              58
+
+//Other settings    59step
+#define OTHER_MENU_XPOS                      395
+#define OTHER_MENU_YPOS                      46//163//46
+#define OTHER_MENU_WIDTH                     210
+#define OTHER_MENU_HEIGHT                    413//296
+
+//Calibration menu
+#define CALIBRATION_MENU_XPOS                395
+#define CALIBRATION_MENU_YPOS                222//46
+#define CALIBRATION_MENU_WIDTH               199
+#define CALIBRATION_MENU_HEIGHT               59
+
+//RTC settings menu
+#define RTC_MENU_XPOS               395
+#define RTC_MENU_YPOS               106//46
+#define RTC_MENU_WIDTH              200
+#define RTC_MENU_HEIGHT             353
+//----------------------------------------------------------------------------------------------------------------------------------
+//Max light button
+
+#define MAXLIGHT_BUTTON_XPOS                75
+#define MAXLIGHT_BUTTON_YPOS                 3
+#define MAXLIGHT_BUTTON_WIDTH               43//24//sirka
+#define MAXLIGHT_BUTTON_HEIGHT              38
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//Time text 12:00:00 (647, 5, 50, 13)
+
+#define TIME_TEXT_XPOS                     123
+#define TIME_TEXT_YPOS                       3
+#define TIME_TEXT_WIDTH                     48
+#define TIME_TEXT_HEIGHT                    13
+
+//----------------------------------------------------------------------------------------------------------------------------------
 //Run and stop text
 
-#define RUN_STOP_TEXT_XPOS                  97
-#define RUN_STOP_TEXT_YPOS                  12
+#define RUN_STOP_TEXT_XPOS                 127
+#define RUN_STOP_TEXT_YPOS                  22
 #define RUN_STOP_TEXT_WIDTH                 38
 #define RUN_STOP_TEXT_HEIGHT                18
 
 //----------------------------------------------------------------------------------------------------------------------------------
 //Channel button and menu
 
-#define CH1_BUTTON_XPOS                    150
-#define CH2_BUTTON_XPOS                    260
+#define CH1_BUTTON_XPOS                    174
+#define CH2_BUTTON_XPOS                    281
 
 #define CH_BUTTON_YPOS                       5
 #define CH_BUTTON_WIDTH                     30
@@ -188,15 +260,33 @@
 #define CH_BUTTON_BG_WIDTH                 103
 #define CH_BUTTON_BG_HEIGHT                 35
 
-#define CH1_MENU_XPOS          CH1_BUTTON_XPOS
-#define CH2_MENU_XPOS          CH2_BUTTON_XPOS
+#define CH1_MENU_XPOS      3//CH1_BUTTON_XPOS-157
+#define CH2_MENU_XPOS      3//CH2_BUTTON_XPOS-157
 
 #define CH_MENU_YPOS                        46
-#define CH_MENU_WIDTH                      334//334//290//183
-#define CH_MENU_HEIGHT                     338//342 300//314//252
+#define CH_MENU_WIDTH                      418//416//334+82
+#define CH_MENU_HEIGHT                     338
 
 #define CH1_TOUCHED_COLOR            0x000000FF
 #define CH2_TOUCHED_COLOR            0x00FF0000
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//Channel REF menu
+
+#define CH_REF_MENU_XPOS        CH_MENU_WIDTH + 2
+
+#define CH_REF_MENU_YPOS         46
+#define CH_REF_MENU_WIDTH       277//268//140//100//
+#define CH_REF_MENU_HEIGHT      236//338
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//Channel MATH menu
+
+#define CH_MATH_MENU_XPOS        CH_MENU_WIDTH + 2
+
+#define CH_MATH_MENU_YPOS        92//46
+#define CH_MATH_MENU_WIDTH      171//172//140//72//100//
+#define CH_MATH_MENU_HEIGHT     236//338
 
 //----------------------------------------------------------------------------------------------------------------------------------
 //channel voltage per division buttons
@@ -207,7 +297,7 @@
 //----------------------------------------------------------------------------------------------------------------------------------
 // Acquisition button and menu
 
-#define ACQ_BUTTON_XPOS                    380
+#define ACQ_BUTTON_XPOS                    388
 #define ACQ_BUTTON_YPOS                      5
 #define ACQ_BUTTON_WIDTH                    30
 #define ACQ_BUTTON_HEIGHT                   35
@@ -218,23 +308,49 @@
 #define ACQ_MENU_XPOS          ACQ_BUTTON_XPOS
 #define ACQ_MENU_YPOS                       46
 #define ACQ_MENU_WIDTH                     304
-#define ACQ_MENU_HEIGHT                    386//336
+#define ACQ_MENU_HEIGHT                    386
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//Move fast button
+
+#define MOVE_FAST_BUTTON_XPOS       496
+#define MOVE_FAST_BUTTON_YPOS         5
+#define MOVE_FAST_BUTTON_WIDTH       44
+#define MOVE_FAST_BUTTON_HEIGHT      35
+
+//next button 545
 
 //----------------------------------------------------------------------------------------------------------------------------------
 // Trigger button and menu
 
-#define TRIGGER_BUTTON_XPOS                    560
-//#define TRIGGER_BUTTON_YPOS                      5
-//#define TRIGGER_BUTTON_WIDTH                    30
-//#define TRIGGER_BUTTON_HEIGHT                   35
+#define TRIGGER_BUTTON_XPOS                    546//560
+#define TRIGGER_BUTTON_YPOS                      5
+#define TRIGGER_BUTTON_WIDTH                    31
+#define TRIGGER_BUTTON_HEIGHT                   35
 
-//#define TRIGGER_BUTTON_BG_WIDTH                103
-//#define TRIGGER_BUTTON_BG_HEIGHT                35
+#define TRIGGER_BUTTON_BG_WIDTH                 80
+#define TRIGGER_BUTTON_BG_HEIGHT                35
 
-#define TRIGGER_MENU_XPOS      TRIGGER_BUTTON_XPOS
+#define TRIGGER_MENU_XPOS      TRIGGER_BUTTON_XPOS-38//28
 #define TRIGGER_MENU_YPOS                       46
-#define TRIGGER_MENU_WIDTH                     166
-#define TRIGGER_MENU_HEIGHT                    246//336
+#define TRIGGER_MENU_WIDTH                     220//210//166
+#define TRIGGER_MENU_HEIGHT                    280//280//246//336
+
+//----------------------------------------------------------------------------------------------------------------------------------
+// Signal generator button and menu
+
+#define GEN_BUTTON_XPOS                    630//560
+#define GEN_BUTTON_YPOS                      5
+#define GEN_BUTTON_WIDTH                    28
+#define GEN_BUTTON_HEIGHT                   35
+
+#define GEN_BUTTON_BG_WIDTH                 62//80
+#define GEN_BUTTON_BG_HEIGHT                35
+
+#define GEN_MENU_XPOS       GEN_BUTTON_XPOS-100//28
+#define GEN_MENU_YPOS                       46
+#define GEN_MENU_WIDTH                     220//210//166
+#define GEN_MENU_HEIGHT                    280//280//246//336
 
 //----------------------------------------------------------------------------------------------------------------------------------
 // Sampling system
@@ -368,6 +484,7 @@ struct tagChannelSettings
   //Sample data
   uint8 *tracebuffer;
   uint8 *buffer;
+  uint8 *tmp_tracebuffer;
   
   //Screen data
   PDISPLAYPOINTS tracepoints;
@@ -408,6 +525,29 @@ struct tagScopeSettings
 {
   CHANNELSETTINGS channel1;
   CHANNELSETTINGS channel2;
+  
+  CHANNELSETTINGS ch_ref1;
+  CHANNELSETTINGS ch_ref2;
+  CHANNELSETTINGS ch_ref3;
+  CHANNELSETTINGS ch_ref4;
+  
+  CHANNELSETTINGS ch_ref5;
+  CHANNELSETTINGS ch_ref6;
+  CHANNELSETTINGS ch_ref7;
+  CHANNELSETTINGS ch_ref8;
+  
+  uint8  ref1;
+  uint8  ref2;
+  uint8  ref3;
+  uint8  ref4;
+  uint8  ref5;
+  uint8  ref6;
+  uint8  ref7;
+  uint8  ref8;
+ 
+  
+  //Sample data
+  uint8 *math_tracebuffer;  //for mathematic function 
 
   uint16 samplecount;       //Number of samples in trace buffer
   uint16 nofsamples;        //Number of samples to read from the FPGA
@@ -429,6 +569,9 @@ struct tagScopeSettings
   uint32    lastx;          //long time base
   
   uint8 movespeed;
+  uint8 genmode;
+  
+  uint8 math;
     
   uint8 rightmenustate;
   uint8 waveviewmode;
@@ -451,7 +594,7 @@ struct tagScopeSettings
   
   uint8 new_autosetup;        //flag switch between old and 1-new autosetup
   uint8 maxlight;             //flag switch between user setting backlight or 1-max backlight
-  
+  uint8 ref_on_startup;       //flag on reference waveforms on startup, 1 active
   
   uint8 lockcursors;          //flag for lock move cursors
   uint8 timecursorsenable;
@@ -465,7 +608,13 @@ struct tagScopeSettings
   
   uint8 hide_values_CH1;       //Hidden display of selected measured values on the display
   uint8 hide_values_CH2;       //Hidden display of selected measured values on the display
-  uint8 measuresstate[2][12];
+  
+  uint32 measures_color1;
+  uint32 measures_color2;
+  uint8 source1_measures;
+  uint8 source2_measures;
+  
+  uint8 measuresstate[10][12];  //2-12, new ref1-8
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -565,8 +714,8 @@ extern uint8  havetouch;
 extern uint16 xtouch;
 extern uint16 ytouch;
 
-extern uint16 xtouch_tmp;       //for development purposes only
-extern uint16 ytouch_tmp;       //for development purposes only
+extern uint16 xtouch_tmp;       //len pre vyvojove ucely
+extern uint16 ytouch_tmp;       //len pre vyvojove ucely
 
 extern uint8 xswap;
 extern uint8 yswap;
@@ -584,6 +733,7 @@ extern char     buffertime[9];
 extern char     filenameRTC[32];
 
 extern uint8    onoffRTC;           //1-RTC on, time stamp for file and thumbnail
+extern uint8    tag_in_BMP;         //1-time stamp or name file in picture BMP
 /*
 extern  int32    offset;
 extern  int32    max1;
@@ -610,19 +760,41 @@ extern uint32 previoustimerticks;
 extern uint8 systemsettingsmenuopen;
 extern uint8 screenbrightnessopen;
 extern uint8 gridbrightnessopen;
+extern uint8 othersettingsopen;
 extern uint8 calibrationopen;
 extern uint8 RTCsettingsopen;
+
 extern uint8 diagnosticmenuopen;
+
+extern uint8 channelmenuopen;
+extern uint8 refmenuopen;
+extern uint8 mathmenuopen;
+extern uint8 refmode;
+extern uint8 mathmode;
+extern uint8 channelA;
+extern uint8 channelB;
 
 extern uint8 calibrationfail;
 extern uint8 triggerlong;
-extern uint8 triger50;
+extern uint8 trigger50;
 extern uint8 restore;
+
 
 extern uint8 dc_shift_cal;
 extern uint8 reload_cal_data;
 
-extern uint8 USB_CH340;          
+extern uint8 USB_CH340; 
+extern uint8 dev_mode;
+
+/*
+ extern uint8 ref1_sample;
+extern uint8 ref2_sample;
+extern uint8 ref3_sample;
+extern uint8 ref4_sample;
+ */
+extern uint8 math_sample;
+
+//extern uint8 ref_ch2_sample;
 
 //extern uint8 tmp_ACQ_mode; 
 //extern uint8 long_timebase;
@@ -644,14 +816,50 @@ extern uint32 channel1tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
 
 extern uint32 channel1tracebufferAVG[MAX_SAMPLE_BUFFER_SIZE];
 
+//extern uint32 channel1_ref1_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+//extern uint32 channel1_ref2_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+//extern uint32 channel1_ref3_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+//extern uint32 channel1_ref4_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
+//extern uint32 channel1_tmp_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
 extern DISPLAYPOINTS channel1pointsbuffer[730];
 //-------------------------------------------------------------
 extern uint32 channel2tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
 
 extern uint32 channel2tracebufferAVG[MAX_SAMPLE_BUFFER_SIZE];
 
+//extern uint32 channel2_ref1_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+//extern uint32 channel2_ref2_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+//extern uint32 channel2_ref3_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+//extern uint32 channel2_ref4_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
+//extern uint32 channel2_tmp_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
 extern DISPLAYPOINTS channel2pointsbuffer[730];
 //-------------------------------------------------------------
+
+extern uint32 ref1_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+extern uint32 ref2_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+extern uint32 ref3_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+extern uint32 ref4_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
+extern uint32 ref5_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+extern uint32 ref6_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+extern uint32 ref7_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+extern uint32 ref8_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
+extern DISPLAYPOINTS ref1pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+extern DISPLAYPOINTS ref2pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+extern DISPLAYPOINTS ref3pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+extern DISPLAYPOINTS ref4pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+
+extern DISPLAYPOINTS ref5pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+extern DISPLAYPOINTS ref6pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+extern DISPLAYPOINTS ref7pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+extern DISPLAYPOINTS ref8pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+
+extern uint32 math_channel_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
 
 extern uint16 thumbnailtracedata[730]; 
 
@@ -686,6 +894,15 @@ extern uint16 distance_time_cursor_right;
 extern uint16 distance_volt_cursor_top;
 extern uint16 distance_volt_cursor_bottom;
 
+extern uint16 distance_ch_ref_1;
+extern uint16 distance_ch_ref_2;
+extern uint16 distance_ch_ref_3;
+extern uint16 distance_ch_ref_4;
+extern uint16 distance_ch_ref_5;
+extern uint16 distance_ch_ref_6;
+extern uint16 distance_ch_ref_7;
+extern uint16 distance_ch_ref_8;
+
 //----------------------------------------------------------------------------------------------------------------------------------
 //Previous trace and cursor settings
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -702,6 +919,15 @@ extern uint16 previous_right_time_cursor_position;
 
 extern uint16 previous_top_volt_cursor_position;
 extern uint16 previous_bottom_volt_cursor_position;
+
+extern uint16 previous_ch_ref1_position;
+extern uint16 previous_ch_ref2_position;
+extern uint16 previous_ch_ref3_position;
+extern uint16 previous_ch_ref4_position;
+extern uint16 previous_ch_ref5_position;
+extern uint16 previous_ch_ref6_position;
+extern uint16 previous_ch_ref7_position;
+extern uint16 previous_ch_ref8_position;
 
 //----------------------------------------------------------------------------------------------------------------------------------
 //Calibration data
@@ -721,6 +947,9 @@ extern uint32 sampleratedcoffsetstep[2][6];
 
 extern const int8 *volt_div_texts[7][7];//3-7
 extern const int16 volt_div_texts_x_offsets[7][7];//21
+
+//extern const int8 *volt_div_texts[7][12];//3-7
+//extern const int16 volt_div_texts_x_offsets[7][12];//21
 
 extern const int8 *ampere_div_texts[7][7];
 //extern const int8 ampere_div_texts_x_offsets[49];
@@ -756,9 +985,9 @@ extern const char *magnitude_scaler[8];
 
 extern const int32 vertical_scaling_factors[7][7];
 
-extern const PATHINFO view_file_path[2];
-extern const char     view_file_extension[2][5];
-extern const char    *thumbnail_file_names[2];
+extern const PATHINFO view_file_path[3];
+extern const char     view_file_extension[3][5];
+extern const char    *thumbnail_file_names[3];
 
 extern const uint8 bmpheader[PICTURE_HEADER_SIZE];
 
@@ -803,7 +1032,7 @@ extern FIL     viewfp;
 extern DIR     viewdir;
 extern FILINFO viewfileinfo;
 
-extern char viewfilename[32];
+extern char viewfilename[33];//32 v0.26r4 change
 
 extern uint8 viewactive;
 
@@ -861,6 +1090,11 @@ extern FONTDATA font_5;
 //----------------------------------------------------------------------------------------------------------------------------------
 
 extern const uint8 system_settings_icon[];
+extern const uint8 Other_settings_icon[];
+extern const uint8 Right_drop_menu_icon[];
+//extern const uint8 Right_drop_menu_icon1[];
+extern const uint8 Generator_menu_icon[];
+//extern const uint8 Generator_menu_icon1[];
 extern const uint8 picture_view_icon[];
 extern const uint8 waveform_view_icon[];
 extern const uint8 diagnostic_view_icon[];
@@ -876,6 +1110,7 @@ extern const uint8 RTC_icon[];
 extern const uint8 Left_icon[];
 extern const uint8 Right_icon[];
 extern const uint8 return_arrow_icon[];
+extern const uint8 left_REF_pointer_icon[];
 extern const uint8 left_pointer_icon[];
 extern const uint8 right_pointer_icon[];
 extern const uint8 top_pointer_icon[];

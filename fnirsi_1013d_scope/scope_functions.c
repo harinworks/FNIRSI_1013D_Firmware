@@ -17,6 +17,7 @@
 #include "variables.h"
 
 #include "sin_cos_math.h"
+#include "ref_and_math.h"
 /*
 //sinx
 #include <stdio.h>
@@ -25,6 +26,7 @@
 //endsinx
 */
 #include <string.h>
+#include <math.h>
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_adjust_timebase(void)
@@ -279,6 +281,233 @@ void scope_draw_pointers(void)
     //Draw the pointer
     display_left_pointer(2, position, '2');
   }
+  //----------------------------------------------------------------
+  
+  //Draw ref1 pointer when it is enabled
+  if(scopesettings.ref1)
+  {
+    //y position for the ref 1 trace center pointer
+    position = 442 - scopesettings.ch_ref1.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref1.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '1');
+  }
+  
+  //Draw ref2 pointer when it is enabled
+  if(scopesettings.ref2)
+  {
+    //y position for the ref 2 trace center pointer
+    position = 442 - scopesettings.ch_ref2.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref2.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '2');
+  }
+  
+  //Draw ref3 pointer when it is enabled
+  if(scopesettings.ref3)
+  {
+    //y position for the ref 3 trace center pointer
+    position = 442 - scopesettings.ch_ref3.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref3.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '3');
+  }
+  
+  //Draw ref4 pointer when it is enabled
+  if(scopesettings.ref4)
+  {
+    //y position for the ref 4 trace center pointer
+    position = 442 - scopesettings.ch_ref4.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref4.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '4');
+  }
+  
+  //Draw ref5 pointer when it is enabled
+  if(scopesettings.ref5)
+  {
+    //y position for the ref 1 trace center pointer
+    position = 442 - scopesettings.ch_ref5.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref5.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '5');
+  }
+  
+  //Draw ref6 pointer when it is enabled
+  if(scopesettings.ref6)
+  {
+    //y position for the ref 2 trace center pointer
+    position = 442 - scopesettings.ch_ref6.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref6.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '6');
+  }
+  
+  //Draw ref7 pointer when it is enabled
+  if(scopesettings.ref7)
+  {
+    //y position for the ref 3 trace center pointer
+    position = 442 - scopesettings.ch_ref7.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref7.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '7');
+  }
+  
+  //Draw ref8 pointer when it is enabled
+  if(scopesettings.ref8)
+  {
+    //y position for the ref 4 trace center pointer
+    position = 442 - scopesettings.ch_ref8.traceposition;//441
+
+    //Limit on the top of the displayable region
+    if(position < 49)//44
+    {
+      position = 49;
+    }
+    //Limit on the bottom of the displayable region
+    else if(position > 442)//441
+    {
+      position = 442;
+    }
+
+    //Set the colors for drawing
+    display_set_fg_color(scopesettings.ch_ref8.color);
+    display_set_bg_color(WHITE_COLOR);
+
+    //Select the font for this pointer id
+    display_set_font(&font_0);
+
+    //Draw the pointer
+    display_left_REF_pointer(2, position, '8');
+  }
+  
+  //----------------------------------------------------------------
 
   //Need to think about trigger position in 200mS - 20mS/div settings. Not sure if they work or need to be done in software
   //The original scope does not show them for 50mS and 20mS/div
@@ -295,7 +524,6 @@ void scope_draw_pointers(void)
     display_set_font(&font_3); 
     
     //x position for the trigger position pointer
-    //position = scopesettings.triggerhorizontalposition + 2;
     position = scopesettings.triggerhorizontalposition;
 
     //Limit on the left of the displayable region
@@ -523,139 +751,6 @@ void scope_acquire_trace_data(void)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-void scope_acquire_trace_data_long(void)
-{
-  uint32 data;
-  
-  if((scopesettings.runstate)&&(scopesettings.display_data_done)&&(touchstate == 0))//runstate ok
-  //if((scopesettings.runstate) && (scopesettings.display_data_done))//runstate ok
-  {
-    //Set the trigger level
-    fpga_set_trigger_level();
-    
-    scopesettings.samplemode = 0;
-
-    //Write the time base setting to the FPGA
-    fpga_set_time_base(scopesettings.timeperdiv);
-
-    //Sampling with trigger circuit enabled (standard memory mode)
-    //if(scopesettings.long_memory) scopesettings.samplemode = 0; else scopesettings.samplemode = 1;
-
-    //Start the conversion
-    fpga_do_conversion();
-    
-    //Flag conversion in progres
-    scopesettings.display_data_done = 0;
-  
-    while((fpga_done_conversion()& 1)==0);
-    
-    //scopesettings.samplemode = 0;
-    
-    //fpga_average_trace_data_long(&scopesettings.channel1);
-    
-    //Start the conversion
-    //fpga_do_conversion();
-  //while((fpga_done_conversion()& 1)==0);
-  
-  //Check until conversion done or touch panel active
-  //if((fpga_done_conversion())&&(scopesettings.runstate)&&(touchstate == 0)) 
-  //{
-    //Check if in single mode
-    if(scopesettings.triggermode == 1)
-    {
-      //Switch to stopped
-      scopesettings.runstate = 0;//ok
-
-      //Show this on the screen
-      scope_run_stop_text();
-      
-      //Check in which state the right menu is in
-      //Button back to inactive state
-      if(scopesettings.rightmenustate == 0) scope_run_stop_button(0);
-    }
-
-    //Get trigger point information
-    //Later on used to send to the FPGA with command 0x1F
-    data = fpga_prepare_for_transfer();
-
-    //Just using the same calculation for every setting solves the frequency calculation error
-    //The signal representation still is correct and the trigger point seems to be more valid also
-    //The original uses time base dependent processing here, but this seems to do the trick on all ranges
-    //The software needs to verify the trigger to make it more stable
-    
-    if(data < 750)
-    {
-      //Less then 750 make it bigger
-      data = data + 3345;
-    }
-    else
-    {
-      //More then 750 make it smaller
-      data = data - 750; 
-    }
-    
-    /*
-           display_set_fg_color(BLACK_COLOR);
-      //Fill the settings background
-      display_fill_rect(550, 0, 100, 220);  //x , y , sirka, vyska
-      display_set_fg_color(WHITE_COLOR);
-      display_set_font(&font_2);
-      //display_text(650, 10, buffertime);
-
-      display_text(550, 10, "data"); 
-      display_decimal(600, 10, data);
-     //data=10;
-     
-     */
-    
-    //if(scopesettings.long_memory) data=10;
-   
-    //Only need a single count variable for both channels, since they run on the same sample rate
-    //This can be changed to a global define
-    scopesettings.nofsamples  = SAMPLES_PER_ADC;
-    scopesettings.samplecount = SAMPLE_COUNT;
-
-    //Check if channel 1 is enabled
-    if(scopesettings.channel1.enable)
-    {
-      //Get the samples for channel 1
-      fpga_read_sample_data(&scopesettings.channel1, data);
-
-      //Check if always 50% trigger is enabled and the trigger is on this channel
-      if(scopesettings.alwaystrigger50 && (scopesettings.triggerchannel == 0))
-      {
-        //Use the channel 1 center value as trigger level  
-        scope_do_50_percent_trigger_setup();
-      }
-    }
-
-    //Check if channel 2 is enabled
-    if(scopesettings.channel2.enable)
-    {
-      //Get the samples for channel 2
-      fpga_read_sample_data(&scopesettings.channel2, data);
-
-      //Check if always 50% trigger is enabled and the trigger is on this channel
-      if(scopesettings.alwaystrigger50 && scopesettings.triggerchannel)
-      {
-        //Use the channel 2 center value as trigger level
-        scope_do_50_percent_trigger_setup();
-      }
-    }
-
-    //Need to improve on this for a more stable displaying. On the low sample rate settings it seems to flip between two positions.
-    //Determine the trigger position based on the selected trigger channel
-    scope_process_trigger(scopesettings.nofsamples); 
-    
-    //flag data displayed, 1-for next conversion ready
-    scopesettings.display_data_done = 1; 
-    //flag next conversion for long memory mode
-    
-  }
-  //Display the trace data
-  //if((scopesettings.samplemode == 0)||(!scopesettings.long_memory)) 
-      scope_display_trace_data();
-}
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
@@ -1256,7 +1351,7 @@ void scope_do_50_percent_trigger_setup(void)
     
     scopesettings.channel1.triggerverticalposition = center50 + scopesettings.channel1.traceposition;// + scopesettings.channel1.dcoffset;  
   }
-  else
+  else if(scopesettings.triggerchannel == 1)
   {
     //Use the channel 2 center value
     //Get the sample and adjust the data for the correct voltage per div setting
@@ -2262,7 +2357,10 @@ void scope_do_auto_setup_new(void)
 
 void scope_display_trace_data(void)
 {
-  PTHUMBNAILDATA thumbnaildata;     
+  PTHUMBNAILDATA thumbnaildata; 
+  //thumbnaildata = &viewthumbnaildata[0]; 
+  thumbnaildata = &viewthumbnaildata[viewcurrentindex];
+  
   //See if it is possible to rework this to fixed point. A 32 bit mantissa is not accurate enough though
 
   //On the scope the last pixel interleaving is not working properly. Don't know why.
@@ -2381,24 +2479,24 @@ void scope_display_trace_data(void)
     {          
         //Average mode active only auto and normal mode, no waveview mode
         if((scopesettings.average_mode)&&(!scopesettings.waveviewmode)&&((scopesettings.triggermode==0)||(scopesettings.triggermode==2)))
-        {
-            
+        {  
             for (size_t i = 0; i < MAX_SAMPLE_BUFFER_SIZE; i++) 
             {  
                 //scopesettings.channel1.tracebuffer[i]=0;
                 scopesettings.channel1.tracebuffer[i] = ((scopesettings.channel1.tracebuffer[i]) + (channel1tracebufferAVG[i]))/2;
                 channel1tracebufferAVG[i]=scopesettings.channel1.tracebuffer[i];
-            }
-             
+            }         
         }
-
-
-    scope_display_channel_linear_trace(&scopesettings.channel1);
-       
-    //scope_display_channel_sinx_trace(&scopesettings.channel1);
+      //Set the trace color for the current channel if overload change to red
+      if (scopesettings.channel1.ADoverload)display_set_fg_color(RED_COLOR); 
+        else display_set_fg_color(CHANNEL1_COLOR);
+        
+      scope_display_channel_linear_trace(&scopesettings.channel1);       
+      //scope_display_channel_sinx_trace(&scopesettings.channel1);
     
-    //clear flag overload ADC   channel 1      
-    if(scopesettings.display_data_done==0) scopesettings.channel1.ADoverload = 0;
+      //clear flag overload ADC channel 1      
+      if(scopesettings.display_data_done==0) scopesettings.channel1.ADoverload = 0;
+        
     }
 
     //Check if channel2 is enabled
@@ -2410,20 +2508,41 @@ void scope_display_trace_data(void)
             for (size_t i = 0; i < MAX_SAMPLE_BUFFER_SIZE; i++) 
             {  
                 //scopesettings.channel2.tracebuffer[i]=0;
+              
                 scopesettings.channel2.tracebuffer[i] = ((scopesettings.channel2.tracebuffer[i]) + (channel2tracebufferAVG[i]))/2;
                 channel2tracebufferAVG[i]=scopesettings.channel2.tracebuffer[i];
+                
+                //scopesettings.channel2.tracebuffer[i] = scopesettings.channel1.tracebuffer[i];
             }
-        }  
+        }    
+        //This can be reduced in parameters by using the channel structure as input and add the color as item in the structure 
+        //Go and do the actual trace drawing  
+          //Set the trace color for the current channel if overload change to red
+        if (scopesettings.channel2.ADoverload)display_set_fg_color(RED_COLOR); 
+            else display_set_fg_color(CHANNEL2_COLOR);
         
-    //This can be reduced in parameters by using the channel structure as input and add the color as item in the structure 
-    //Go and do the actual trace drawing
-        
-    scope_display_channel_linear_trace(&scopesettings.channel2);
+        scope_display_channel_linear_trace(&scopesettings.channel2);
     
-    //clear flag overload ADC   channel 2        
-    if(scopesettings.display_data_done==0) scopesettings.channel2.ADoverload = 0;
+        //clear flag overload ADC channel 2        
+        if(scopesettings.display_data_done==0) scopesettings.channel2.ADoverload = 0;
+        
     }
+      //uint32 backup_settings = 0;
+  
+  //backup_settings = settings;
+    //Check and displaying of REFx.
+    display_REFx_data();
+    
+    //Check and displaying of MATHx.
+    display_MATHx_data();
+    
+    //settings = backup_settings;
+    //--------------------------------------------------------------------------
 
+    
+    
+    
+    //--------------------------------------------------------------------------
     //Displaying of FFT needs to be added here.
 
   }
@@ -2478,13 +2597,13 @@ void scope_display_trace_data(void)
     //Use white text and font_0
     display_set_fg_color(WHITE_COLOR);
     display_set_font(&font_0);
-    
+ 
+          
     if(onoffRTC) //if RTCon view rtc info
       {
-      thumbnaildata = &viewthumbnaildata[viewcurrentindex];
       decodethumbnailfilename(thumbnaildata->filename);
       display_text(488, 70, filenameRTC);   //500 48 , 490 58
-      }   else display_text(555, 70, viewfilename); //550 48
+      } else display_text(555, 70, thumbnaildata->filename); //550 48 //display_text(555, 70, viewfilename); //550 48
   }
   
   //Copy it to the actual screen buffer
@@ -2551,47 +2670,49 @@ int32 scope_get_x_sample(PCHANNELSETTINGS settings, int32 index)
 int32 scope_get_y_sample(PCHANNELSETTINGS settings, int32 index)
 {
   register int32 sample;
-
+  
+  if (math_sample) sample = (int32)scopesettings.math_tracebuffer[index] - 128;
   //Center adjust the sample
-  sample = (int32)settings->tracebuffer[index] - 128;
+  else sample = (int32)settings->tracebuffer[index] - 128;
 
-  //Get the sample and adjust the data for the correct voltage per div setting
-  sample = (sample * settings->input_calibration[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
-  
-  //increase sample and adjust the data for the correct value DCshift on DC mode
-  //sample += ((settings->dcoffset*100)/settings->dc_shift_size);
 
-  //Scale the sample based on the two volt per div settings when they differ
-  if(settings->displayvoltperdiv != settings->samplevoltperdiv)
-  {
-    //Scaling factor is based on the two volts per division settings
-    sample = (sample * vertical_scaling_factors[settings->displayvoltperdiv][settings->samplevoltperdiv]) / 10000;
-  }
-  
-  //Offset the sample on the screen
-  //****************************************************
-  //220 - nastavi poziciu signalu na 0 pri aplikacii offsetu, mensia hodnota posuva signal vyssie
-  //sample = settings->traceposition + sample + (settings->dcoffset*100)/220;//220 OK,  204
-  //sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
-  //if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
-    //else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
-  if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
-  //if(settings->displayvoltperdiv == 6) sample = ((settings->traceposition)) + sample + ((settings->dcoffset*100)/settings->dc_shift_size); //else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
-  else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
-  //else sample = settings->traceposition + sample;
-  //****************************************************************************
-  
-  //Limit sample on min displayable
-  if(sample < 0)
-  {
-    sample = 0;
-  }
+    //Get the sample and adjust the data for the correct voltage per div setting
+    sample = (sample * settings->input_calibration[settings->samplevoltperdiv]) >> VOLTAGE_SHIFTER;
 
-  //Limit the sample on max displayable
-  if(sample > 399)//401  403 ok
-  {
-    sample = 399;//401
-  }
+    //increase sample and adjust the data for the correct value DCshift on DC mode
+    //sample += ((settings->dcoffset*100)/settings->dc_shift_size);
+
+    //Scale the sample based on the two volt per div settings when they differ
+    if(settings->displayvoltperdiv != settings->samplevoltperdiv)
+    {
+      //Scaling factor is based on the two volts per division settings
+      sample = (sample * vertical_scaling_factors[settings->displayvoltperdiv][settings->samplevoltperdiv]) / 10000;
+    }
+
+    //Offset the sample on the screen
+    //****************************************************
+    //220 - nastavi poziciu signalu na 0 pri aplikacii offsetu, mensia hodnota posuva signal vyssie
+    //sample = settings->traceposition + sample + (settings->dcoffset*100)/220;//220 OK,  204
+    //sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+    //if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
+      //else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+    if(settings->displayvoltperdiv == 6) sample = settings->traceposition + sample + (((settings->dcoffset*100)/settings->dc_shift_size)*2);
+    //if(settings->displayvoltperdiv == 6) sample = ((settings->traceposition)) + sample + ((settings->dcoffset*100)/settings->dc_shift_size); //else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+    else sample = settings->traceposition + sample + ((settings->dcoffset*100)/settings->dc_shift_size);
+    //else sample = settings->traceposition + sample;
+    //****************************************************************************
+
+    //Limit sample on min displayable
+    if(sample < 0)
+    {
+      sample = 0;
+    }
+
+    //Limit the sample on max displayable
+    if(sample > 399)//401  403 ok
+    {
+      sample = 399;//401
+    }
 
   //Display y coordinates are inverted to signal orientation
   return(448 - sample);//448
@@ -2619,7 +2740,7 @@ void scope_display_channel_sinx_trace(PCHANNELSETTINGS settings)
 
   //Get the processed sample
  // sample1 = scope_get_y_sample(settings, disp_first_sample);
-  
+  /*
   
     int pole[N];
    int sincpole[N];  // Array for interpolated signal (same size as input)
@@ -2655,7 +2776,7 @@ void scope_display_channel_sinx_trace(PCHANNELSETTINGS settings)
         //display_draw_horz_line(i+50, i, i);
         //display_draw_horz_line(i+100, i, i+1);
     }
-    
+   */ 
     /*
     // Výpis pôvodného signálu
     printf("Original Signal (700 samples):\n");
@@ -2695,8 +2816,8 @@ void scope_display_channel_linear_trace(PCHANNELSETTINGS settings)
   //display_set_fg_color(settings->color);
   
   //Set the trace color for the current channel if overload change to red
-  if (settings->ADoverload)display_set_fg_color(RED_COLOR); 
-        else display_set_fg_color(settings->color);
+  //if (settings->ADoverload)display_set_fg_color(RED_COLOR); 
+  //      else display_set_fg_color(settings->color);
 
   //Get the processed sample
   sample1 = scope_get_y_sample(settings, disp_first_sample);
@@ -2974,18 +3095,37 @@ void scope_display_cursor_measurements(void)
 void scope_display_measurements(void)
 {
   //Check if channel1 is active and hide measurements is 0-off and set short time base 
-  if((scopesettings.channel1.enable)&&(!scopesettings.hide_values_CH1)&&(!scopesettings.long_mode))
+  if((scopesettings.channel1.enable||scopesettings.ref1||scopesettings.ref2||scopesettings.ref3||scopesettings.ref4)
+    &&(!scopesettings.hide_values_CH1)&&(!scopesettings.long_mode))
   {
     //Display the enabled measurements if it is active
-    scope_display_channel_measurements(&scopesettings.channel1, scopesettings.measuresstate[0], 5, CHANNEL1_COLOR);
+    switch (scopesettings.source1_measures)
+    {
+      case 0: scope_display_channel_measurements(&scopesettings.channel1, scopesettings.measuresstate[0], 5, CHANNEL1_COLOR); break;
+      case 1: scope_display_channel_measurements(&scopesettings.ch_ref1,  scopesettings.measuresstate[0], 5, scopesettings.ch_ref1.color); break;
+      case 2: scope_display_channel_measurements(&scopesettings.ch_ref2,  scopesettings.measuresstate[0], 5, scopesettings.ch_ref2.color); break;
+      case 3: scope_display_channel_measurements(&scopesettings.ch_ref3,  scopesettings.measuresstate[0], 5, scopesettings.ch_ref3.color); break;
+      case 4: scope_display_channel_measurements(&scopesettings.ch_ref4,  scopesettings.measuresstate[0], 5, scopesettings.ch_ref4.color); break;
+      default: scope_display_channel_measurements(&scopesettings.channel1, scopesettings.measuresstate[0], 5, CHANNEL1_COLOR); break;
+    }
   }
 
   //Check if channel2 is active and hide measurements is 0-off and set short time base 
-  if((scopesettings.channel2.enable)&&(!scopesettings.hide_values_CH2)&&(!scopesettings.long_mode))
+  if((scopesettings.channel2.enable||scopesettings.ref5||scopesettings.ref6||scopesettings.ref7||scopesettings.ref8)
+    &&(!scopesettings.hide_values_CH2)&&(!scopesettings.long_mode))
   {
     //Display the enabled measurements if it is active
-    scope_display_channel_measurements(&scopesettings.channel2, scopesettings.measuresstate[1], 366, CHANNEL2_COLOR);
+    switch (scopesettings.source2_measures)
+    {
+      case 0: scope_display_channel_measurements(&scopesettings.channel2, scopesettings.measuresstate[1], 366, CHANNEL2_COLOR); break;
+      case 1: scope_display_channel_measurements(&scopesettings.ch_ref5,  scopesettings.measuresstate[1], 366, scopesettings.ch_ref5.color); break;
+      case 2: scope_display_channel_measurements(&scopesettings.ch_ref6,  scopesettings.measuresstate[1], 366, scopesettings.ch_ref6.color); break;
+      case 3: scope_display_channel_measurements(&scopesettings.ch_ref7,  scopesettings.measuresstate[1], 366, scopesettings.ch_ref7.color); break;
+      case 4: scope_display_channel_measurements(&scopesettings.ch_ref8,  scopesettings.measuresstate[1], 366, scopesettings.ch_ref8.color); break;
+      default: scope_display_channel_measurements(&scopesettings.channel2, scopesettings.measuresstate[1], 366, CHANNEL2_COLOR); break;
+    }
   }
+  
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -3150,6 +3290,7 @@ void scope_display_cycle(PCHANNELSETTINGS settings)
 {
   //Only when the frequency is valid calculate the time
   if(settings->frequencyvalid)
+   // if((settings->frequencyvalid)||(settings->enable))
   {
     //Format the time for displaying
     scope_print_value(measurementtext, (((uint64)settings->periodtime * time_calc_data[scopesettings.samplerate].mul_factor) >> 20), time_calc_data[scopesettings.samplerate].time_scale, "", "s");
@@ -3205,8 +3346,7 @@ void scope_display_duty_plus(PCHANNELSETTINGS settings)
     buffer = scope_print_decimal(measurementtext, (((uint64)settings->hightime * 1000) / settings->periodtime), 1, 0);
     
     //Add the duty cycle sign
-    strcpy(buffer, "%");
-    
+    strcpy(buffer, "%"); 
   }
   else
   {
@@ -3227,8 +3367,7 @@ void scope_display_duty_min(PCHANNELSETTINGS settings)
     buffer = scope_print_decimal(measurementtext, (((uint64)settings->lowtime * 1000) / settings->periodtime), 1, 0);
 
     //Add the duty cycle sign
-    strcpy(buffer, "%");
-    
+    strcpy(buffer, "%");  
   }
   else
   {
@@ -3432,7 +3571,11 @@ void scope_prepare_setup_for_file(void)
 
   //Put in a version number for the waveform view file
   ptr[1] = WAVEFORM_FILE_VERSION;
+  //memcpy(&ptr[1], WAVEFORM_FILE_VERSION, 8);
   
+  //Put in a firmware version for the waveform view file
+  memcpy(&ptr[2], VERSION_STRING, 7);
+    
   //Leave space for file version and checksum data  21
   index = CHANNEL1_SETTING_OFFSET;
   
@@ -3757,7 +3900,7 @@ void scope_print_file_name(uint32 filenumber)
 
   //Copy the path name first
   memcpy(viewfilename, view_file_path[viewtype & VIEW_TYPE_MASK].name, view_file_path[viewtype & VIEW_TYPE_MASK].length);
-
+  
   //Copy in the decimal file number
   memcpy(&viewfilename[view_file_path[viewtype & VIEW_TYPE_MASK].length], &b[i], s);
 
@@ -4171,13 +4314,13 @@ void scope_save_view_item_file(int32 type)
 
   //Setup the filename for in the thumbnail
   scope_print_file_name(newnumber);
-
+  
   //Create the thumbnail
   scope_create_thumbnail(&viewthumbnaildata[0]);
 
   //One more item in the list
   viewavailableitems++;
-
+  
   //save the amended thumbnail file
   scope_save_thumbnail_file();
 
@@ -4193,7 +4336,39 @@ void scope_save_view_item_file(int32 type)
   {
     //For pictures the bitmap header and the screen data needs to be written
     if(type == VIEW_TYPE_PICTURE)
-    {
+    {     
+      if(tag_in_BMP)
+      {
+        //Set black color for background
+        display_set_fg_color(BLACK_COLOR);
+
+        //Display the file name
+        PTHUMBNAILDATA thumbnaildata;
+        thumbnaildata = &viewthumbnaildata[0];//0 viewcurrentindex
+
+        if(onoffRTC) //if RTCon view rtc info
+          {
+            decodethumbnailfilename(thumbnaildata->filename);
+            //Clear the text area
+            display_fill_rect(488, 70, 210, 15);//555 140
+            //Display the file name
+            //Use white text and font_0
+            display_set_fg_color(WHITE_COLOR);
+            display_set_font(&font_0);
+            display_text(488, 70, filenameRTC);
+          }
+          else 
+          {
+            //Clear the text area
+            display_fill_rect(555, 70, 140, 15);//555 140
+            //Display the file name
+            //Use white text and font_0
+            display_set_fg_color(WHITE_COLOR);
+            display_set_font(&font_0);
+            display_text(555, 70, thumbnaildata->filename);
+          }
+      }
+      
       //Write the bitmap header
       result = f_write(&viewfp, bmpheader, sizeof(bmpheader), 0);
 
@@ -4204,7 +4379,8 @@ void scope_save_view_item_file(int32 type)
         result = f_write(&viewfp, (uint8 *)maindisplaybuffer, PICTURE_DATA_SIZE, 0);
       }
     }
-    else
+    //For pictures the bitmap header and the screen data needs to be written
+    else if(type == VIEW_TYPE_WAVEFORM)
     {
       //For the waveform the setup and the waveform data needs to be written
       //Save the settings for the trace portion of the data and write them to the file
@@ -4237,6 +4413,7 @@ void scope_save_view_item_file(int32 type)
       //Signal unable to write to the file
       scope_display_file_status_message(MESSAGE_FILE_WRITE_FAILED, 0);
     }
+    
   }
   else
   {
@@ -4296,6 +4473,8 @@ void scope_remove_item_from_thumbnails(uint32 delete)
 
 int32 scope_load_trace_data(void)
 {
+  //For info of waveform mishmash error  
+  //int8 str[19];  
   //Point to the file numbers
   uint16 *fnptr = (uint16 *)viewfilenumberdata;
   uint32 result;
@@ -4320,10 +4499,13 @@ int32 scope_load_trace_data(void)
       if(viewfilesetupdata[1] != WAVEFORM_FILE_VERSION)
       {
         //No need to load the rest of the data
-        result = WAVEFORM_FILE_ERROR;
+        //result = WAVEFORM_FILE_ERROR;
 
         //Show the user the file is not correct
         scope_display_file_status_message(MESSAGE_WAV_VERSION_MISMATCH, 0);
+        
+        //Show the additional info of error
+        scope_display_file_status_message(MESSAGE_ERROR_VERSION_MISMATCH, 1);     
       }
       else
       {
@@ -4337,7 +4519,7 @@ int32 scope_load_trace_data(void)
             if((result = scope_check_waveform_file()) == 0)
             {
               //Switch to stopped and waveform viewing mode
-              scopesettings.runstate = 0;//ok
+              scopesettings.runstate = 0;
               scopesettings.waveviewmode = 1;
 
               //Show the normal scope screen
@@ -4508,6 +4690,7 @@ void scope_sync_thumbnail_files(void)
       scope_save_thumbnail_file();
     }
   }
+  //viewcurrentindex = 0; //0-points to the last in the row
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -4778,8 +4961,7 @@ void scope_display_thumbnails(void)
         {
           thumbnaildata->triggerverticalposition = 92;
         }
-
-        
+    
         //Draw the trigger level pointer
         //Check if trigger channel 1 or channel 2 is use
         if(thumbnaildata->triggerchannel==0)
@@ -4876,7 +5058,7 @@ void scope_create_thumbnail(PTHUMBNAILDATA thumbnaildata)
   //Set the thumbnails filename
   strcpy(thumbnaildata->filename, viewfilename);
 
-  //ak je RTCon pripoj casovu znacku
+  //if RTCon add timestamp
   if(onoffRTC) 
     {
     readnameRTC();
@@ -5191,8 +5373,14 @@ void scope_display_selected_signs(void)
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_display_file_status_message(int32 msgid, int32 alwayswait)
+//void scope_display_file_status_message(int32 msgid, int32 index, int32 alwayswait)
 {
   uint32 checkconfirmation = scopesettings.confirmationmode;
+  char version_str[9];  // 8 hex char + '\0'
+  
+  //Set the thumbnails filename
+  PTHUMBNAILDATA thumbnaildata;
+  thumbnaildata = &viewthumbnaildata[viewcurrentindex];//0
 
   //Check if need to wait is requested
   if(alwayswait)
@@ -5212,11 +5400,11 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
 
   //Draw the background in grey
   display_set_fg_color(0x00202020);
-  display_fill_rect(260, 210, 279, 59);//280 60
+  display_fill_rounded_rect(260, 210, 279, 59, 3);//280 60
 
   //Draw the border in a lighter grey
   display_set_fg_color(0x00303030);
-  display_draw_rect(260, 210, 279, 59);//280 60
+  display_draw_rounded_rect(260, 210, 279, 59, 3);//280 60
 
   //White color for text and use font_3
   display_set_fg_color(WHITE_COLOR);
@@ -5225,6 +5413,7 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
   switch(msgid)
   {
     case MESSAGE_SAVE_SUCCESSFUL:
+      thumbnaildata = &viewthumbnaildata[0];
       display_text(270, 220, "File saved successfully");
 
       //Don't wait for confirmation in case of success, unless requested
@@ -5232,6 +5421,7 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
       break;
 
     case MESSAGE_FILE_CREATE_FAILED:
+      thumbnaildata = &viewthumbnaildata[0];
       display_text(270, 220, "Failed to create file");
       break;
 
@@ -5240,6 +5430,7 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
       break;
 
     case MESSAGE_FILE_WRITE_FAILED:
+      thumbnaildata = &viewthumbnaildata[0];
       display_text(270, 220, "Failed to write to file");
       break;
 
@@ -5279,13 +5470,39 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
       display_text(270, 220, "Waveform file version mismatch");
       break;
       
+    case MESSAGE_ERROR_VERSION_MISMATCH:
+      //Show additional info of error
+      display_text(290, 213, "Actual FW: ");  //270
+      display_text(370, 213, VERSION_STRING);        //Show actual FW version information 
+      display_text(430, 213, "Version: ");
+      format_version_full(WAVEFORM_FILE_VERSION, version_str); 
+      display_text(490, 213, version_str);          //Show actual file version information 
+              
+      display_text(270, 231, "Wave file FW: ");
+      extract_version_string(viewfilesetupdata[2], viewfilesetupdata[3], version_str); 
+      display_text(370, 231, version_str);          //Show wave file - FW version information 
+      display_text(430, 231, "Version: ");
+      format_version_full(viewfilesetupdata[1], version_str);      
+      display_text(490, 231, version_str);          //Show wave file - file version information 
+      break;
+      
     case MESSAGE_WAV_CHECKSUM_ERROR:
       display_text(270, 220, "Waveform file checksum error");
+      break;
+      
+    case MESSAGE_REF_BUFF_EMPTY_ERROR:
+      display_text(270, 220, "REF buffer empty !!!");
+      //timer0_delay(2000); // Wait 3 sec
       break;
   }
 
   //Display the file name in question
-  display_text(270, 245, viewfilename);
+  if(onoffRTC) //if RTCon view rtc info
+    {
+      decodethumbnailfilename(thumbnaildata->filename);
+      display_text(270, 248, filenameRTC);//270 245
+    }
+    else display_text(270, 248, thumbnaildata->filename);
 
   //Maybe wait for touch to continue in case of an error message
   if(checkconfirmation)
@@ -5361,8 +5578,8 @@ void scope_load_configuration_data(void)
   scopesettings.channel1.buttontext   = "CH1";
 
   //Set the trace and display buffer pointers for channel 1
-  scopesettings.channel1.tracebuffer  = (uint8 *)channel1tracebuffer;
-  scopesettings.channel1.tracepoints = channel1pointsbuffer;
+  scopesettings.channel1.tracebuffer      = (uint8 *)channel1tracebuffer;
+  scopesettings.channel1.tracepoints      = channel1pointsbuffer;
 
   //Set the FPGA commands for channel 2
   scopesettings.channel2.enablecommand     = 0x03;
@@ -5382,10 +5599,31 @@ void scope_load_configuration_data(void)
   scopesettings.channel2.buttontext   = "CH2";
 
   //Set the trace and display buffer pointers for channel 2
-  scopesettings.channel2.tracebuffer = (uint8 *)channel2tracebuffer;
-  scopesettings.channel2.tracepoints = channel2pointsbuffer; 
+  scopesettings.channel2.tracebuffer      = (uint8 *)channel2tracebuffer;
+  scopesettings.channel2.tracepoints      = channel2pointsbuffer; 
   
+  //Set the trace and display buffer pointers for REF1-4
+  scopesettings.ch_ref1.tracebuffer = (uint8 *)ref1_tracebuffer;
+  scopesettings.ch_ref2.tracebuffer = (uint8 *)ref2_tracebuffer;
+  scopesettings.ch_ref3.tracebuffer = (uint8 *)ref3_tracebuffer;
+  scopesettings.ch_ref4.tracebuffer = (uint8 *)ref4_tracebuffer;
+  scopesettings.ch_ref5.tracebuffer = (uint8 *)ref5_tracebuffer;
+  scopesettings.ch_ref6.tracebuffer = (uint8 *)ref6_tracebuffer;
+  scopesettings.ch_ref7.tracebuffer = (uint8 *)ref7_tracebuffer;
+  scopesettings.ch_ref8.tracebuffer = (uint8 *)ref8_tracebuffer;
   
+  scopesettings.ch_ref1.tracepoints      = ref1pointsbuffer;
+  scopesettings.ch_ref2.tracepoints      = ref2pointsbuffer;
+  scopesettings.ch_ref3.tracepoints      = ref3pointsbuffer;
+  scopesettings.ch_ref4.tracepoints      = ref4pointsbuffer;
+  scopesettings.ch_ref5.tracepoints      = ref5pointsbuffer;
+  scopesettings.ch_ref6.tracepoints      = ref6pointsbuffer;
+  scopesettings.ch_ref7.tracepoints      = ref7pointsbuffer;
+  scopesettings.ch_ref8.tracepoints      = ref8pointsbuffer;
+  
+  //Set the trace buffer pointers for math functions
+  scopesettings.math_tracebuffer = (uint8 *)math_channel_tracebuffer;
+          
   //Switch to RUN
   scopesettings.runstate = 1;
   //Ready for start new sample
@@ -5585,6 +5823,7 @@ void scope_save_input_calibration_data(void)
 void scope_reset_config_data(void)
 {
   //uint32 index;
+  uint32 *ptr = STARTUP_CONFIG_ADDRESS;     //for save and load boot menu settings
   
   //Load a default configuration in case of settings in flash being corrupted
    
@@ -5630,6 +5869,10 @@ void scope_reset_config_data(void)
   //Set the related acquisition speed which is 500KSa/s
   scopesettings.samplerate = 8;//9 16 5+11
 
+  //Select CH1 is source1 & CH2 is source2
+  scopesettings.source1_measures = 0;
+  scopesettings.source2_measures = 0;
+    
   //Enable some default measurements
   scopesettings.hide_values_CH1 = 0;
   scopesettings.hide_values_CH2 = 0;
@@ -5661,11 +5904,33 @@ void scope_reset_config_data(void)
   scopesettings.long_memory      = 0;   //No long memory mode
   scopesettings.new_autosetup    = 1;   //New auto setup
   scopesettings.maxlight         = 0;   //Max light disable
+  scopesettings.ref1             = 0;   //ref1 waveform disable
+  scopesettings.ref2             = 0;   //ref2 waveform disable
+  scopesettings.ref3             = 0;   //ref3 waveform disable
+  scopesettings.ref4             = 0;   //ref4 waveform disable
+  scopesettings.ref5             = 0;   //ref5 waveform disable
+  scopesettings.ref6             = 0;   //ref6 waveform disable
+  scopesettings.ref7             = 0;   //ref7 waveform disable
+  scopesettings.ref8             = 0;   //ref8 waveform disable
+  scopesettings.ref_on_startup   = 0;   //DISABLE reference waveforms on start
   
   //triggerlong = 0;
-  //triger50 = 0;     //Clear flag for channel settings 50% button
-  onoffRTC = 0;     //RTC Off
-  USB_CH340 = 0;    //0-USB like MAss storage
+  //trigger50 = 0;      //Clear flag for channel settings 50% button
+  onoffRTC    = 0;      //0-RTC Off
+  USB_CH340   = 0;      //0-USB like MAss storage
+  dev_mode    = 0;      //1-dev mode active
+  tag_in_BMP  = 1;      //1-add a tag to BMP (RTC stamp or file name)
+  
+  channelA = 0;       //ch1 to channel A math function
+  channelB = 1;       //ch2 to channel B math function
+  
+  
+  
+  //----------------------------------------------------------------------------
+  ptr[0] = 4;  //PECO + menu //value for default start firmware (0-pepco,1-fnirsi, 2-FEL, <3 skip menu)
+  //SAVE the display configuration sector from DRAM to SDcart   //save boot menu and default start
+  sd_card_write(DISPLAY_CONFIG_SECTOR, 1, (uint8 *)0x81BFFC00);
+  
   //----------------------------------------------------------------------------
   //Load input calibration value 
   scope_load_input_calibration_data();
@@ -5732,7 +5997,7 @@ void scope_save_config_data(void)
   *ptr++ = scopesettings.triggerhorizontalposition & 0xFFFF;    //int32 !!!
   *ptr++ = scopesettings.triggerverticalposition;
   
-  //Point to the other settings                     13
+  //Point to the other settings                     28
   ptr = &settingsworkbuffer[OTHER_SETTING_OFFSET];
   
   //Save the other settings
@@ -5748,9 +6013,26 @@ void scope_save_config_data(void)
   *ptr++ = scopesettings.long_memory;
   *ptr++ = scopesettings.new_autosetup;
   *ptr++ = scopesettings.maxlight;
-  
+  *ptr++ = scopesettings.ref1;     
+  *ptr++ = scopesettings.ref2;    
+  *ptr++ = scopesettings.ref3;       
+  *ptr++ = scopesettings.ref4;     
+  *ptr++ = scopesettings.ref5;         
+  *ptr++ = scopesettings.ref6;          
+  *ptr++ = scopesettings.ref7;         
+  *ptr++ = scopesettings.ref8;          
+  *ptr++ = scopesettings.ref_on_startup;
   
   *ptr++ = onoffRTC;
+  *ptr++ = USB_CH340;
+  *ptr++ = dev_mode;
+  *ptr++ = tag_in_BMP;
+    
+  *ptr++ = mathmode;
+  //refmode
+  
+  *ptr++ = channelA;
+  *ptr++ = channelB;
   
   //Point to the cursor settings                    7
   ptr = &settingsworkbuffer[CURSOR_SETTING_OFFSET];
@@ -5767,8 +6049,12 @@ void scope_save_config_data(void)
   //Save cursor settings
   *ptr++ = scopesettings.lockcursors;   //lock move cursors
 
-  //Point to the first measurement enable setting   26
+  //Point to the first measurement enable setting   28
   ptr = &settingsworkbuffer[MEASUREMENT_SETTING_OFFSET];
+  
+  //Save the measurements source states
+  *ptr++ = scopesettings.source1_measures;
+  *ptr++ = scopesettings.source2_measures;
   
   //Save the measurements enable states
   *ptr++ = scopesettings.hide_values_CH1;
@@ -5902,10 +6188,26 @@ void scope_restore_config_data(void)
     scopesettings.long_memory      = 0;           //docasne zrusene, aj v file setup zrusene
     scopesettings.new_autosetup    = *ptr++;
     scopesettings.maxlight         = *ptr++;
+    scopesettings.ref1             = *ptr++;     
+    scopesettings.ref2             = *ptr++;     
+    scopesettings.ref3             = *ptr++;     
+    scopesettings.ref4             = *ptr++;     
+    scopesettings.ref5             = *ptr++;         
+    scopesettings.ref6             = *ptr++;          
+    scopesettings.ref7             = *ptr++;         
+    scopesettings.ref8             = *ptr++;
+    scopesettings.ref_on_startup   = *ptr++;
     
+    onoffRTC    = *ptr++;
+    USB_CH340   = *ptr++;   //0-USB like MAss storage, 1-serial port
+    USB_CH340   = 0;        //0-USB like MAss storage, 1-serial port
+    dev_mode    = *ptr++; 
+    tag_in_BMP  = *ptr++; 
     
-    onoffRTC = *ptr++;
-    USB_CH340 = 0;    //0-USB like MAss storage, 1-serial port
+    mathmode = *ptr++; 
+    channelA = *ptr++; 
+    channelB = *ptr++; //19
+
     //scopesettings.channel1.invert = 0; //signal inverted
     
     //Point to the cursor settings
@@ -5926,6 +6228,10 @@ void scope_restore_config_data(void)
     //Point to the first measurement enable setting
     ptr = &settingsworkbuffer[MEASUREMENT_SETTING_OFFSET];
 
+    //Restore the measurements source states
+    scopesettings.source1_measures = *ptr++;
+    scopesettings.source2_measures = *ptr++;
+  
     //Restore the measurements enable states
     scopesettings.hide_values_CH1 = *ptr++;
     scopesettings.hide_values_CH2 = *ptr++;
@@ -5939,7 +6245,8 @@ void scope_restore_config_data(void)
         scopesettings.measuresstate[channel][index] = *ptr++;
       }
     }
-
+    //Load reference waveforms
+    scope_load_ALLREF_file();
     //--------------------------------------------------------------------------
     //Load input calibration value 
     scope_load_input_calibration_data();

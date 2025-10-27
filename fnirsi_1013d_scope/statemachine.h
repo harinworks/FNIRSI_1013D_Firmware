@@ -38,6 +38,9 @@ int32 handle_confirm_delete(void);
 
 void close_open_menus(uint32 closemain);
 
+void close_open_channel_menus(PCHANNELSETTINGS settings, uint32 closemain);
+
+
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void move_trigger_point_position(void);
@@ -54,6 +57,15 @@ void move_right_time_cursor_position(void);
 
 void move_top_volt_cursor_position(void);
 void move_bottom_volt_cursor_position(void);
+
+void move_ref1_position(void);
+void move_ref2_position(void);
+void move_ref3_position(void);
+void move_ref4_position(void);
+void move_ref5_position(void);
+void move_ref6_position(void);
+void move_ref7_position(void);
+void move_ref8_position(void);
 
 //----------------------------------------------------------------------------------------------------------------------------------
 

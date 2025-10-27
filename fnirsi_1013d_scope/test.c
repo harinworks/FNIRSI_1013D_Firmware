@@ -30,6 +30,177 @@
 
 #include <string.h>
 //----------------------------------------------------------------------------------------------------------------------------------
+/*
+  //Check if in waveform view
+  if(scopesettings.waveviewmode)
+  {
+    //Display the file name
+    //Use white text and font_0
+    display_set_fg_color(WHITE_COLOR);
+    display_set_font(&font_0);
+    
+    if(onoffRTC) //if RTCon view rtc info
+      {
+      thumbnaildata = &viewthumbnaildata[viewcurrentindex];
+      decodethumbnailfilename(thumbnaildata->filename);
+      display_text(488, 70, filenameRTC);   //500 48 , 490 58
+      }   else display_text(555, 70, viewfilename); //550 48
+  }
+  */
+/*
+//----------------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------------------
+//skusit vyuzit aj na long base, pri stopnuti priebehu
+int32 scope_load_REFx_trace_data(void)
+{
+  //Point to the file numbers
+  uint16 *fnptr = (uint16 *)viewfilenumberdata;
+  uint32 result;
+
+  //Setup the file name for this view item
+  scope_print_file_name(fnptr[viewcurrentindex]);
+
+  //Try to open the file for reading
+  result = f_open(&viewfp, viewfilename, FA_READ);
+
+  //Check if file opened ok
+  if(result == FR_OK)
+  {
+    //Checks on correct number of bytes read might be needed
+    //Load the setup data to the file setup data buffer
+    if((result = f_read(&viewfp, (uint8 *)viewfilesetupdata, sizeof(viewfilesetupdata), 0)) == FR_OK)
+    {
+      //Copy the loaded data to the settings
+      scope_restore_setup_from_file();
+
+      //Check if the version of the file is wrong
+      if(viewfilesetupdata[1] != WAVEFORM_FILE_VERSION)
+      {
+        //No need to load the rest of the data
+        result = WAVEFORM_FILE_ERROR;
+
+        //Show the user the file is not correct
+        scope_display_file_status_message(MESSAGE_WAV_VERSION_MISMATCH, 0);
+      }
+      else
+      {
+        //Load the channel 1 sample data      
+        if((result = f_read(&viewfp, (uint8 *)channel1tracebuffer, 3000, 0)) == FR_OK)
+        {
+          //Load the channel 2 sample data
+          if((result = f_read(&viewfp, (uint8 *)channel2tracebuffer, 3000, 0)) == FR_OK)
+          {
+            //Do a check on file validity
+            if((result = scope_check_waveform_file()) == 0)
+            {
+              //Switch to stopped and waveform viewing mode
+              scopesettings.runstate = 0;//ok
+              scopesettings.waveviewmode = 1;
+
+              //Show the normal scope screen
+              scope_setup_main_screen();
+
+              //display the trace data
+              scope_display_trace_data();
+            }
+            else
+            {
+              //Checksum error so signal that to the user
+              result = WAVEFORM_FILE_ERROR;
+
+              //Show the user the file is not correct
+              scope_display_file_status_message(MESSAGE_WAV_CHECKSUM_ERROR, 0);
+            }
+          }
+        }
+      }
+    }
+
+    //Done with the file so close it
+    f_close(&viewfp);
+
+    //Check if one of the reads failed
+    if((result != FR_OK) && (result != WAVEFORM_FILE_ERROR))
+    {
+      //Signal unable to write to the file
+      scope_display_file_status_message(MESSAGE_FILE_READ_FAILED, 0);
+    }
+  }
+  else
+  {
+    //Signal unable to open the file
+    scope_display_file_status_message(MESSAGE_FILE_OPEN_FAILED, 0);
+  }
+
+  //Check if all went well
+  if(result == FR_OK)
+  {
+    //Tell it to the caller
+    return(VIEW_TRACE_LOAD_OK);
+  }
+
+  //Remove the current item from the thumbnails and delete the item from disk
+  scope_remove_item_from_thumbnails(1);
+
+  //Save the thumbnail file
+  scope_save_thumbnail_file();
+
+  return(VIEW_TRACE_LOAD_ERROR);
+}
+*/
+//----------------------------------------------------------------------------------------------------------------------------------
+
+
+  //if (method == 'Sinc') { y = sincInterpolate(waveArray, tGlobal);}
+                    
+    /*                
+		// Sinc Interpolation with Lanczos window
+        void sincInterpolate(points, t, a = 6) {
+            int32 sum = 0;
+            const start = math.max(0, Math.floor(t - a));
+            const end = Math.min(points.length - 1, Math.ceil(t + a));
+            
+            for (int32 i = start; i <= end; i++) {
+                const x = i - t;
+                // Apply Sinc kernel with Lanczos window
+                const sincValue = sincKernel(x);
+                const windowValue = lanczosWindow(x, a);
+                sum += points[i] * sincValue * windowValue;
+            }
+            
+            return sum;
+        }
+
+        function sincKernel(x) {
+            if (x == 0) return 1;
+            return Math.sin(Math.PI * x) / (Math.PI * x);
+        }
+
+        function lanczosWindow(x, a) {
+            if (Math.abs(x) >= a) return 0;
+            return sincKernel(x / a); // Sinc function scaled by the window size
+        }
+*/
+
+void display_text_message(char* message, uint8 value) {
+    display_set_fg_color(BLACK_COLOR);
+    display_fill_rect(488, 420, 250, 50); // Vyčistí priestor na zobrazenie textu
+
+    // Nastavenie farby textu a fontu
+    display_set_fg_color(WHITE_COLOR);
+    display_set_font(&font_0);
+
+    // Zobrazenie textu
+    display_text(488, 440, message);
+    display_decimal(600, 440, value);
+    display_text(495, 455, viewfilename);
+
+    timer0_delay(3000); // Počká 3 sekundy
+}
+
+
+
+/*
 
 // Function to compute the value of sin(x)/x for sinc interpolation
 double sinc(double x) {
@@ -56,7 +227,7 @@ void sinc_interpolation(double* t_interp, double* t_sampled, int* sampled_signal
         }
     }
 }
-
+*/
 // Funkcia na výpočet pohyblivého priemeru (SMA) s oknom window_size
 void moving_average(uint8* input, size_t size, size_t window_size) {
     uint32 sum = 0;  // Použijeme väčší dátový typ pre súčet
@@ -756,13 +927,13 @@ void scope_test_ADoffset_value(void)
       //uint32 center = (scopesettings.channel1.center * signal_adjusters[scopesettings.channel1.displayvoltperdiv]) >> VOLTAGE_SHIFTER;   
       
        
-  // uint32 offset;
+ // uint32 offset;
   uint32    max1;
   uint32    min1;    
   uint32    p2p1; 
   uint32    center1x; 
-  // uint32    dcoffset;
-  // uint32    dcoffsetm;
+  uint32    dcoffset;
+  uint32    dcoffsetm;
   
   register uint32 multiply;
   
@@ -822,12 +993,15 @@ void scope_test_ADoffset_value(void)
 
 void scope_test_TP(void)
 {
+  
+  #define   positionX  650
+  #define   positionY  2  //250
   //Draw the background
   //display_fill_rect(159, 116, 226, 36);
   
   display_set_fg_color(BLACK_COLOR);
   //Fill the settings background
-  display_fill_rect(450, 250, 100, 100);  //x , y , sirka, vyska
+  display_fill_rect(positionX, positionY, 80, 160);  //x , y , sirka, vyska
   //display_fill_rect(600, 0, 100, 45);  //x , y , sirka, vyska
   //display_fill_rect(600, 0, 100, 100);  //x , y , sirka, vyska
   //Display the text with the green color
@@ -844,16 +1018,22 @@ void scope_test_TP(void)
   
   display_set_fg_color(WHITE_COLOR);
   display_set_font(&font_2);
-  display_text(450, 250, "Xtouch");
-  display_decimal(450, 260, xtouch);
-  display_text(450, 270, "Ytouch");
-  display_decimal(450, 280, ytouch);//450 320
+  display_text(positionX, positionY, "Xtouch");
+  display_decimal(positionX, positionY+10, xtouch);
+  display_text(positionX, positionY+20, "Ytouch");
+  display_decimal(positionX, positionY+30, ytouch);//450 320
    
-  display_text(450, 300, "Xtouch");
-  display_decimal(450, 310, xtouch_tmp);
-  display_text(450, 320, "Ytouch");
-  display_decimal(450, 330, ytouch_tmp);//450 320
-   
+  display_text(positionX, positionY+50, "Xtouch tmp");
+  display_decimal(positionX, positionY+60, xtouch_tmp);
+  display_text(positionX, positionY+70, "Ytouch tmp");
+  display_decimal(positionX, positionY+80, ytouch_tmp);//450 320
+ /* 
+  display_text(positionX, positionY+90, "mathmenuopen");
+  display_decimal(positionX, positionY+100, mathmenuopen);//450 320
+  
+  display_text(positionX, positionY+110, "math mode");
+  display_decimal(positionX, positionY+120, mathmode);//450 320
+  */ 
   /*
   display_set_fg_color(WHITE_COLOR);
   display_set_font(&font_2);

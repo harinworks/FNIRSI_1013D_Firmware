@@ -756,13 +756,7 @@ void fpga_read_sample_data(PCHANNELSETTINGS settings, uint32 triggerpoint)
   
   //Calculate the signal center
   settings->center = (settings->max + settings->min) / 2;
-/*  
-  //Calculate the signal center for autosetup dc shift
-  settings->centerDC = (settings->maxDC + settings->minDC) / 2;
   
-  //Calculate the peak to peak value for autosetup dc shift
-  settings->peakpeakDC = settings->maxDC - settings->minDC;
-*/  
   //Calculate the frequency if possible
   if(settings->zerocrossings > 2)
   {
@@ -878,7 +872,7 @@ void fpga_read_adc_data(PCHANNELSETTINGS settings)
       }
     }
     
-    if (settings->invert) sample = 255-sample;  //1-signal inverted 
+    if (settings->invert) sample = 255-sample;  //Invert channel settings 1-signal inverted 
     
     //Store the data
     *settings->buffer = sample;
@@ -991,78 +985,11 @@ void fpga_read_adc_data(PCHANNELSETTINGS settings)
 	//Add squares of the samples for RMS calculation
 	settings->rms += (sample - 128) * (sample - 128);
      
-        /*
-    //Check if busy with second ADC data to see if frequency determination can be done
-    if(settings->checkfirstadc)
-    {
-      //Check against the high level
-      if(sample > settings->highlevel)
-      {
-        //If above, check if in low state
-        if(settings->state == 0)
-        {
-          //If so flip the state
-          settings->state = 1;
-          
-          //Check if first zero crossing detected
-          if(settings->zerocrossings == 0)
-          {
-            //Set the previous index if so
-            settings->previousindex = count;
-          }
-          else
-          {
-            //Calculate the total number of samples in the low parts of the signal
-            settings->lowsamplecount += settings->previousindex - count;
-            
-            //Add one to the low divider for average calculation
-            settings->lowdivider++;
-            
-            //Set the new previous index
-            settings->previousindex = count;
-          }
-
-          //Found a zero crossing
-          settings->zerocrossings++;
-        }
-      }
-      //Check against the low level
-      else if(sample < settings->lowlevel)
-      {
-        //If below check if in high state
-        if(settings->state == 1)
-        {
-          //If so flip the state
-          settings->state = 0;
-
-          //Check if first zero crossing detected
-          if(settings->zerocrossings == 0)
-          {
-            //Set the previous index if so
-            settings->previousindex = count;
-          }
-          else
-          {
-            //Calculate the total number of samples in the high parts of the signal
-            settings->highsamplecount += settings->previousindex - count;
-            
-            //Add one to the low divider for average calculation
-            settings->highdivider++;
-            
-            //Set the new previous index
-            settings->previousindex = count;
-          }
-          
-          //Found a zero crossing
-          settings->zerocrossings++;
-        }
-      }
-    }   
-          */ 
-    
     //Skip a sample to allow for ADC2 data to be placed into
     settings->buffer += 2;
-    
+    //fpga fifo RAM    
+    //settings->buffer += 1;
+         
     //One read done
     count--;
   }
@@ -1077,7 +1004,7 @@ uint16 fpga_average_trace_data(PCHANNELSETTINGS settings)
 {
   //Read ten bytes of trace data and average them
   uint16 data = 0;
-  int16 datatmp = 0;
+  int16  datatmp = 0;
   uint32 count = 10;
   
   //register uint32 setting = settings->samplevoltperdiv;
