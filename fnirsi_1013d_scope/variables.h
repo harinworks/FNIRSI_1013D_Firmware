@@ -16,7 +16,7 @@
 //Version info
 //----------------------------------------------------------------------------------------------------------------------------------
 
-#define VERSION_STRING             "v0.26v5" //often check TP
+#define VERSION_STRING             "git"
 
 #define VERSION_STRING_XPOS             698//690//681     //690 
 #define VERSION_STRING_YPOS              24

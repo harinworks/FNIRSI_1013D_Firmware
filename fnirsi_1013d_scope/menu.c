@@ -87,7 +87,7 @@ void scope_setup_main_screen(void)
   //Show version information
   display_set_fg_color(WHITE_COLOR);
   display_set_font(&font_2);
-  display_text(VERSION_STRING_XPOS, VERSION_STRING_YPOS, VERSION_STRING+1);
+  display_text(VERSION_STRING_XPOS, VERSION_STRING_YPOS, VERSION_STRING);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -3580,10 +3580,10 @@ void scope_channel_ref_menu_item(PCHANNELSETTINGS settings, int mode)//set
 void scope_channel_open_ref_menu(PCHANNELSETTINGS settings)
 //void scope_channel_open_ref_menu(PCHANNELSETTINGS settings, PCHANNELSETTINGS REFsettings)
 {
-  uint32 xstart;
+//  uint32 xstart;
 //  uint32 xend;
   
-  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 9;//6
+  //xstart = settings->menuxpos + CH_REF_MENU_XPOS + 9;//6
   
   //Setup the menu in a separate buffer to be able to slide it onto the screen
   display_set_screen_buffer(displaybuffertmp);//1

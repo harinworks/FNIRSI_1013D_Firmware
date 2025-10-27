@@ -3241,7 +3241,7 @@ void handle_trigger_menu_touch(void)
 
 void handle_generator_menu_touch(void)
 {
-    uint32 x,y,z;
+    uint32 x,y;
 
   //Stay in the menu as long as there is no touch outside the menu
   while(1)
@@ -3274,22 +3274,12 @@ void handle_generator_menu_touch(void)
             //y=((i/5)*53); 
             x = KEY_MENU_XPOS;
             y = KEY_MENU_YPOS;
-            z='0';
             //x = ((i & 3) * 72) + 10 + KEY_MENU_XPOS;
             //y = ((i >> 2) * 23) + 241 + KEY_MENU_YPOS;  //191
 
             //Check if touch within this bounding box
             if((ytouch >= y + 80) && (ytouch <= y + 110))//riadok 6
-            {
-                
-              if((xtouch >= x + 30) &&  (xtouch <= x + 50))   z='7';    //1 cislo z lava 40
-              if((xtouch >= x + 80) &&  (xtouch <= x + 100))  z='8';    //2 cislo z lava 90
-              if((xtouch >= x + 140) && (xtouch <= x + 160))  z='9';    //3 cislo z lava 150
-              if((xtouch >= x + 200) && (xtouch <= x + 220))  z='m';    //4 cislo z lava 210
-              if((xtouch >= x + 250) && (xtouch <= x + 270))  z='k';    //4 cislo z lava 260
-                
-                
-                            
+            {         
   //Select the font for the texts
   display_set_font(&font_5);//3
 

@@ -3571,10 +3571,10 @@ void scope_prepare_setup_for_file(void)
 
   //Put in a version number for the waveform view file
   ptr[1] = WAVEFORM_FILE_VERSION;
-  //memcpy(&ptr[1], WAVEFORM_FILE_VERSION, 8);
+  //memcpy(&ptr[1], WAVEFORM_FILE_VERSION, sizeof(WAVEFORM_FILE_VERSION));
   
   //Put in a firmware version for the waveform view file
-  memcpy(&ptr[2], VERSION_STRING, 7);
+  memcpy(&ptr[2], VERSION_STRING, sizeof(VERSION_STRING));
     
   //Leave space for file version and checksum data  21
   index = CHANNEL1_SETTING_OFFSET;
