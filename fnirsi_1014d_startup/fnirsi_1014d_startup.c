@@ -46,6 +46,9 @@
 #define PROGRAM_START_SECTOR      80
 #define DISPLAY_CONFIG_SECTOR    710
 
+#define BASE_ADDRESS    0x80000000
+#define FEL_ADDRESS     0xFFFF0020
+
 #define STARTUP_CONFIG_ADDRESS    (uint8*)0x81BFFC1F //value for default start firmware (0-pepco,1-fnirsi, 2-FEL, <3 skip menu)
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -58,7 +61,7 @@ unsigned char buffer[512];
 int main(void)
 {
   //Set the address to run the loaded main program
-  unsigned int address = 0x80000000; 
+  unsigned int address = BASE_ADDRESS;
   unsigned int length;
   unsigned int blocks;
   int choice = 0;
@@ -113,8 +116,9 @@ int main(void)
     display_set_fg_color(RED_COLOR);
     display_text(328, 300, "SD card init failed"); 
 
-    //On error just frees
-    while(1);
+    //On error start FEL
+    address = FEL_ADDRESS;
+    goto out;
   }
   
   //Load the display configuration sector to DRAM before the startup screen program
@@ -127,8 +131,9 @@ int main(void)
     display_set_fg_color(RED_COLOR);
     display_text(190, 300, "SD card, Failed reading display configuration sector");
       
-    //On error just frees
-    while(1);
+    //On error start FEL
+    address = FEL_ADDRESS;
+    goto out;
   }
   
   //Set display with load configuration from DRAM (SD card)
@@ -302,8 +307,9 @@ int main(void)
       //display_text(305, 300, "SD card first read failed");
       display_text(295, 300, "SD card program read failed");
 
-      //On error just frees
-      while(1);
+      //On error start FEL
+      address = FEL_ADDRESS;
+      goto out;
     }
 
     //Check if there is a brom header there
@@ -312,8 +318,9 @@ int main(void)
       display_set_fg_color(RED_COLOR);
       display_text(337, 300, "Not an executable");
 
-      //On error just frees
-      while(1);
+      //On error start FEL
+      address = FEL_ADDRESS;
+      goto out;
     }
 
     //Get the length from the header
@@ -346,8 +353,9 @@ int main(void)
         display_decimal(150, 26, retval);
         display_decimal(150, 42, blocks);
 
-        //On error just frees
-        while(1);
+        //On error start FEL
+        address = FEL_ADDRESS;
+        goto out;
       }
     }
   }
@@ -381,10 +389,11 @@ int main(void)
     display_text(340, 230, "Running FEL mode");
     
     //Set the address to run the FEL code
-    address = 0xFFFF0020;
+    address = FEL_ADDRESS;
   }
   //****************************************************************************
   
+  out:
   //Start the chosen code
   __asm__ __volatile__ ("mov pc, %0\n" :"=r"(address):"0"(address));
 }
