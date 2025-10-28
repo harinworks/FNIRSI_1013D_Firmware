@@ -106,6 +106,9 @@ void tp_i2c_setup(void)
   //Start communication by sending 2 to the command register
   command = 2;
   tp_i2c_send_data(TP_DEVICE_ADDR, TP_CMD_REG, &command, 1);
+  
+  //Wait for ~100mS
+  tp_delay(200000);
 
 #ifdef USE_TP_CONFIG
   //Clear the checksum before calculating it
@@ -188,10 +191,6 @@ void tp_i2c_read_status(void)
   //Check if there is touch
   if(status & 0x80)
   {
-    //Clear the status
-    data[0] = 0;
-    tp_i2c_send_data(TP_DEVICE_ADDR, TP_STATUS_REG, data, 1);
-    
     status &= 0x0F;
     
     //Check if single touch point to handle
@@ -237,6 +236,10 @@ void tp_i2c_read_status(void)
       //Signal no touch active
       havetouch = 0;
     }
+    
+    //Clear the status
+    data[0] = 0;
+    tp_i2c_send_data(TP_DEVICE_ADDR, TP_STATUS_REG, data, 1);
   }
 }
 
@@ -251,7 +254,7 @@ void tp_i2c_send_data(uint8 adr_dev, uint16 reg_addr, uint8 *buffer, uint32 size
   tp_i2c_send_byte(adr_dev);
 
   //Send the register address high byte first
-  if (adr_dev==0x28) tp_i2c_send_byte(reg_addr >> 8); //address TP send 2x8bit
+  tp_i2c_send_byte(reg_addr >> 8); //address TP send 2x8bit
 
   //Send the low byte second
   tp_i2c_send_byte(reg_addr);
@@ -284,7 +287,7 @@ void tp_i2c_read_data(uint8 adr_dev, uint16 reg_addr, uint8 *buffer, uint32 size
   tp_i2c_send_byte(adr_dev);
 
   //Send the register address high byte first
-  if (adr_dev==0x28) tp_i2c_send_byte(reg_addr >> 8); //address TP send 2x8bit
+  tp_i2c_send_byte(reg_addr >> 8); //address TP send 2x8bit
 
   //Send the low byte second
   tp_i2c_send_byte(reg_addr);
