@@ -102,11 +102,9 @@ int main(void)
     while(1);
   }
 
-#ifndef USE_TP_CONFIG
 #ifdef SAVE_TP_CONFIG
   //Save the touch panel configuration to be save
   save_tp_config();
-#endif
 #endif
 
   //Load configuration data from FLASH
