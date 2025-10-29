@@ -18,6 +18,7 @@ set(SRC_FILES
 )
 
 add_executable(fnirsi_1014d_startup ${SRC_FILES})
+add_dependencies(fnirsi_1014d_startup host_utils)
 
 target_link_libraries(fnirsi_1014d_startup PRIVATE gcc)
 
@@ -26,10 +27,10 @@ target_link_options(fnirsi_1014d_startup PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/
 
 add_custom_command(TARGET fnirsi_1014d_startup POST_BUILD
     # Convert to binary (only .text section)
-    COMMAND arm-none-eabi-objcopy -O binary --only-section=.text $<TARGET_FILE:fnirsi_1014d_startup> ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1014d_startup.bin
+    COMMAND ${CMAKE_OBJCOPY} -O binary --only-section=.text $<TARGET_FILE:fnirsi_1014d_startup> ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1014d_startup.bin
 
     # Fix BROM header
-    COMMAND ${CMAKE_SOURCE_DIR}/bin/mksunxi ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1014d_startup.bin
+    COMMAND ${MKSUNXI} ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1014d_startup.bin
 
     # Copy to scope directory
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/fnirsi_1013d_scope

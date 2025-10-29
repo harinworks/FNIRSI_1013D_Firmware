@@ -39,6 +39,7 @@ set(SRC_FILES
 )
 
 add_executable(fnirsi_1013d_scope ${SRC_FILES})
+add_dependencies(fnirsi_1013d_scope host_utils)
 
 if(LEGACY_STARTUP)
     add_dependencies(fnirsi_1013d_scope fnirsi_1013d_startup_screen)
@@ -53,11 +54,11 @@ target_link_options(fnirsi_1013d_scope PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/fn
 
 add_custom_command(TARGET fnirsi_1013d_scope POST_BUILD
     # Convert to binary
-    COMMAND arm-none-eabi-objcopy -O binary $<TARGET_FILE:fnirsi_1013d_scope> ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d_scope.bin
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:fnirsi_1013d_scope> ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d_scope.bin
 
     # Fix BROM header
-    COMMAND ${CMAKE_SOURCE_DIR}/bin/mksunxi ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d_scope.bin
+    COMMAND ${MKSUNXI} ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d_scope.bin
 
     # Create SD card package
-    COMMAND ${CMAKE_SOURCE_DIR}/bin/flashfilepacker -o ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d.bin -i ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d_scope.bin -l 0x8000
+    COMMAND ${FLASHFILEPACKER} -o ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d.bin -i ${CMAKE_CURRENT_BINARY_DIR}/fnirsi_1013d_scope.bin -l 0x8000
 )
