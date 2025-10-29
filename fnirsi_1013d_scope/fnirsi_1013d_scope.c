@@ -208,17 +208,57 @@ int main(void)
   //dc_shift_cal=1;
   
   //timerH=1000;
+/*
+   scopesettings.ref1 = 0;
+  scopesettings.ref2 = 0;
+  scopesettings.ref3 = 0;
+  scopesettings.ref4 = 0;
+  scopesettings.ch_ref1.enable = 0; scopesettings.ch_ref2.enable = 0; scopesettings.ch_ref3.enable = 0; scopesettings.ch_ref4.enable = 0;
+ */
+  
+
+  scopesettings.ch_ref1.color = REF1_COLOR;
+  scopesettings.ch_ref2.color = REF2_COLOR;
+  scopesettings.ch_ref3.color = REF3_COLOR;
+  scopesettings.ch_ref4.color = REF4_COLOR;
+  scopesettings.ch_ref5.color = REF5_COLOR;
+  scopesettings.ch_ref6.color = REF6_COLOR;
+  scopesettings.ch_ref7.color = REF7_COLOR;
+  scopesettings.ch_ref8.color = REF8_COLOR;
+  
+  //scope_open_measures_menu();
+  //while(1);
+  
+  
+        
+/*
+   scopesettings.channel1.ref1 = 0;
+  scopesettings.channel1.ref2 = 0;
+  scopesettings.channel1.ref3 = 0;
+  scopesettings.channel1.ref4 = 0;
+  
+  scopesettings.channel2.ref1 = 0;
+  scopesettings.channel2.ref2 = 0;
+  scopesettings.channel2.ref3 = 0;
+  scopesettings.channel2.ref4 = 0;
+ */
     
        //scope_open_keyboard_menu();
   
   //Monitor the battery, process and display trace data and handle user input until power is switched off
   while(1)
   {
+    //Handle the touch panel input
+    //touch_handler();
+    
     //Monitor the battery status
     battery_check_status();
     
+    //Handle the touch panel input
+    //touch_handler();
     
- //-*************************************************************************   
+    
+ //-****************************************************************************   
     //scope_test_longbase_value();
   
     //scope_test_ADoffset_value();    //view values for ad offset min max center p2p
@@ -235,9 +275,9 @@ int main(void)
  
   //handle_generator_menu_touch();
 //    }
-  //-************************************************************************
-    //Select the mode 1-Long time base or 0-short time base
-    if(scopesettings.long_mode)
+  //-***************************************************************************
+  //Select the mode 1-Long time base or 0-short time base
+  if(scopesettings.long_mode)
     {
         scope_get_long_timebase_data();
     }
@@ -246,54 +286,7 @@ int main(void)
         //----------------------long memory mode --------------------------------------------------------
         if(scopesettings.long_memory)
         {
-            //Check if: run or stop mode - 1-Run mode, 0-no triger long, trigger mode 1 or 2
-            //if((scopesettings.runstate)&&(!triggerlong)&&(scopesettings.triggermode)) scope_check_long_trigger();
-            //Check if run or stop mode - 1-Run mode
-            //if((scopesettings.runstate)&&(triggerlong))
-            //{
-
-            //fpga_set_trigger_mode();
-            //Set the new setting in the FPGA
-            //fpga_set_sample_rate(0);    //200MSa
-            //fpga_set_sample_rate(scopesettings.samplerate);
-            
-            //
-            
-                //Write the time base setting to the FPGA
-    //fpga_set_time_base(scopesettings.timeperdiv);
-
-    //Sampling with trigger circuit enabled (standard memory mode)
-    //if(scopesettings.long_memory) scopesettings.samplemode = 0; else scopesettings.samplemode = 1;
-
-    //Start the conversion
-    //fpga_do_conversion();
-            
-            //Go through the trace data and display the trace data
-              if((scopesettings.runstate)&&(!triggerlong))
-        {scope_check_long_trigger();}
-  
-  //Check if run or stop mode - 1-Run mode
-  if((scopesettings.runstate)&&(triggerlong)) {scope_acquire_trace_data_long();triggerlong=0;}
-            
-           // while(fpga_done_conversion()==0);
-            //scopesettings.display_data_done = 1; 
-                
-            //if(scopesettings.display_data_done)
-            //{
-                //Set the new setting in the FPGA
-                //fpga_set_sample_rate(scopesettings.samplerate);
-    
-                //scopesettings.samplemode = 0; 
-    
-                //fpga_write_cmd(0x1A);
-
-                //Set trigger mode to auto
-                //fpga_write_byte(0x00);
-
-    
-                //Go through the trace data and display the trace data
-                //scope_acquire_trace_data();
-            //}
+           
             
         }
         //--------------------- short mode --------------------
@@ -305,28 +298,44 @@ int main(void)
             
             //Go through the trace data and display the trace data
             scope_acquire_trace_data();
-             //if (timerRTC==2) {scope_acquire_trace_data(); timerRTC=100;}
+             
         }
     }
-
+    
+    //--------------------------------------------------------------------------
+    
+    //Check developer mode and show DEV_mode on the screen
+    if (dev_mode)
+    {
+      display_set_fg_color(RED_COLOR);
+      display_set_font(&font_2);
+      display_text(670, 50, "DEV mode");
+    }
+    
+    //--------------------------------------------------------------------------
+    
     //Handle the touch panel input
     touch_handler();
+    
+    //--------------------------------------------------------------------------    
     
     //READ and show RTC time
     if (!(timerRTC)&&(onoffRTC))
     {
       timerRTC=500;
       //Reading time and date of DS3231
-      readtime();                     
-      //Show time on the screen
+      readtime(); 
+      //Set color the background
       display_set_fg_color(BLACK_COLOR);
-      //Fill the settings background
-      display_fill_rect(647, 5, 50, 13);  //x , y , sirka, vyska
+      //Fill the time background //x , y , sirka, vyska
+      display_fill_rect(TIME_TEXT_XPOS, TIME_TEXT_YPOS, TIME_TEXT_WIDTH, TIME_TEXT_HEIGHT);
+      //Show time on the screen
       display_set_fg_color(WHITE_COLOR);
       display_set_font(&font_2);
-      display_text(650, 5, buffertime);
+      display_text(TIME_TEXT_XPOS, TIME_TEXT_YPOS, buffertime);
     }
-  }
-}
-
+    
+    //--------------------------------------------------------------------------
+  }//end While(1);
+}//end main
 //----------------------------------------------------------------------------------------------------------------------------------

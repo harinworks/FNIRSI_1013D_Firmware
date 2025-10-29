@@ -129,7 +129,7 @@ void usb_device_init(void)
   
   //Setup the interrupt handler for the USB interface
   
-  if(USB_CH340==1) 
+  if((USB_CH340==1)&&(dev_mode)) 
     {
       setup_interrupt(USB_IRQ_NUM, usb_device_CH340_irq_handler, 2);    //for CH340
       //Wait 200ms to allow the USB interface to disconnect before switching to CH340 mode

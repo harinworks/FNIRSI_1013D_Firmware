@@ -24,6 +24,7 @@ set(SRC_FILES
     memset.s
     menu.c
     power_and_battery.c
+    ref_and_math.c
     scope_functions.c
     sd_card_interface.c
     sin_cos_math.c

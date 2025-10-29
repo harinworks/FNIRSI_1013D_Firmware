@@ -17,11 +17,22 @@
 //----------------------------------------------------------------------------------------------------------------------------------
 
 #define CHANNEL1_COLOR         0x00FFFF00   //YELLOW_COLOR
+#define REF1_COLOR           0x00FFA500   //ORANGE_COLOR
+#define REF2_COLOR           0x00E9967A  //_COLOR
+#define REF3_COLOR           0x00FF6347   //_COLOR
+#define REF4_COLOR           0x00FF4500  //_COLOR
 #define CHANNEL2_COLOR         0x0000FFFF   //BLUE_COLOR
+#define REF5_COLOR           0x0087CEFA   //BLUE_COLOR
+#define REF6_COLOR           0x001E90FF   //_COLOR
+#define REF7_COLOR           0x000000FF   //_COLOR
+#define REF8_COLOR           0x00191970   //_COLOR
 #define TRIGGER_COLOR          0x0000FF00   //GREEN_COLOR
+#define MATH_COLOR             0x00FF00FF 
+
 
 #define CHANNEL1_TRIG_COLOR    0x00CCCC00   //  
 #define CHANNEL2_TRIG_COLOR    0x0000CCCC   //
+#define EXTERN_TRIG_COLOR      0x00FF8000
 
 #define XYMODE_COLOR           0x00FF00FF   //MAGENTA_COLOR
 
@@ -35,13 +46,17 @@
 #define MIDLEGREY_COLOR        0x00383838   //*
 #define GREY_COLOR             0x00444444   //* 
 #define LIGHTGREY1_COLOR       0x00606060   //* 
+#define LIGHTGREY2_COLOR       0x00BBBBBB   //* 
 #define WHITE_COLOR            0x00FFFFFF   //*
+#define LIGHTRED_COLOR         0x00FF4444   //*
 #define RED_COLOR              0x00FF0000   //*
 #define YELLOW_COLOR           0x00FFFF00   //*
 #define PALEYELLOW_COLOR       0x00FFFF80   //*
 #define DARKGREEN_COLOR        0x0000BB00   //*
 #define GREEN_COLOR            0x0000FF00   //*
+//#define LIGHTBLUE_COLOR        0x006666FF   //*
 #define BLUE_COLOR             0x0000FFFF   //*
+#define LDARKBLUE_COLOR        0x006666FF   //*
 #define DARKBLUE_COLOR         0x00000078   //* 55
 #define ORANGE_COLOR           0x00FF8000   //*
 #define MAGENTA_COLOR          0x00FF00FF   //*
@@ -61,8 +76,16 @@
 #define TOUCH_STATE_MOVE_TIME_CURSOR_RIGHT   0x07
 #define TOUCH_STATE_MOVE_VOLT_CURSOR_TOP     0x08
 #define TOUCH_STATE_MOVE_VOLT_CURSOR_BOTTOM  0x09
+#define TOUCH_STATE_MOVE_REF1                0x0A
+#define TOUCH_STATE_MOVE_REF2                0x0B
+#define TOUCH_STATE_MOVE_REF3                0x0C
+#define TOUCH_STATE_MOVE_REF4                0x0D
+#define TOUCH_STATE_MOVE_REF5                0x0E
+#define TOUCH_STATE_MOVE_REF6                0x0F
+#define TOUCH_STATE_MOVE_REF7                0x10
+#define TOUCH_STATE_MOVE_REF8                0x11
 
-#define TOUCH_STATE_MASK                     0x0F
+#define TOUCH_STATE_MASK                     0x1F//0x0F
 
 #define TOUCH_STATE_MOVE_TRIGGER_POINT       0x80
 

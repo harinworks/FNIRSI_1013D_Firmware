@@ -46,11 +46,12 @@ uint8 boot_menu_start;  //choice boot menu on start & choice start Peco, Fnirsi 
 //RTC DS3231 data
 //----------------------------------------------------------------------------------------------------------------------------------
 
-uint8   minute=00,hour=12,day=22,month=3,year=25;
+uint8   minute=00,hour=10,day=18,month=5,year=25;
 char    buffertime[9];
 char    filenameRTC[32];
 
-uint8   onoffRTC;     //1-RTC on, time stamp for file and thumbnail
+uint8   onoffRTC;         //1-RTC on, time stamp for file and thumbnail
+uint8   tag_in_BMP;
 /*
   int32    offset;
   int32    max1;
@@ -77,19 +78,40 @@ uint32 previoustimerticks = 0;
 uint8 systemsettingsmenuopen = 0;   //flag for open menu
 uint8 screenbrightnessopen = 0;
 uint8 gridbrightnessopen = 0;
+uint8 othersettingsopen = 0;
 uint8 calibrationopen = 0;
 uint8 RTCsettingsopen = 0;
+        
 uint8 diagnosticmenuopen = 0;
+
+uint8 channelmenuopen = 0;
+uint8 refmenuopen = 0;
+uint8 mathmenuopen = 0;
+uint8 refmode = 0;
+uint8 mathmode = 0;
+
+uint8 channelA = 0;                 //0-ch1 do A
+uint8 channelB = 1;                 //1-ch2 to B
 
 uint8 calibrationfail = 0;          //flag calibration failed ,1-failed
 uint8 triggerlong = 0;              //flag signal is triggered
-uint8 triger50 = 0;                 //flag for channel settings 50% button 
+uint8 trigger50 = 0;                //flag for channel settings 50% button 
 uint8 restore = 0;                  //flag restore default data ok
 
 uint8 dc_shift_cal = 0;             //flag for activation shift calibration menu
 uint8 reload_cal_data = 0;          //flag for reload sdcard data push reload button
 
-uint8 USB_CH340 = 0;                    //flag switch between 0-USB mass storage or 1-serial CH340
+uint8 USB_CH340 = 0;                //flag switch between 0-USB mass storage or 1-serial CH340
+uint8 dev_mode = 0;                 //flag for activation developer mode-no boot menu
+/*
+uint8 ref1_sample = 0;
+uint8 ref2_sample = 0;
+uint8 ref3_sample = 0;
+uint8 ref4_sample = 0;
+*/
+
+uint8 math_sample = 0;
+//uint8 ref_ch2_sample = 0;
 
 //uint8 tmp_ACQ_mode;                 //flag tmp variable for fast switch betwen short and long ACQ mode
 
@@ -100,9 +122,10 @@ uint8 USB_CH340 = 0;                    //flag switch between 0-USB mass storage
 //This first buffer is defined as 32 bits to be able to write it to file
 uint32 maindisplaybuffer[SCREEN_SIZE / 2];
 
-uint16 displaybuffer1[SCREEN_SIZE];
-uint16 displaybuffer2[SCREEN_SIZE];
-uint16 displaybuffer3[SCREEN_SIZE];
+uint16 displaybuffer1[SCREEN_SIZE]; //Main menu, Channel menu ch1 and ch2, ACQ menu, Trigger menu
+uint16 displaybuffer2[SCREEN_SIZE]; //System settings menu, REF menu, MATH menu
+uint16 displaybuffer3[SCREEN_SIZE]; //Screen brightness menu, Grid brightness menu, Other settings, Calibration menu, RTC settings
+uint16 displaybuffer4[SCREEN_SIZE];
 uint16 displaybuffertmp[SCREEN_SIZE];
 
 uint16 gradientbuffer[SCREEN_HEIGHT];
@@ -132,6 +155,28 @@ uint32 channel2tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
 uint32 channel2tracebufferAVG[MAX_SAMPLE_BUFFER_SIZE];
 
 DISPLAYPOINTS channel2pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+
+uint32 ref1_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+uint32 ref2_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+uint32 ref3_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+uint32 ref4_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
+uint32 ref5_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+uint32 ref6_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+uint32 ref7_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+uint32 ref8_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
+
+DISPLAYPOINTS ref1pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+DISPLAYPOINTS ref2pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+DISPLAYPOINTS ref3pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+DISPLAYPOINTS ref4pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+
+DISPLAYPOINTS ref5pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+DISPLAYPOINTS ref6pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+DISPLAYPOINTS ref7pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+DISPLAYPOINTS ref8pointsbuffer[730];      //Buffer to store the x,y positions of the trace on the display
+
+uint32 math_channel_tracebuffer[UINT32_SAMPLE_BUFFER_SIZE];
 
 uint16 thumbnailtracedata[730];     
 
@@ -167,6 +212,15 @@ uint16 distance_time_cursor_right;
 uint16 distance_volt_cursor_top;
 uint16 distance_volt_cursor_bottom;
 
+uint16 distance_ch_ref_1;
+uint16 distance_ch_ref_2;
+uint16 distance_ch_ref_3;
+uint16 distance_ch_ref_4;
+uint16 distance_ch_ref_5;
+uint16 distance_ch_ref_6;
+uint16 distance_ch_ref_7;
+uint16 distance_ch_ref_8;
+
 //----------------------------------------------------------------------------------------------------------------------------------
 //Previous trace and cursor settings
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -184,6 +238,15 @@ uint16 previous_right_time_cursor_position;
 uint16 previous_top_volt_cursor_position;
 uint16 previous_bottom_volt_cursor_position;
 
+uint16 previous_ch_ref1_position;
+uint16 previous_ch_ref2_position;
+uint16 previous_ch_ref3_position;
+uint16 previous_ch_ref4_position;
+uint16 previous_ch_ref5_position;
+uint16 previous_ch_ref6_position;
+uint16 previous_ch_ref7_position;
+uint16 previous_ch_ref8_position;
+
 //----------------------------------------------------------------------------------------------------------------------------------
 //For touch filtering on slider movement
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -198,7 +261,7 @@ FIL     viewfp;                         //Since files are not opened concurrent 
 DIR     viewdir;
 FILINFO viewfileinfo;
   
-char viewfilename[32];              //The original code uses a large buffer to create all the needed file names in. Here the file name is created when needed
+char viewfilename[33];  // 32           //The original code uses a large buffer to create all the needed file names in. Here the file name is created when needed
 
 uint8 viewactive;                   //Not in the original code. Used to avoid copying settings to the flash
 
@@ -454,7 +517,46 @@ const int8 keyboard_texts_x_offsets[20] =
 };
  
 //----------------------------------------------------------------------------------------------------------------------------------
+/*
+//v0.26p - otocene poradie
+const int8 *volt_div_texts[7][7] = // [3][7]
+{
+  { "25mV/div", "50mV/div", "100mV/div", "250mV/div", "500mV/div", "1.25V/div", "2.5V/div" },     // 0.5
+  {  "50mV/div", "100mV/div", "200mV/div", "500mV/div", "1V/div", "2.5V/div", "5V/div" },         // 1
+  { "500mV/div", "1V/div", "2V/div", "5V/div", "10V/div", "25V/div", "50V/div" },                 // 10
+  {   "1V/div", "2V/div", "4V/div", "10V/div", "20V/div", "50V/div", "100V/div" },                // 20
+  { "2.5V/div", "5V/div", "10V/div", "25V/div", "50V/div", "125V/div", "250V/div" },              // 50
+  {   "5V/div", "10V/div", "20V/div", "50V/div", "100V/div", "250V/div", "500V/div" },            // 100
+  { "50V/div", "100V/div", "200V/div", "500V/div", "1kV/div", "2.5kV/div", "5kV/div" }            // 1000
+};
 
+
+//for sensitivity channel menu //v0.26p - otocene poradie
+const int16 volt_div_texts_x_offsets[7][7] = 
+{
+  {184, 184, 180, 180, 261, 264, 269},  //0.5 
+  {184, 180, 180, 180, 194, 188, 275},  //1 
+  {180, 194, 194, 194, 271, 271, 271},  //10
+  {194, 193, 193, 190, 271, 271, 267},  //20
+  {188, 195, 190, 190, 271, 267, 267},  //50
+  {195, 190, 190, 190, 267, 267, 267},  //100
+  {190, 185, 186, 186, 271, 265, 271},  //1000
+};
+
+//v0.26p - otocene poradie
+const int8 *ampere_div_texts[7][7] =
+{
+  { "25mA/div", "50mA/div", "100mA/div", "250mA/div", "500mA/div", "1.25A/div", "2.5A/div" },    // 0.5
+  { "50mA/div", "100mA/div", "200mA/div", "500mA/div", "1A/div", "2.5A/div", "5A/div" },         // 1
+  { "500mA/div", "1A/div", "2A/div", "5A/div", "10A/div", "25A/div", "50A/div" },                // 10
+  { "1A/div", "2A/div", "4A/div", "10A/div", "20A/div", "50A/div", "100A/div" },                 // 20
+  { "2.5A/div", "5A/div", "10A/div", "25A/div", "50A/div", "125A/div", "250A/div" },             // 50
+  { "5A/div", "10A/div", "20A/div", "50A/div", "100A/div", "250A/div", "500A/div" },             // 100
+  { "50A/div", "100A/div", "200A/div", "500A/div", "1kA/div", "2.5kA/div", "5kA/div" }           // 1000
+};
+*/
+
+ 
 const int8 *volt_div_texts[7][7] =//[3][7]
 {
   { "2.5V/div","1.25V/div", "500mV/div", "250mV/div", "100mV/div",  "50mV/div", "25mV/div" },   //0.5
@@ -465,19 +567,31 @@ const int8 *volt_div_texts[7][7] =//[3][7]
   { "500V/div", "250V/div", "100V/div",   "50V/div",   "20V/div",   "10V/div",    "5V/div" },   //100
   {  "5kV/div","2.5kV/div",  "1kV/div",  "500V/div",  "200V/div",  "100V/div",   "50V/div" }    //1000
 };
-
-//for sensitivity channel menu
+ 
+//for sensitivity channel menu //v0.26o
+const int16 volt_div_texts_x_offsets[7][7] = 
+{
+  {271, 184, 180, 180, 180, 184, 184},  //0.5 
+  {277, 188, 194, 180, 180, 180, 184},  //1 
+  {273, 190, 190, 194, 194, 194, 180},  //10
+  {269, 190, 190, 190, 193, 193, 194},  //20
+  {269, 186, 190, 190, 190, 195, 188},  //50
+  {269, 186, 186, 190, 190, 190, 195},  //100
+  {273, 185, 190, 186, 186, 185, 190},  //1000
+};
+/*
+//for sensitivity channel menu //v0.26o
 const int16 volt_div_texts_x_offsets[7][7] = 
 {
   {269, 264, 261, 180, 180, 184, 184},  //0.5 
-  {275, 269, 275, 180, 180, 180, 184},  //1 
+  {275, 188, 194, 180, 180, 180, 184},  //1 
   {271, 271, 271, 194, 194, 194, 180},  //10
   {267, 271, 271, 190, 193, 193, 194},  //20
   {267, 267, 271, 190, 190, 195, 188},  //50
   {267, 267, 267, 190, 190, 190, 195},  //100
   {271, 265, 271, 186, 186, 185, 190},  //1000
 };
-
+*/
 const int8 *ampere_div_texts[7][7] =
 {
   { "2.5A/div","1.25A/div","500mA/div", "250mA/div", "100mA/div",  "50mA/div",  "25mA/div" },   //0.5
@@ -488,6 +602,49 @@ const int8 *ampere_div_texts[7][7] =
   { "500A/div", "250A/div", "100A/div",   "50A/div",   "20A/div",   "10A/div",    "5A/div" },   //100
   {  "5kA/div","2.5kA/div",  "1kA/div",  "500A/div",  "200A/div",  "100A/div",   "50A/div" }    //1000
 };
+ 
+/*
+//for sensitivity channel menu //v0.26o
+const int16 volt_div_texts_x_offsets[7][7] = 
+{
+  {269, 264, 261, 180, 180, 184, 184},  //0.5 
+  {275, 269, 275, 180, 180, 180, 184},  //1 
+  {271, 271, 271, 194, 194, 194, 180},  //10
+  {267, 271, 271, 190, 193, 193, 194},  //20
+  {267, 267, 271, 190, 190, 195, 188},  //50
+  {267, 267, 267, 190, 190, 190, 195},  //100
+  {271, 265, 271, 186, 186, 185, 190},  //1000
+};
+*/
+//************************
+/*
+const int8 *volt_div_texts[7][12] =//[3][7]
+{
+  {  "20V/div",  "10V/div",    "5V/div",    "2V/div",    "1V/div", "500mV/div", "200mV/div",   "100mV/div", "50mV/div", "20mV/div", "10mV/div",  "5mV/div" },   //0.5
+  { "20V/div",  "10V/div",    "5V/div",    "2V/div",    "1V/div", "500mV/div", "200mV/div",   "100mV/div", "50mV/div", "20mV/div", "10mV/div",  "5mV/div" },   //1
+  {  "20V/div",  "10V/div",    "5V/div",    "2V/div",    "1V/div", "500mV/div", "200mV/div",   "100mV/div", "50mV/div", "20mV/div", "10mV/div",  "5mV/div" },   //10
+  {  "20V/div",  "10V/div",    "5V/div",    "2V/div",    "1V/div", "500mV/div", "200mV/div",   "100mV/div", "50mV/div", "20mV/div", "10mV/div",  "5mV/div"  },   //20
+  {  "20V/div",  "10V/div",    "5V/div",    "2V/div",    "1V/div", "500mV/div", "200mV/div",   "100mV/div", "50mV/div", "20mV/div", "10mV/div",  "5mV/div"  },   //50
+  {  "20V/div",  "10V/div",    "5V/div",    "2V/div",    "1V/div", "500mV/div", "200mV/div",   "100mV/div", "50mV/div", "20mV/div", "10mV/div",  "5mV/div" },   //100
+  {  "20V/div",  "10V/div",    "5V/div",    "2V/div",    "1V/div", "500mV/div", "200mV/div",   "100mV/div", "50mV/div", "20mV/div", "10mV/div",  "5mV/div" }    //1000
+};
+
+//for sensitivity channel menu
+const int16 volt_div_texts_x_offsets[7][12] = 
+{
+  {275, 180, 180, 180, 184, 275, 269, 275, 180, 180, 180, 184},  //0.5 
+  {271, 271, 275, 275, 275, 261, 180, 180, 184, 184, 184, 188},  //1 
+  {275, 180, 180, 180, 184, 275, 269, 275, 180, 180, 180, 184},  //10
+  {275, 180, 180, 180, 184, 275, 269, 275, 180, 180, 180, 184},  //20
+  {275, 180, 180, 180, 184, 275, 269, 275, 180, 180, 180, 184},  //50
+  {275, 180, 180, 180, 184, 275, 269, 275, 180, 180, 180, 184},  //100
+  {275, 180, 180, 180, 184, 275, 269, 275, 180, 180, 180, 184},  //1000
+};
+*/
+//************************
+
+
+ 
 /*
 const int16 ampere_div_texts_x_offsets[49] = //not use
 {
@@ -824,22 +981,25 @@ const char *measurement_names[12] =
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-const PATHINFO view_file_path[2] = 
+const PATHINFO view_file_path[3] = 
 {
   { "\\pictures\\",  10 },
-  { "\\waveforms\\", 11 }
+  { "\\waveforms\\", 11 },
+  { "\\refforms\\",  10 }
 };
 
-const char view_file_extension[2][5] =
+const char view_file_extension[3][5] =
 {
   { ".bmp" },
-  { ".wav" }
+  { ".wav" },
+  { ".ref" }
 };
 
-const char *thumbnail_file_names[2] =
+const char *thumbnail_file_names[3] =
 {
   "\\pictures\\bmp_thumbnails.sys",
-  "\\waveforms\\wav_thumbnails.sys"
+  "\\waveforms\\wav_thumbnails.sys",
+  "\\refforms\\ref_thumbnails.sys"
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------

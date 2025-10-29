@@ -15,6 +15,11 @@
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+
+void display_text_message(char* message, uint8 value);
+
+
+
 double sinc(double x);
 //void sinc_interpolation(double* t_interp, double* t_sampled, int* sampled_signal, int* sincpole, int interp_size, int sampled_size);
 void sinc_interpolation(double* t_interp, double* t_sampled, int* sampled_signal, int* sincpole, int size);

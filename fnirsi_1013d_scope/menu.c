@@ -24,9 +24,7 @@
 void scope_setup_display_lib(void)
 {
   display_set_bg_color(BLACK_COLOR);
-
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
-
   display_set_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
@@ -79,6 +77,9 @@ void scope_setup_main_screen(void)
 
   //Display the trigger menu select button and the settings
   scope_trigger_settings(0);
+  
+  //Display the generator menu and the settings
+  scope_generator_settings(0);
 
   //Show the battery charge level and charging indicator
   scope_battery_status();
@@ -104,8 +105,8 @@ void scope_setup_restore_screen(void)
   //Display the text with font 5 and the white color
   display_set_font(&font_5);
   display_set_fg_color(WHITE_COLOR);
-  display_text(370, 150, VERSION_STRING);    //Show version information 
-  display_text(270, 200, "Load default settings value");    
+  display_text(370, 130, VERSION_STRING);    //Show version information 
+  display_text(270, 190, "Load default settings value");    
   
   if (calibrationfail == 1)
     {
@@ -118,11 +119,13 @@ void scope_setup_restore_screen(void)
      //Display the text with green color
     display_set_fg_color(GREEN_COLOR);
     display_text(240, 240, "LOAD input calibration data OK !"); 
+    display_set_fg_color(RED_COLOR);
+    display_text(275, 280, "RUN baseline calibration !"); 
     }
   
   //Display the text with green color
   display_set_fg_color(GREEN_COLOR);
-  display_text(320, 300, "Touch the screen");  
+  display_text(320, 350, "Touch the screen");  
    
   //Scan the touch panel to see if there is user input
   while((havetouch == 0)) tp_i2c_read_status();
@@ -495,7 +498,7 @@ void scope_control_button(int mode)
   display_fill_rounded_rect(739, 5, 51, 50, 2);
 
   //Draw the edge
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(739, 5, 51, 50, 2);
 
   //Check if inactive or active mode
@@ -1255,7 +1258,7 @@ void scope_return_button(int mode)
   display_fill_rounded_rect(734, 14, 63, 58, 2);
 
   //Outline the button
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(734, 14, 63, 58, 2);
   
   //Check if inactive or active mode
@@ -1300,7 +1303,7 @@ void scope_select_all_button(int mode)
   display_fill_rounded_rect(734, 93, 63, 58, 2);
 
   //Outline the button
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(734, 93, 63, 58, 2);
   
   //Check if inactive or active mode
@@ -1346,7 +1349,7 @@ void scope_select_button(int mode)
   display_fill_rounded_rect(734, 173, 63, 58, 2);
 
   //Outline the button
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(734, 173, 63, 58, 2);
 
   //Check if inactive or active mode
@@ -1386,7 +1389,7 @@ void scope_delete_button(int mode)
   display_fill_rounded_rect(734, 253, 63, 58, 2);
 
   //Outline the button
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(734, 253, 63, 58, 2);
 
   //Check if inactive or active mode
@@ -1426,7 +1429,7 @@ void scope_page_up_button(int mode)
   display_fill_rounded_rect(734, 333, 63, 58, 2);
 
   //Outline the button
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(734, 333, 63, 58, 2);
 
   //Check if inactive or active mode
@@ -1467,7 +1470,7 @@ void scope_page_down_button(int mode)
   display_fill_rounded_rect(734, 413, 63, 58, 2);
 
   //Outline the button
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(734, 413, 63, 58, 2);
 
   //Check if inactive or active mode
@@ -1673,7 +1676,8 @@ void scope_menu_button(int mode)
   }
 
   //Draw the background
-  display_fill_rounded_rect(0, 0, 80, 38, 3);
+  //display_fill_rounded_rect(0, 0, 80, 38, 3);
+  display_fill_rounded_rect(MENU_BUTTON_XPOS, MENU_BUTTON_YPOS, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT, 3);
 
   //Check if inactive or active
   if(mode == 0)
@@ -1688,14 +1692,18 @@ void scope_menu_button(int mode)
   }
 
   //Draw the menu symbol
-  display_fill_rect(6,  11, 7, 7);
-  display_fill_rect(15, 11, 7, 7);
-  display_fill_rect(6,  20, 7, 7);
-  display_fill_rect(15, 20, 7, 7);
-
+  display_fill_rect(MENU_BUTTON_XPOS+7,  MENU_BUTTON_YPOS+12, 15, 3);
+  display_fill_rect(MENU_BUTTON_XPOS+7,  MENU_BUTTON_YPOS+17, 15, 3);
+  display_fill_rect(MENU_BUTTON_XPOS+7,  MENU_BUTTON_YPOS+22, 15, 3); 
+  /*
+  display_fill_rect(MENU_BUTTON_XPOS+6,  MENU_BUTTON_YPOS+11, 7, 7);
+  display_fill_rect(MENU_BUTTON_XPOS+15, MENU_BUTTON_YPOS+11, 7, 7);
+  display_fill_rect(MENU_BUTTON_XPOS+6,  MENU_BUTTON_YPOS+20, 7, 7);
+  display_fill_rect(MENU_BUTTON_XPOS+15, MENU_BUTTON_YPOS+20, 7, 7);
+  */
   //Display the text
   display_set_font(&font_3);
-  display_text(32, 11, "MENU");
+  display_text(MENU_BUTTON_XPOS+28, MENU_BUTTON_YPOS+11, "MENU");//32 11
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -1737,6 +1745,62 @@ void scope_main_return_button(int mode)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+void scope_maxlight_item(int mode)
+{
+   //Draw the black background
+   display_set_fg_color(BLACK_COLOR);
+   display_fill_rounded_rect(MAXLIGHT_BUTTON_XPOS, MAXLIGHT_BUTTON_YPOS, MAXLIGHT_BUTTON_WIDTH, MAXLIGHT_BUTTON_HEIGHT, 2); 
+
+  if(mode == 0)
+  {
+    //Inactive so white foreground and black background
+    display_set_fg_color(WHITE_COLOR);
+    display_set_bg_color(BLACK_COLOR);
+  }
+  else if(mode == 2)
+  {
+    //Active, magenta rounded button
+    display_set_fg_color(MAGENTA_COLOR);
+    display_fill_rounded_rect(MAXLIGHT_BUTTON_XPOS, MAXLIGHT_BUTTON_YPOS, MAXLIGHT_BUTTON_WIDTH, MAXLIGHT_BUTTON_HEIGHT, 2);
+    //Active so black foreground and magenta background
+    display_set_fg_color(BLACK_COLOR);
+    display_set_bg_color(MAGENTA_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so yellow foreground and black background
+    display_set_fg_color(YELLOW_COLOR);
+    //Active, magenta menu button
+    display_set_bg_color(BLACK_COLOR); 
+  }
+    
+  //Display the icon with the set colors
+  display_copy_icon_use_colors(light_icon, MAXLIGHT_BUTTON_XPOS+10, MAXLIGHT_BUTTON_YPOS+7, 24, 24);    //light-sun icon 10 5 24 24
+  
+  display_set_fg_color(LIGHTGREY_COLOR);
+  display_draw_rounded_rect(MAXLIGHT_BUTTON_XPOS, MAXLIGHT_BUTTON_YPOS, MAXLIGHT_BUTTON_WIDTH, MAXLIGHT_BUTTON_HEIGHT, 2);
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_set_maxlight(int mode)
+{
+  if(mode == 0)
+  {
+    scopesettings.maxlight = 0;   //flag set to 0 - no max light
+    //Update the actual screen brightness
+    fpga_set_translated_brightness();
+  }
+  else if(mode == 1)
+  {
+    scopesettings.maxlight = 1;   //flag set to 1 - max light
+    //Update the screen brightness to max
+    fpga_set_backlight_brightness(60000);   //max brightness
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
 void scope_run_stop_text(void)
 {
   //Check if run or stop mode
@@ -1762,11 +1826,11 @@ void scope_run_stop_text(void)
   //Check if run or stop mode
   if(scopesettings.runstate)//ok
   {
-    //Run mode. Black text 
+    //Run mode. Waiting mode. Black text, 
     display_set_fg_color(BLACK_COLOR);
     if((scopesettings.triggermode==1)&&(!triggerlong))
-        display_text(RUN_STOP_TEXT_XPOS + 3, RUN_STOP_TEXT_YPOS + 1, "WAIT");
-        else display_text(RUN_STOP_TEXT_XPOS + 5, RUN_STOP_TEXT_YPOS + 1, "RUN");
+        {display_text(RUN_STOP_TEXT_XPOS + 2, RUN_STOP_TEXT_YPOS + 1, "WAIT");}//3 1
+        else {display_text(RUN_STOP_TEXT_XPOS + 5, RUN_STOP_TEXT_YPOS + 1, "RUN");} //5 1
   }
   else
   {
@@ -1799,7 +1863,7 @@ void scope_channel_settings(PCHANNELSETTINGS settings, int mode)
     else
     {
       //Active, light grey menu button
-      display_set_fg_color(0x00BBBBBB);
+      display_set_fg_color(LIGHTGREY2_COLOR);//0x00BBBBBB
     }
   }
   else
@@ -2041,7 +2105,7 @@ void scope_move_speed(int mode)
   }
 
   //Draw the background
-  display_fill_rounded_rect(487, 5, 40, 35, 2);//493 5 40 35
+  display_fill_rounded_rect(MOVE_FAST_BUTTON_XPOS, MOVE_FAST_BUTTON_YPOS, MOVE_FAST_BUTTON_WIDTH, MOVE_FAST_BUTTON_HEIGHT, 2);
 
   //Check if inactive or active
   if(mode == 0)
@@ -2059,67 +2123,16 @@ void scope_move_speed(int mode)
   display_set_font(&font_3);
 
   //Display the common text
-  display_text(490, 6, "Move");//496 6
+  display_text(MOVE_FAST_BUTTON_XPOS+6, MOVE_FAST_BUTTON_YPOS+1, "Move");//3 1 496 6
   
   //Check on which speed is set
   if(scopesettings.movespeed == 0)
   {
-    display_text(496, 21, "fast");//502
+    display_text(MOVE_FAST_BUTTON_XPOS+12, MOVE_FAST_BUTTON_YPOS+16, "fast");//9 16 502
   }
   else
   {
-    display_text(493, 21, "slow");//499
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-void scope_maxlight_item(int mode)
-{
-  if(mode == 0)
-  {
-    //Inactive so white foreground and grey background
-    display_set_bg_color(BLACK_COLOR);
-    display_set_fg_color(WHITE_COLOR);
-  }
-  else if(mode == 2)
-  {
-    //Active so black foreground and yellow background
-    display_set_fg_color(BLACK_COLOR);
-    //Active, magenta menu button
-    display_set_bg_color(MAGENTA_COLOR);
-     //display_set_fg_color(BLACK_COLOR);
-    //display_set_bg_color(YELLOW_COLOR); 
-  }
-  else if(mode == 1)
-  {
-    //Active so black foreground and yellow background
-    display_set_fg_color(YELLOW_COLOR);
-    //Active, magenta menu button
-    //display_set_fg_color(MAGENTA_COLOR);
-    display_set_bg_color(BLACK_COLOR); 
-  }
- 
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(light_icon, 532, 10, 24, 24);    //light-sun icon
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
-
-
-void scope_set_maxlight(int mode)
-{
-  if(mode == 0)
-  {
-    scopesettings.maxlight = 0;   //flag set to 0 - no max light
-    //Update the actual screen brightness
-    fpga_set_translated_brightness();
-  }
-  else if(mode == 1)
-  {
-    scopesettings.maxlight = 1;   //flag set to 1 - max light
-    //Update the screen brightness to max
-    fpga_set_backlight_brightness(60000);   //max brightness
+    display_text(MOVE_FAST_BUTTON_XPOS+9, MOVE_FAST_BUTTON_YPOS+16, "slow");//6 16 499
   }
 }
 
@@ -2129,9 +2142,9 @@ void scope_trigger_settings(int mode)
 {
   int8 *modetext = 0;
 
-  //Clear the area first black
-  display_set_fg_color(LIGHTGREY_COLOR);    //BLACK_COLOR
-  display_fill_rounded_rect(560, 5, 80, 35, 2);
+  //Clear the area first light gray
+  display_set_fg_color(LIGHTGREY_COLOR);    
+  display_fill_rounded_rect(TRIGGER_BUTTON_XPOS, TRIGGER_BUTTON_YPOS, TRIGGER_BUTTON_BG_WIDTH, TRIGGER_BUTTON_BG_HEIGHT, 2);
 
   //Check if inactive or active
   if(mode == 0)
@@ -2146,7 +2159,7 @@ void scope_trigger_settings(int mode)
   }
 
   //Fill the button
-  display_fill_rounded_rect(560, 5, 31, 35, 2);
+  display_fill_rounded_rect(TRIGGER_BUTTON_XPOS, TRIGGER_BUTTON_YPOS, TRIGGER_BUTTON_WIDTH, TRIGGER_BUTTON_HEIGHT, 2);
 
   //Select the font for the text
   display_set_font(&font_4);
@@ -2163,11 +2176,11 @@ void scope_trigger_settings(int mode)
     display_set_fg_color(WHITE_COLOR);
 
     //Fill the settings background
-    display_fill_rounded_rect(591, 5, 48, 35, 2);
+    display_fill_rounded_rect(TRIGGER_BUTTON_XPOS+31, TRIGGER_BUTTON_YPOS, 48, 35, 2);//591 5 48 35
   }
 
   //Display the channel identifier text
-  display_text(572, 15, "T");
+  display_text(TRIGGER_BUTTON_XPOS+12, TRIGGER_BUTTON_YPOS+10, "T");
 
   //Check if inactive or active
   if(mode == 0)
@@ -2204,29 +2217,13 @@ void scope_trigger_settings(int mode)
   if(modetext)
   {
     //Display the selected text if so
-    display_text(596, 7, modetext);
+    display_text(TRIGGER_BUTTON_XPOS+36, TRIGGER_BUTTON_YPOS+1, modetext);
   }
 
+  //Clear the area first light gray
+  display_set_fg_color(LIGHTGREY_COLOR); 
   //Draw the trigger edge symbol
-  display_draw_vert_line(632, 27, 38);
-
-  //Draw the arrow based on the selected edge
-  if(scopesettings.triggeredge == 0)
-  {
-    //rising edge
-    display_draw_horz_line(27, 632, 635);
-    display_draw_horz_line(38, 629, 632);
-    display_draw_horz_line(32, 631, 633);
-    display_draw_horz_line(33, 630, 634);
-  }
-  else
-  {
-    //falling edge
-    display_draw_horz_line(27, 629, 632);
-    display_draw_horz_line(38, 632, 635);
-    display_draw_horz_line(32, 630, 634);
-    display_draw_horz_line(33, 631, 633);
-  }
+  scope_trigger_symbol(TRIGGER_BUTTON_XPOS, TRIGGER_BUTTON_YPOS);
 
   //Check on which channel is used for triggering
   switch(scopesettings.triggerchannel)
@@ -2246,7 +2243,7 @@ void scope_trigger_settings(int mode)
       }
 
       //Fill the channel background
-      display_fill_rounded_rect(595, 25, 28, 15, 2);
+      display_fill_rounded_rect(TRIGGER_BUTTON_XPOS+35, TRIGGER_BUTTON_YPOS+19, 28, 14, 2);
 
       //Check if inactive or active
       if(mode == 0)
@@ -2261,7 +2258,7 @@ void scope_trigger_settings(int mode)
       }
 
       //Display the text
-      display_text(598, 26, "CH1");
+      display_text(TRIGGER_BUTTON_XPOS+39, TRIGGER_BUTTON_YPOS+19, "CH1");//598
       break;
 
     //Channel 2
@@ -2279,7 +2276,7 @@ void scope_trigger_settings(int mode)
       }
 
       //Fill the channel background
-      display_fill_rounded_rect(595, 25, 28, 15, 2);
+      display_fill_rounded_rect(TRIGGER_BUTTON_XPOS+35, TRIGGER_BUTTON_YPOS+19, 28, 14, 2);
 
       //Check if inactive or active
       if(mode == 0)
@@ -2294,8 +2291,188 @@ void scope_trigger_settings(int mode)
       }
 
       //Display the text
-      display_text(598, 26, "CH2");
+      display_text(TRIGGER_BUTTON_XPOS+39, TRIGGER_BUTTON_YPOS+19, "CH2");
       break;
+      
+    //Channel External
+    case 2:
+      //Check if inactive or active
+      if(mode == 0)
+      {
+        //Inactive, dark cyan box
+        display_set_fg_color(0x00FF7000);
+      }
+      else
+      {
+        //Active, some red box
+        display_set_fg_color(0x00FF3333);
+      }
+
+      //Fill the channel background
+      display_fill_rounded_rect(TRIGGER_BUTTON_XPOS+35, TRIGGER_BUTTON_YPOS+19, 28, 14, 2);
+
+      //Check if inactive or active
+      if(mode == 0)
+      {
+        //Inactive, black text
+        display_set_fg_color(BLACK_COLOR);
+      }
+      else
+      {
+        //Active, white text
+        display_set_fg_color(WHITE_COLOR);
+      }
+
+      //Display the text
+      display_text(TRIGGER_BUTTON_XPOS+40, TRIGGER_BUTTON_YPOS+19, "EXT");
+      break;
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_generator_settings(int mode)
+{
+  int8 *modetext = 0;
+
+  //Clear the area first light gray
+  display_set_fg_color(LIGHTGREY_COLOR);    
+  display_fill_rounded_rect(GEN_BUTTON_XPOS, GEN_BUTTON_YPOS, GEN_BUTTON_BG_WIDTH, GEN_BUTTON_BG_HEIGHT, 2);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive, green menu button
+    //display_set_fg_color(BLACK_COLOR);
+    display_set_fg_color(GREEN_COLOR);
+    //display_set_fg_color(ORANGE_COLOR);
+    display_set_bg_color(LIGHTGREY_COLOR);
+  }
+  else
+  {
+    //Active, magenta menu button
+    display_set_fg_color(MAGENTA_COLOR);
+  }
+
+  //Fill the button
+  display_draw_rounded_rect(GEN_BUTTON_XPOS, GEN_BUTTON_YPOS, GEN_BUTTON_WIDTH, GEN_BUTTON_HEIGHT, 2);
+
+  //Select the font for the text
+  display_set_font(&font_4);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive, black text
+    //display_set_fg_color(BLACK_COLOR);
+     display_set_fg_color(ORANGE_COLOR);
+     //display_set_fg_color(GREEN_COLOR);
+     //display_set_fg_color(ORANGE_COLOR);
+  }
+  else
+  {
+    //Active, white text
+    display_set_fg_color(WHITE_COLOR);
+
+    //Fill the settings background
+    display_fill_rounded_rect(GEN_BUTTON_XPOS+31, GEN_BUTTON_YPOS, 48, 35, 2);//591 5 48 35
+  }
+
+  //Display the channel identifier text
+  //display_text(GEN_BUTTON_XPOS+12, GEN_BUTTON_YPOS+10, "T");
+  
+      //Set the colors for white foreground and grey background
+    //display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(ORANGE_COLOR);
+
+    //Display the icon with the set colors
+    display_copy_icon_use_colors(Generator_menu_icon, GEN_BUTTON_XPOS+2, GEN_BUTTON_YPOS+6, 24, 24);//176//+21 299
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive, white text
+    display_set_fg_color(WHITE_COLOR);
+  }
+  else
+  {
+    //Active, black text
+    display_set_fg_color(BLACK_COLOR);
+  }
+
+  //Check on which trigger mode is set
+  switch(scopesettings.genmode)
+  {
+    case 0:
+      modetext = "Triangle";
+      break;
+
+    case 1:
+      //modetext = "  Single";
+      modetext = "  Square";
+      break;
+
+    case 2:
+      //modetext = " Normal";
+      modetext = "   Sine";
+      break;
+  }
+
+  //Select the font for the texts
+  display_set_font(&font_2);
+
+  //Check if valid setting
+  if(modetext)
+  {
+    //Display the selected text if so
+    //display_text(GEN_BUTTON_XPOS+30, TRIGGER_BUTTON_YPOS+1, modetext);
+    display_text(GEN_BUTTON_XPOS+31, GEN_BUTTON_YPOS+2, "50%");//+30 +1
+    display_set_fg_color(YELLOW_COLOR);
+    display_text(GEN_BUTTON_XPOS+31, GEN_BUTTON_YPOS+19, "1kHz");//+30 +1
+  }
+
+  //Clear the area first light gray
+  //display_set_fg_color(LIGHTGREY_COLOR); 
+  //Draw the trigger edge symbol
+  //scope_trigger_symbol(GEN_BUTTON_XPOS, GEN_BUTTON_YPOS);
+
+  //Check on which channel is used for triggering
+  switch(scopesettings.triggerchannel)
+  {
+    //Channel 1
+    case 0:
+      //Check if inactive or active
+      if(mode == 0)
+      {
+        //Inactive, dark channel 1 trigger color box
+        display_set_fg_color(CHANNEL1_TRIG_COLOR);
+      }
+      else
+      {
+        //Active, some blue box
+        display_set_fg_color(0x003333FF);
+      }
+
+      //Fill the channel background
+      display_fill_rounded_rect(TRIGGER_BUTTON_XPOS+35, TRIGGER_BUTTON_YPOS+19, 28, 14, 2);
+
+      //Check if inactive or active
+      if(mode == 0)
+      {
+        //Inactive, black text
+        display_set_fg_color(BLACK_COLOR);
+      }
+      else
+      {
+        //Active, white text
+        display_set_fg_color(WHITE_COLOR);
+      }
+
+      //Display the text
+      display_text(TRIGGER_BUTTON_XPOS+39, TRIGGER_BUTTON_YPOS+19, "CH1");//598
+      break;
+
   }
 }
 
@@ -2481,7 +2658,8 @@ void scope_main_menu_system_settings(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(system_settings_icon, 21, 63, 15, 25);
+  display_copy_icon_use_colors(system_settings_icon, MAIN_MENU_XPOS+19, 64, 15, 25);//21
+  //display_copy_icon_use_colors(Right_drop_menu_icon, MAIN_MENU_XPOS+110, 65, 24, 24);//211
 
   //Display the text
   display_set_font(&font_3);
@@ -2523,7 +2701,7 @@ void scope_main_menu_picture_view(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(picture_view_icon, 17, 122, 24, 24);
+  display_copy_icon_use_colors(picture_view_icon, MAIN_MENU_XPOS+15, 122, 24, 24);
 
   //Display the text
   display_set_font(&font_3);
@@ -2565,7 +2743,7 @@ void scope_main_menu_waveform_view(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(waveform_view_icon, 17, 181, 24, 24);
+  display_copy_icon_use_colors(waveform_view_icon, MAIN_MENU_XPOS+15, 181, 24, 24);
 
   //Display the text
   display_set_font(&font_3);
@@ -2607,7 +2785,7 @@ void scope_main_menu_diagnostic_view(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(diagnostic_view_icon, 17, 239, 24, 24);
+  display_copy_icon_use_colors(diagnostic_view_icon, MAIN_MENU_XPOS+15, 239, 24, 24);
 
   //diagnostic_view_icon
   //Display the text
@@ -2650,7 +2828,7 @@ void scope_main_menu_usb_connection(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(usb_icon, 20, 297, 18, 25);
+  display_copy_icon_use_colors(usb_icon, MAIN_MENU_XPOS+18, 297, 18, 25);//20
 
   //Display the text
   display_set_font(&font_3);
@@ -2667,6 +2845,7 @@ void scope_open_channel_menu(PCHANNELSETTINGS settings)
   
   //Setup the menu in a separate buffer to be able to slide it onto the screen
   display_set_screen_buffer(displaybuffertmp);//1
+  //display_set_screen_buffer(displaybuffer1);//1
 
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
@@ -2675,34 +2854,48 @@ void scope_open_channel_menu(PCHANNELSETTINGS settings)
   display_fill_rect(settings->menuxpos, CH_MENU_YPOS, CH_MENU_WIDTH, CH_MENU_HEIGHT);
 
   //Draw the edge in a lighter grey
-  display_set_fg_color(LIGHTGREY_COLOR);
+  //display_set_fg_color(LIGHTGREY_COLOR);
+  
+    //Set channel color
+  display_set_fg_color(settings->color);
 
   //Draw the edge
   display_draw_rect(settings->menuxpos, CH_MENU_YPOS, CH_MENU_WIDTH, CH_MENU_HEIGHT);
 
   //Line start and end x positions
-  xstart = settings->menuxpos + 4;//14
-  xend   = settings->menuxpos + CH_MENU_WIDTH - 4;//-14
+  xstart = settings->menuxpos + 8;//14
+  //xend   = settings->menuxpos + CH_MENU_WIDTH - 4;//-4
+  xend   = settings->menuxpos + 164;//+168//-4
 
   //Three black lines between the settings
-  display_set_fg_color(BLACK_COLOR);
-  display_draw_horz_line(CH_MENU_YPOS +  56, xstart, xend); //60
-  display_draw_horz_line(CH_MENU_YPOS + 112, xstart, xend);//120
-  display_draw_horz_line(CH_MENU_YPOS + 168, xstart, xend); //180
-  display_draw_horz_line(CH_MENU_YPOS + 224, xstart, xend); //
-  
-  //Set channel color
-  //display_set_fg_color(settings->color);
-  display_draw_horz_line(CH_MENU_YPOS + 280, xstart, xend); //240
-  
-  //One black lines between the sensitivity
-  display_set_fg_color(BLACK_COLOR);
-  display_draw_vert_line(settings->menuxpos + 252,CH_MENU_YPOS+4, CH_MENU_YPOS+279);//252 4 239
+  //display_set_fg_color(BLACK_COLOR);
+    //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+  display_draw_horz_line(CH_MENU_YPOS +  56, xstart, xend); //56
+  display_draw_horz_line(CH_MENU_YPOS + 112, xstart, xend); //112
+  display_draw_horz_line(CH_MENU_YPOS + 168, xstart, xend); //168
+  display_draw_horz_line(CH_MENU_YPOS + 224, xstart, xend); //224
   
   //Set channel color
   display_set_fg_color(settings->color);
+  //display_draw_horz_line(CH_MENU_YPOS + 280, xstart, xend); //280
+  display_draw_horz_line(CH_MENU_YPOS + 280, settings->menuxpos, settings->menuxpos + 343); //280 330
+  
+  //One black lines between the sensitivity
+  //display_set_fg_color(BLACK_COLOR);
+    //Set channel color
+  //display_set_fg_color(settings->color);
+  
+    
+  //Set channel color
+  display_set_fg_color(settings->color);
   //One channel_color lines the settings and sensitivity
-  display_draw_vert_line(settings->menuxpos + 171,CH_MENU_YPOS+4, CH_MENU_YPOS+279);//171 4 239
+  display_draw_vert_line(settings->menuxpos + 171,CH_MENU_YPOS, CH_MENU_YPOS+279);//171 4 239
+    
+  display_draw_vert_line(settings->menuxpos + 284, CH_MENU_YPOS + 280, CH_MENU_YPOS + CH_MENU_HEIGHT);
+  
+  //display_draw_vert_line(settings->menuxpos + 252,CH_MENU_YPOS+4, CH_MENU_YPOS+279);//252 4 239
+  display_draw_vert_line(settings->menuxpos + 343, CH_MENU_YPOS, CH_MENU_YPOS + CH_MENU_HEIGHT);//343 +4 +279//334 4 279 //252 4 239
 
   //Main texts in white
   display_set_fg_color(WHITE_COLOR);
@@ -2717,8 +2910,8 @@ void scope_open_channel_menu(PCHANNELSETTINGS settings)
   display_text(settings->menuxpos + 15, CH_MENU_YPOS +  66, "Open");    //72
   display_text(settings->menuxpos + 20, CH_MENU_YPOS +  85, "FFT");     //19 91
   
-  display_text(settings->menuxpos + 14, CH_MENU_YPOS +  122, "Invert");  //13 72
-  display_text(settings->menuxpos + 23, CH_MENU_YPOS +  141, "CH");      //91
+  display_text(settings->menuxpos + 14, CH_MENU_YPOS +  122, "Invert"); //13 72
+  display_text(settings->menuxpos + 23, CH_MENU_YPOS +  141, "CH");     //91
   
   
   display_text(settings->menuxpos + 15, CH_MENU_YPOS + 178, "Coup");    //132
@@ -2730,8 +2923,22 @@ void scope_open_channel_menu(PCHANNELSETTINGS settings)
   display_text(settings->menuxpos + 14, CH_MENU_YPOS + 290, "Probe");   //15 252
   display_text(settings->menuxpos + 15, CH_MENU_YPOS + 309, "mode");    //271
   
+  //****************************************************************
+  //display_text(settings->menuxpos + 368, CH_MENU_YPOS + 10, "REF");   
+  //display_text(settings->menuxpos + 363, CH_MENU_YPOS + 25, "mode"); 
+  
+  //display_text(settings->menuxpos + 363, CH_MENU_YPOS + 56, "MATH");   
+  //display_text(settings->menuxpos + 363, CH_MENU_YPOS + 71, "mode");
+  
+  //Draw the edge in a lighter grey
+ // display_set_fg_color(LIGHTGREY_COLOR);// netreba ?
+  //display_set_fg_color(GREY_COLOR);//GREY_COLOR
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 6, 60, 40, 3);
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);//netreba ?
+
+  
   //clear flag for touch 50% button in channel menu
-  triger50 = 0;
+  trigger50 = 0;
 
   //Display the actual settings
   scope_channel_enable_select(settings);
@@ -2741,9 +2948,13 @@ void scope_open_channel_menu(PCHANNELSETTINGS settings)
   scope_channel_VA_select(settings);
   scope_channel_probe_magnification_select(settings);
   scope_channel_sensitivity_select(settings);
+  scope_channel_ref_menu_item(settings, 0);
+  scope_channel_math_menu_item(settings, 0);
+  //scope_channel_ref_select(settings);
 
-  //Set source and target for getting it on the actual screen
+  //Set source and target for getting it on the actual screen 
   display_set_source_buffer(displaybuffertmp);//1
+  //display_set_source_buffer(displaybuffer1);//1
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
 
   //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
@@ -2806,11 +3017,15 @@ void scope_channel_coupling_select(PCHANNELSETTINGS settings)
   {
     //DC so dark grey box behind ac text
     display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 185, 32, 22);//139
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(settings->menuxpos + 130, CH_MENU_YPOS + 185, 32, 22, 2);
   }
   else
   {
     //AC so dark grey box behind dc text
     display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 185, 32, 22);//139
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(settings->menuxpos + 78, CH_MENU_YPOS + 185, 32, 22, 2);
   }
 
   //Set channel color for the box behind the selected text
@@ -2840,7 +3055,7 @@ void scope_channel_coupling_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -2859,7 +3074,7 @@ void scope_channel_coupling_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -2891,11 +3106,15 @@ void scope_channel_VA_select(PCHANNELSETTINGS settings)
   {
     //V so dark grey box behind A text
     display_fill_rect(settings->menuxpos + 130, CH_MENU_YPOS + 241, 32, 22);//199
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(settings->menuxpos + 130, CH_MENU_YPOS + 241, 32, 22, 2);
   }
   else
   {
     //A so dark grey box behind V text
     display_fill_rect(settings->menuxpos + 78, CH_MENU_YPOS + 241, 32, 22);
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(settings->menuxpos + 78, CH_MENU_YPOS + 241, 32, 22, 2);
   }
 
   //Set channel color for the box behind the selected text
@@ -2925,7 +3144,7 @@ void scope_channel_VA_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -2944,7 +3163,7 @@ void scope_channel_VA_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3032,7 +3251,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3057,7 +3276,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3083,7 +3302,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3108,7 +3327,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3133,7 +3352,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3158,7 +3377,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3184,7 +3403,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3210,7 +3429,7 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3229,13 +3448,14 @@ void scope_channel_probe_magnification_select(PCHANNELSETTINGS settings)
 
 void scope_channel_sensitivity_select(PCHANNELSETTINGS settings)
 {      
-  uint32 i,x,y;
+  uint32 i,j,x,y;
   
   //Clear the boxes for the not selected items
-  for(i=0;i<7;i++)
+  for(i=0;i<7;i++)//12 //7
   {
-    if (i<4) x = 177; else x = 258;//177*258
-    y = ((i & 3) * 56) + 8;    //*60 +6
+    if (i<6) {x = 178;j=i;} else {x = 261;j=i-6;}//178 260 -6//<4 177*258
+    //y = ((i & 7) * 46) + 3;    //3 *56+8
+    y = (j * 46) + 6;    //3 *56+8
     
     if(i == (6 - settings->displayvoltperdiv))
         //Set channel color for the box behind the selected text
@@ -3244,15 +3464,18 @@ void scope_channel_sensitivity_select(PCHANNELSETTINGS settings)
         //Set dark grey color for the boxes behind the not selected texts
         display_set_fg_color(DARKGREY_COLOR); 
     
-    display_fill_rounded_rect(settings->menuxpos + x, CH_MENU_YPOS + y, 70, 40, 3);//70*48 70*22 48*22
+    display_fill_rounded_rect(settings->menuxpos + x, CH_MENU_YPOS + y, 76, 40, 3);//70*40 70*48 70*22 48*22
+    
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(settings->menuxpos + x, CH_MENU_YPOS + y, 76, 40, 3);
   }
 
   //Select the font for the texts
   display_set_font(&font_3);
   
-  for(i=0;i<7;i++)
+  for(i=0;i<7;i++)//12//7
   {
-    y = ((i & 3) * 56) + 19; //*60 +19
+    //y = ((i & 3) * 56) + 19; //*56 +19
     
     if(i == (6 - settings->displayvoltperdiv))
         //Set channel color for the box behind the selected text
@@ -3262,35 +3485,1416 @@ void scope_channel_sensitivity_select(PCHANNELSETTINGS settings)
         display_set_fg_color(WHITE_COLOR); 
 
     //Calculate the position of this text
-    x = volt_div_texts_x_offsets[settings->magnification][6-i];
-    y = ((i & 3) * 56) + 20;//*60 +22
+    x = volt_div_texts_x_offsets[settings->magnification][6-i]+3;//11-i
+    if (i<6) {j=i;} else {j=i-6;}
+    y = (j * 46) + 17;//*56 +20
 
     //Check if measures is V or A
     //Display the text from the table
     if(settings->V_A == 0)
-        display_text(settings->menuxpos + x, CH_MENU_YPOS + y,  (int8 *)volt_div_texts[settings->magnification][6-i]);
+        display_text(settings->menuxpos + x, CH_MENU_YPOS + y,  (int8 *)volt_div_texts[settings->magnification][6-i]);//11-i //6-i
     else
         display_text(settings->menuxpos + x, CH_MENU_YPOS + y,  (int8 *)ampere_div_texts[settings->magnification][6-i]);
   }
   //********************************************************
-  if(triger50)
+  if(trigger50)
     {
-    //Set channel color for the box behind the selected text
-    display_set_fg_color(settings->color);
-    display_fill_rounded_rect(settings->menuxpos + 270, CH_MENU_YPOS + 185, 45, 22, 2);//270 199 45 22
-    //Texts in black
-    display_set_fg_color(BLACK_COLOR);
-    display_text(settings->menuxpos + 283, CH_MENU_YPOS + 188, "50%");//283 202
+      //Set channel color for the box behind the selected text
+      display_set_fg_color(settings->color);
+      display_fill_rounded_rect(settings->menuxpos + 291, CH_MENU_YPOS + 295, 45, 22, 2);//290 295 //270 185  //270 199 45 22
+      //Texts in black
+      display_set_fg_color(BLACK_COLOR);
+      //display_text(settings->menuxpos + 283, CH_MENU_YPOS + 188, "50%");//283 188 //283 202
     }
     else      
     {
-    //Texts in white
-    display_set_fg_color(WHITE_COLOR);
-    display_text(settings->menuxpos + 283, CH_MENU_YPOS + 188, "50%");//283 202
+    //Set channel color rounded the box the selected active trigger channel 
+      if((scopesettings.triggerchannel == 0)&&(settings->color == CHANNEL1_COLOR)) display_set_fg_color(CHANNEL1_COLOR);
+      else if((scopesettings.triggerchannel == 1)&&(settings->color == CHANNEL2_COLOR)) display_set_fg_color(CHANNEL2_COLOR);
+              else display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(settings->menuxpos + 291, CH_MENU_YPOS + 295, 45, 22, 2);//270 185 //270 199 45 22
+      //Texts in white
+      display_set_fg_color(WHITE_COLOR);  
     }
+  
+  display_text(settings->menuxpos + 303, CH_MENU_YPOS + 298, "50%");//283 188  //283 202
+  
+  //display_text(settings->menuxpos + 250, CH_MENU_YPOS + 290, "1000");//257 1k
+  //display_text(settings->menuxpos + 260, CH_MENU_YPOS + 307, "X");
+  
+   // display_draw_vert_line(settings->menuxpos + 284, CH_MENU_YPOS + 280, CH_MENU_YPOS + CH_MENU_HEIGHT);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_ref_menu_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF1_1_COLOR); else display_set_fg_color(REF1_2_COLOR);
+    display_set_fg_color(settings->color);
+  }
+
+  //Draw the background
+  //display_fill_rounded_rect(159, 410, 226, 38, 3);//401 36
+  
+  display_fill_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 6, 60, 40, 3);
+  
+  //display_fill_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+  
+      //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+  //display_set_fg_color(GREY_COLOR);//GREY_COLOR
+  display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 6, 60, 40, 3);
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    display_set_bg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    display_set_bg_color(settings->color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  display_text(settings->menuxpos + 368, CH_MENU_YPOS + 10, "REF");   
+  display_text(settings->menuxpos + 363, CH_MENU_YPOS + 25, "menu"); 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_open_ref_menu(PCHANNELSETTINGS settings)
+//void scope_channel_open_ref_menu(PCHANNELSETTINGS settings, PCHANNELSETTINGS REFsettings)
+{
+//  uint32 xstart;
+//  uint32 xend;
+  
+  //xstart = settings->menuxpos + CH_REF_MENU_XPOS + 9;//6
+  
+  //Setup the menu in a separate buffer to be able to slide it onto the screen
+  display_set_screen_buffer(displaybuffertmp);//1
+  //display_set_screen_buffer(displaybuffer2);//1
+
+  //Draw the background in dark grey
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Fill the background
+  display_fill_rect(settings->menuxpos + CH_REF_MENU_XPOS, CH_REF_MENU_YPOS, CH_REF_MENU_WIDTH, CH_REF_MENU_HEIGHT);
+
+  //Draw the edge in a lighter grey
+  display_set_fg_color(GREY_COLOR);
+  
+  //Set channel color
+  //display_set_fg_color(settings->color);
+
+  //Draw the edge
+  display_draw_rect(settings->menuxpos + CH_REF_MENU_XPOS, CH_REF_MENU_YPOS, CH_REF_MENU_WIDTH, CH_REF_MENU_HEIGHT);
+  
+  //display_set_bg_color(DARKGREY_COLOR);
+  //display_set_fg_color(YELLOW_COLOR);
+
+  //display_copy_icon_use_colors(Right_drop_menu_icon, xstart, CH_REF_MENU_YPOS+186, 24, 24);
+  //display_copy_icon_use_colors(Right_drop_menu_icon1, xstart, CH_REF_MENU_YPOS+216, 24, 24);
+  //display_copy_icon_use_colors(Generator_menu_icon, xstart, CH_REF_MENU_YPOS+246, 24, 24);
+  //display_copy_icon_use_colors(Generator_menu_icon1, xstart, CH_REF_MENU_YPOS+276, 24, 24);
+  
+    //**********************************************************
+  
+  //tu nakopirovat nastavenie z ref channel.enable do scopesettings.ref1 podla otvoreneho kanala 1alebo 2
+  
+ /*
+   if(settings->color == CHANNEL1_COLOR)  
+  {
+    scopesettings.ref1 = scopesettings.ch1_ref1.enable;
+    scopesettings.ref2 = scopesettings.ch1_ref2.enable;
+    scopesettings.ref3 = scopesettings.ch1_ref3.enable;
+    scopesettings.ref4 = scopesettings.ch1_ref4.enable;
+  }
+  else 
+  {
+    scopesettings.ref1 = scopesettings.ch2_ref1.enable;
+    scopesettings.ref2 = scopesettings.ch2_ref2.enable;
+    scopesettings.ref3 = scopesettings.ch2_ref3.enable;
+    scopesettings.ref4 = scopesettings.ch2_ref4.enable;
+  }
+  */
+  
+  scope_channel_ref_select(settings);
+//  scope_channel_ref_select(settings, REFsettings);
+  
+  scope_channel_COPYtoREF1_item(settings, 0);
+  scope_channel_COPYtoREF2_item(settings, 0);
+  scope_channel_COPYtoREF3_item(settings, 0);
+  scope_channel_COPYtoREF4_item(settings, 0);
+  scope_channel_CLEAR_REF1_4_item(settings, 0);
+  
+  scope_channel_LOADtoREF1_item(settings, 0);
+  scope_channel_LOADtoREF2_item(settings, 0);
+  scope_channel_LOADtoREF3_item(settings, 0);
+  scope_channel_LOADtoREF4_item(settings, 0);
+  scope_channel_LOAD_REF1_4_item(settings, 0);
+  
+  scope_channel_SAVE_REF1_item(settings, 0);
+  scope_channel_SAVE_REF2_item(settings, 0);
+  scope_channel_SAVE_REF3_item(settings, 0);
+  scope_channel_SAVE_REF4_item(settings, 0);
+  scope_channel_SAVE_REF1_4_item(settings, 0);
+  
+  //**********************************************************
+  
+  //Set source and target for getting it on the actual screen 
+  display_set_source_buffer(displaybuffertmp);//1
+  //display_set_source_buffer(displaybuffer2);//1
+  display_set_screen_buffer((uint16 *)maindisplaybuffer);
+
+  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
+  display_slide_left_rect_onto_screen(settings->menuxpos + CH_REF_MENU_XPOS, CH_REF_MENU_YPOS, CH_REF_MENU_WIDTH, CH_REF_MENU_HEIGHT, 61000);
+    
+}
+
+void scope_channel_ref_select(PCHANNELSETTINGS settings)
+//void scope_channel_ref_select(PCHANNELSETTINGS settings, PCHANNELSETTINGS REFsettings)
+{  
+//  PREFCHANNELSETTINGS REFsettings;
+  uint32 xstart;
+//  uint32 xend;
+//  uint32 select;
+  
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 6;
+  //uint8 r=6;
+
+ //-----------------------------------------------------------------------------
+  
+  if(((scopesettings.ref1)&&(settings->color == CHANNEL1_COLOR))||((scopesettings.ref5)&&(settings->color == CHANNEL2_COLOR))) //&scopesettings.channel2 if(scopesettings.triggerchannel == 0)
+    { 
+      //Set color based on channel color for the box behind the selected text
+      if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref1.color); else display_set_fg_color(scopesettings.ch_ref5.color); 
+      //display_set_fg_color(scopesettings.ch_ref1.color); 
+      //display_set_fg_color(REF1_COLOR);
+      
+    
+      //Draw the background in dark grey
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);   
+      //Draw the edge in a lighter grey
+      display_set_fg_color(LIGHTGREY_COLOR);
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+    }
+    else      
+    {
+      display_set_fg_color(DARKGREY_COLOR);//GREY_COLOR
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+    }
+  
+    //Texts in white
+    display_set_fg_color(WHITE_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_text(xstart+13, CH_REF_MENU_YPOS+18, "REF 1");
+      else display_text(xstart+13, CH_REF_MENU_YPOS+18, "REF 5");
+    
+  if(((scopesettings.ref2)&&(settings->color == CHANNEL1_COLOR))||((scopesettings.ref6)&&(settings->color == CHANNEL2_COLOR)))//if(scopesettings.ch_ref2.enable)
+    { 
+      //Set color based on channel color for the box behind the selected text
+      if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref2.color); else display_set_fg_color(scopesettings.ch_ref6.color); 
+      //display_set_fg_color(scopesettings.ch_ref2.color); 
+      //display_set_fg_color(REF2_COLOR);
+      
+      //Draw the background in dark grey
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);   
+      //Draw the edge in a lighter grey
+      display_set_fg_color(LIGHTGREY_COLOR);
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+    }
+    else      
+    {
+      display_set_fg_color(DARKGREY_COLOR);//GREY_COLOR
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+    }
+  
+    //Texts in white
+    display_set_fg_color(WHITE_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_text(xstart+13, CH_REF_MENU_YPOS+64, "REF 2");
+      else display_text(xstart+13, CH_REF_MENU_YPOS+64, "REF 6");
+    //display_text(xstart+13, CH_REF_MENU_YPOS+64, "REF 2");
+    
+  if(((scopesettings.ref3)&&(settings->color == CHANNEL1_COLOR))||((scopesettings.ref7)&&(settings->color == CHANNEL2_COLOR)))//if(scopesettings.ch_ref3.enable)
+    { 
+      //Set color based on channel color for the box behind the selected text
+      //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF3_1_COLOR); else display_set_fg_color(REF3_2_COLOR); 
+      if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref3.color); else display_set_fg_color(scopesettings.ch_ref7.color); 
+      //display_set_fg_color(scopesettings.ch_ref3.color); 
+      //display_set_fg_color(REF3_COLOR);
+      
+      //Draw the background in dark grey
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);   
+      //Draw the edge in a lighter grey
+      display_set_fg_color(LIGHTGREY_COLOR);
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+    }
+    else      
+    {
+      display_set_fg_color(DARKGREY_COLOR);//GREY_COLOR
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+    }
+  
+    //Texts in white
+    display_set_fg_color(WHITE_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_text(xstart+13, CH_REF_MENU_YPOS+110, "REF 3");
+      else display_text(xstart+13, CH_REF_MENU_YPOS+110, "REF 7");
+    //display_text(xstart+13, CH_REF_MENU_YPOS+110, "REF 3");
+    
+  if(((scopesettings.ref4)&&(settings->color == CHANNEL1_COLOR))||((scopesettings.ref8)&&(settings->color == CHANNEL2_COLOR)))//if(scopesettings.ch_ref4.enable)
+    { 
+      //Set color based on channel color for the box behind the selected text
+      //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR); 
+      if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref4.color); else display_set_fg_color(scopesettings.ch_ref8.color); 
+      //display_set_fg_color(scopesettings.ch_ref4.color); 
+      //display_set_fg_color(REF4_COLOR);
+      
+      //Draw the background in dark grey
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);   
+      //Draw the edge in a lighter grey
+      display_set_fg_color(LIGHTGREY_COLOR);
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+    }
+    else      
+    {
+      display_set_fg_color(DARKGREY_COLOR);//GREY_COLOR
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+    }
+  
+    //Texts in white
+    display_set_fg_color(WHITE_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_text(xstart+13, CH_REF_MENU_YPOS+156, "REF 4");
+      else display_text(xstart+13, CH_REF_MENU_YPOS+156, "REF 8");
+    //display_text(xstart+13, CH_REF_MENU_YPOS+156, "REF 4");
+    
+    if(((settings->color == CHANNEL1_COLOR)&&((scopesettings.ref1)||(scopesettings.ref2)||(scopesettings.ref3)||(scopesettings.ref4)))||
+      ((settings->color == CHANNEL2_COLOR)&&((scopesettings.ref5)||(scopesettings.ref6)||(scopesettings.ref7)||(scopesettings.ref8))))
+    { 
+      display_set_fg_color(DARKGREY_COLOR);//GREY_COLOR
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+      //Texts in white
+      //display_set_fg_color(WHITE_COLOR);
+    }
+    else      
+    {
+      //Set red color for the box behind the selected text
+      //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR); 
+      display_set_fg_color(RED_COLOR);
+      //Draw the background in red
+      display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);   
+      //Draw the edge in a lighter grey
+      display_set_fg_color(LIGHTGREY_COLOR);
+      display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+      //Texts in black
+      //display_set_fg_color(BLACK_COLOR);
+    }
+  
+     
+  //display_set_fg_color(BLACK_COLOR);
+  //display_text(xstart + 18, CH_MATH_MENU_YPOS + 202, "OFF");
+  
+    //Texts in white
+    display_set_fg_color(WHITE_COLOR);
+    display_text(xstart+18, CH_REF_MENU_YPOS+194, "REF");//13 156
+    display_text(xstart+21, CH_REF_MENU_YPOS+209, "Off");//13 156
+    
+    //-----------------------------------------------------------------------------
+    
+    
+}//end
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_COPYtoREF1_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 74;//+6//6+68
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref1.color); else display_set_fg_color(scopesettings.ch_ref5.color);
+    //display_set_fg_color(scopesettings.ch_ref1.color);
+    //display_set_fg_color(REF1_COLOR);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+  //display_fill_rounded_rect(xstart+68, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  //display_set_fg_color(GREY_COLOR);
+  display_set_fg_color(MAGENTA_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+  //display_draw_rounded_rect(xstart+68, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref1.color); else display_set_fg_color(scopesettings.ch_ref5.color);
+    //display_set_fg_color(scopesettings.ch_ref1.color);
+    //display_set_fg_color(REF1_COLOR);
+  }
+  
+  //Display the text
+  display_set_font(&font_3);
+  if(settings->color == CHANNEL1_COLOR) { display_text(xstart + 10, CH_REF_MENU_YPOS + 10, "CH1 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 25, "REF 1");}
+  else { display_text(xstart + 10, CH_REF_MENU_YPOS + 10, "CH2 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 25, "REF 5");}
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 10, CH_REF_MENU_YPOS + 10, "CH1 to");//+78
+  //else display_text(xstart + 10, CH_REF_MENU_YPOS + 10, "CH2 to");
+  //display_text(xstart + 13, CH_REF_MENU_YPOS + 25, "REF 1");//+81
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_COPYtoREF2_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 74;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF2_1_COLOR); else display_set_fg_color(REF2_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref2.color); 
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref2.color); else display_set_fg_color(scopesettings.ch_ref6.color);
+    //display_set_fg_color(REF2_COLOR);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(MAGENTA_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF2_1_COLOR); else display_set_fg_color(REF2_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref2.color); 
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref2.color); else display_set_fg_color(scopesettings.ch_ref6.color);
+    //display_set_fg_color(REF2_COLOR);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  if(settings->color == CHANNEL1_COLOR) { display_text(xstart + 10, CH_REF_MENU_YPOS + 56, "CH1 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 71, "REF 2");}
+  else { display_text(xstart + 10, CH_REF_MENU_YPOS + 56, "CH2 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 71, "REF 6");}
+  
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 10, CH_REF_MENU_YPOS + 56, "CH1 to");
+  //else display_text(xstart + 10, CH_REF_MENU_YPOS + 56, "CH2 to");
+  //display_text(xstart + 13, CH_REF_MENU_YPOS + 71, "REF 2");//25
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_COPYtoREF3_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 74;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF3_1_COLOR); else display_set_fg_color(REF3_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref3.color); 
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref3.color); else display_set_fg_color(scopesettings.ch_ref7.color);
+    //display_set_fg_color(REF3_COLOR);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(MAGENTA_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF3_1_COLOR); else display_set_fg_color(REF3_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref3.color); 
+    //display_set_fg_color(REF3_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref3.color); else display_set_fg_color(scopesettings.ch_ref7.color);
+  }
+  
+  //Display the text
+  display_set_font(&font_3);
+  if(settings->color == CHANNEL1_COLOR) { display_text(xstart + 10, CH_REF_MENU_YPOS + 102, "CH1 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 117, "REF 3");}
+  else { display_text(xstart + 10, CH_REF_MENU_YPOS + 102, "CH2 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 117, "REF 7");}
+  
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 10, CH_REF_MENU_YPOS + 102, "CH1 to");
+  //else display_text(xstart + 10, CH_REF_MENU_YPOS + 102, "CH2 to");//56
+  //display_text(xstart + 13, CH_REF_MENU_YPOS + 117, "REF 3");//25
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_COPYtoREF4_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 74;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref4.color); 
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref4.color); else display_set_fg_color(scopesettings.ch_ref8.color);
+    //display_set_fg_color(REF4_COLOR);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(MAGENTA_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref4.color);
+    //display_set_fg_color(REF4_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref4.color); else display_set_fg_color(scopesettings.ch_ref8.color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  if(settings->color == CHANNEL1_COLOR) { display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH1 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 163, "REF 4");}
+  else { display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH2 to"); display_text(xstart + 13, CH_REF_MENU_YPOS + 163, "REF 8");}
+  
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH1 to");
+  //else display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH2 to");
+  //display_text(xstart + 13, CH_REF_MENU_YPOS + 163, "REF 4");//25
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_CLEAR_REF1_4_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 74;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    display_set_fg_color(ITEM_ACTIVE_COLOR);
+    
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+  
+  //Draw the edge in a grey
+  display_set_fg_color(GREY_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    display_set_fg_color(MAGENTA_COLOR);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH1 to");
+  //else display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH2 to");
+  display_text(xstart + 13, CH_REF_MENU_YPOS + 194, "Clear");//+78
+  display_text(xstart + 20, CH_REF_MENU_YPOS + 209, "REF");//25
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_LOADtoREF1_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 142;//6+68+68
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF1_1_COLOR); else display_set_fg_color(REF1_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref1.color); 
+    //display_set_fg_color(REF1_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref1.color); else display_set_fg_color(scopesettings.ch_ref5.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+  //display_fill_rounded_rect(xstart+68, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  //display_set_fg_color(GREY_COLOR);
+  display_set_fg_color(GREEN_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+  //display_draw_rounded_rect(xstart+68, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref1.color); else display_set_fg_color(scopesettings.ch_ref5.color);
+    //display_set_fg_color(scopesettings.ch_ref1.color); 
+    //display_set_fg_color(REF1_COLOR);
+  }
+  
+  //Display the text
+  display_set_font(&font_3);
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 78, CH_REF_MENU_YPOS + 10, "CH1 to");//+78
+  //else 
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 10, "Load");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 25, "REF 1"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 25, "REF 5");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_LOADtoREF2_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 142;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF2_1_COLOR); else display_set_fg_color(REF2_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref2.color);
+    //display_set_fg_color(REF2_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref2.color); else display_set_fg_color(scopesettings.ch_ref6.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(GREEN_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF2_1_COLOR); else display_set_fg_color(REF2_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref2.color);
+    //display_set_fg_color(REF2_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref2.color); else display_set_fg_color(scopesettings.ch_ref6.color);
+  }
+  
+  //Display the text
+  display_set_font(&font_3);
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 56, "Load");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 71, "REF 2"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 71, "REF 6");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_LOADtoREF3_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 142;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF3_1_COLOR); else display_set_fg_color(REF3_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref3.color);
+    //display_set_fg_color(REF3_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref3.color); else display_set_fg_color(scopesettings.ch_ref7.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(GREEN_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF3_1_COLOR); else display_set_fg_color(REF3_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref3.color); 
+    //display_set_fg_color(REF3_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref3.color); else display_set_fg_color(scopesettings.ch_ref7.color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 102,  "Load");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 117, "REF 3"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 117, "REF 7");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_LOADtoREF4_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 142;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref4.color); 
+    //display_set_fg_color(REF4_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref4.color); else display_set_fg_color(scopesettings.ch_ref8.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(GREEN_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref4.color); 
+    //display_set_fg_color(REF4_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref4.color); else display_set_fg_color(scopesettings.ch_ref8.color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 148,  "Load");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 163, "REF 4"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 163, "REF 8");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_LOAD_REF1_4_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 142;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    display_set_fg_color(ITEM_ACTIVE_COLOR);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+  
+  //Draw the edge in a grey
+  display_set_fg_color(GREY_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    display_set_fg_color(GREEN_COLOR);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH1 to");
+  //else display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH2 to");
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 194, "Load");//+78
+  display_text(xstart + 20, CH_REF_MENU_YPOS + 209, "REF");//25
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_SAVE_REF1_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 210;//6+68+68+68
+  
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF1_1_COLOR); else display_set_fg_color(REF1_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref1.color); 
+    //display_set_fg_color(REF1_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref1.color); else display_set_fg_color(scopesettings.ch_ref5.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+  //display_fill_rounded_rect(xstart+68, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  //display_set_fg_color(GREY_COLOR);
+  display_set_fg_color(RED_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 6, 60, 40, 3);
+  //display_draw_rounded_rect(xstart+68, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 78, CH_REF_MENU_YPOS + 10, "CH1 to");//+78
+  //else 
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 10, "Save");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 25, "REF 1"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 25, "REF 5");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_SAVE_REF2_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 210;
+  
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF2_1_COLOR); else display_set_fg_color(REF2_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref2.color); 
+    //display_set_fg_color(REF2_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref2.color); else display_set_fg_color(scopesettings.ch_ref6.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(RED_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 56, "Save");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 71, "REF 2"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 71, "REF 6");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_SAVE_REF3_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 210;
+  
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF3_1_COLOR); else display_set_fg_color(REF3_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref3.color); 
+    //display_set_fg_color(REF3_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref3.color); else display_set_fg_color(scopesettings.ch_ref7.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(RED_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 98, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 102,  "Save");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 117, "REF 3"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 117, "REF 7");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_SAVE_REF4_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 210;
+  
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    //display_set_fg_color(scopesettings.ch_ref4.color); 
+    //display_set_fg_color(REF4_COLOR);
+    if(settings->color == CHANNEL1_COLOR) display_set_fg_color(scopesettings.ch_ref4.color); else display_set_fg_color(scopesettings.ch_ref8.color);
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(RED_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 144, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 148,  "Save");//+78
+  if(settings->color == CHANNEL1_COLOR) display_text(xstart + 13, CH_REF_MENU_YPOS + 163, "REF 4"); else display_text(xstart + 13, CH_REF_MENU_YPOS + 163, "REF 8");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_SAVE_REF1_4_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  uint32 xstart;
+  xstart = settings->menuxpos + CH_REF_MENU_XPOS + 210;
+  
+  //Check if inactive or active
+  if((mode == 0)||(mode == 2))
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active - Set color based on channel color for the box behind the selected text
+    //if(settings->color == CHANNEL1_COLOR) display_set_fg_color(REF4_1_COLOR); else display_set_fg_color(REF4_2_COLOR);
+    display_set_fg_color(ITEM_ACTIVE_COLOR);
+    
+  }
+
+  //Draw the background
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+  
+  //Draw the edge in a grey
+  display_set_fg_color(GREY_COLOR);
+  display_draw_rounded_rect(xstart, CH_REF_MENU_YPOS + 190, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    //display_set_bg_color(DARKGREY_COLOR);
+  }
+  else if(mode == 1)
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    //display_set_bg_color(settings->color);
+  }
+  else if(mode == 2)
+  {
+    display_set_fg_color(RED_COLOR);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  //if(settings->color == CHANNEL1_COLOR) display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH1 to");
+  //else display_text(xstart + 10, CH_REF_MENU_YPOS + 148, "CH2 to");
+  display_text(xstart + 15, CH_REF_MENU_YPOS + 194, "Save");//+78
+  display_text(xstart + 20, CH_REF_MENU_YPOS + 209, "REF");//25
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_math_menu_item(PCHANNELSETTINGS settings, int mode)//set
+{
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so magenta background
+    display_set_fg_color(MAGENTA_COLOR);
+    //display_set_fg_color(settings->color);
+  }
+
+  //Draw the background
+  display_fill_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+  //display_set_fg_color(GREY_COLOR);//GREY_COLOR
+  display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    display_set_bg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    display_set_bg_color(settings->color);
+  }
+
+  //Display the text
+  display_set_font(&font_3);
+  display_text(settings->menuxpos + 362, CH_MENU_YPOS + 56, "MATH");   
+  display_text(settings->menuxpos + 362, CH_MENU_YPOS + 71, "menu");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_channel_open_math_menu(PCHANNELSETTINGS settings)
+{
+  //uint32 xstart;
+  //uint32 xend;
+  //uint32 select;
+  
+  //xstart = settings->menuxpos + CH_MATH_MENU_XPOS + 6;
+  
+  //Setup the menu in a separate buffer to be able to slide it onto the screen
+  display_set_screen_buffer(displaybuffertmp);//1
+  //display_set_screen_buffer(displaybuffer2);//1
+
+  //Draw the background in dark grey
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Fill the background
+  display_fill_rect(settings->menuxpos + CH_MATH_MENU_XPOS, CH_MATH_MENU_YPOS, CH_MATH_MENU_WIDTH, CH_MATH_MENU_HEIGHT);
+
+  //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+  
+  //Set channel color
+  //display_set_fg_color(settings->color);
+
+  //Draw the edge
+  display_draw_rect(settings->menuxpos + CH_MATH_MENU_XPOS, CH_MATH_MENU_YPOS, CH_MATH_MENU_WIDTH, CH_MATH_MENU_HEIGHT);
+  
+  //**********************************************************
+  
+  scope_channel_math_select(settings);
+  
+  //**********************************************************
+     
+  //Set source and target for getting it on the actual screen 
+  display_set_source_buffer(displaybuffertmp);//1
+  //display_set_source_buffer(displaybuffer2);//1
+  display_set_screen_buffer((uint16 *)maindisplaybuffer);
+
+  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
+  display_slide_left_rect_onto_screen(settings->menuxpos + CH_MATH_MENU_XPOS, CH_MATH_MENU_YPOS, CH_MATH_MENU_WIDTH, CH_MATH_MENU_HEIGHT, 61000);
+    
+}
+
+
+void scope_channel_math_select(PCHANNELSETTINGS settings)
+{  
+  uint32 xstart;
+//  uint32 xend;
+  uint32 select;
+  
+  xstart = settings->menuxpos + CH_MATH_MENU_XPOS + 6;
+  
+  //Draw the background in dark grey
+  //display_set_fg_color(DARKGREY_COLOR);
+  
+  for(uint8 r=6; r<CH_MATH_MENU_HEIGHT; r+=46)
+  {
+    //Draw the background in dark grey
+    display_set_fg_color(DARKGREY_COLOR);
+    display_fill_rounded_rect(xstart, CH_MATH_MENU_YPOS + r, 60, 40, 3);
+    
+    
+    //Draw the edge in a lighter grey
+    display_set_fg_color(LIGHTGREY_COLOR);
+    display_draw_rounded_rect(xstart, CH_MATH_MENU_YPOS + r, 60, 40, 3);    
+  }
+  
+  //Draw the background in dark grey
+  display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rounded_rect(xstart+68, CH_MATH_MENU_YPOS + 6, 91, 40, 3);
+  display_fill_rounded_rect(xstart+68, CH_MATH_MENU_YPOS + 52, 91, 40, 3);
+  
+  //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+  display_draw_rounded_rect(xstart+68, CH_MATH_MENU_YPOS + 6, 91, 40, 3);
+  display_draw_rounded_rect(xstart+68, CH_MATH_MENU_YPOS + 52, 91, 40, 3);
+  
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+ 
+  display_text(xstart + 14, CH_MATH_MENU_YPOS + 18,  "A + B"); //6+8
+  display_text(xstart + 15, CH_MATH_MENU_YPOS + 64,  "A - B"); 
+  display_text(xstart + 14, CH_MATH_MENU_YPOS + 110, "A * B"); 
+  display_text(xstart + 14, CH_MATH_MENU_YPOS + 156, "A / B"); 
+  
+  //display_set_fg_color(BLACK_COLOR);
+  display_text(xstart + 18, CH_MATH_MENU_YPOS + 202, "OFF");
+  
+  display_set_fg_color(WHITE_COLOR);
+    
+  switch (channelA)
+  {
+    case 0: display_set_fg_color(CHANNEL1_COLOR); display_text(xstart + 89, CH_MATH_MENU_YPOS + 18, "CH1=>A"); break;
+    case 1: display_set_fg_color(CHANNEL2_COLOR); display_text(xstart + 89, CH_MATH_MENU_YPOS + 18, "CH2=>A"); break;
+    case 2: display_set_fg_color(REF1_COLOR);   display_text(xstart + 84, CH_MATH_MENU_YPOS + 18, "REF1=>A"); break;
+    case 3: display_set_fg_color(REF2_COLOR);   display_text(xstart + 84, CH_MATH_MENU_YPOS + 18, "REF2=>A"); break;
+    //case 2: display_set_fg_color(REF1_COLOR);   display_text(xstart + 74, CH_MATH_MENU_YPOS + 18, "REF CH1=>A"); break;
+    //case 3: display_set_fg_color(REF2_COLOR);   display_text(xstart + 74, CH_MATH_MENU_YPOS + 18, "REF CH2=>A"); break;
+    //case 4: display_set_fg_color(MATH_COLOR);     display_text(xstart + 82, CH_MATH_MENU_YPOS + 18, "MATH=>A"); break;      
+  }
+  
+  display_set_fg_color(WHITE_COLOR);
+  
+  switch (channelB)
+  {
+    case 0: display_set_fg_color(CHANNEL1_COLOR); display_text(xstart + 89, CH_MATH_MENU_YPOS + 64, "CH1=>B"); break;
+    case 1: display_set_fg_color(CHANNEL2_COLOR); display_text(xstart + 89, CH_MATH_MENU_YPOS + 64, "CH2=>B"); break;
+    case 2: display_set_fg_color(REF1_COLOR);   display_text(xstart + 84, CH_MATH_MENU_YPOS + 64, "REF1=>B"); break;
+    case 3: display_set_fg_color(REF2_COLOR);   display_text(xstart + 84, CH_MATH_MENU_YPOS + 64, "REF2=>B"); break;
+    //case 2: display_set_fg_color(REF1_COLOR);   display_text(xstart + 74, CH_MATH_MENU_YPOS + 64, "REF CH1=>B"); break;
+    //case 3: display_set_fg_color(REF2_COLOR);   display_text(xstart + 74, CH_MATH_MENU_YPOS + 64, "REF CH2=>B"); break;
+    //case 4: display_set_fg_color(MATH_COLOR);     display_text(xstart + 82, CH_MATH_MENU_YPOS + 64, "MATH=>B"); break;      
+  }
+
+
+  
+  //Draw the background
+  display_set_fg_color(GREEN_COLOR);
+   
+  
+  switch (mathmode) //fill color select mode
+  {
+    case 1: select = 6;   display_fill_rounded_rect(xstart, CH_MATH_MENU_YPOS + select, 60, 40, 3); display_set_fg_color(BLACK_COLOR);display_text(xstart+14, CH_MATH_MENU_YPOS + 18,  "A + B");  break;//6+8 break;
+    case 2: select = 52;  display_fill_rounded_rect(xstart, CH_MATH_MENU_YPOS + select, 60, 40, 3); display_set_fg_color(BLACK_COLOR);display_text(xstart+15, CH_MATH_MENU_YPOS + 64,  "A - B"); break;
+    case 3: select = 98;  display_fill_rounded_rect(xstart, CH_MATH_MENU_YPOS + select, 60, 40, 3); display_set_fg_color(BLACK_COLOR);display_text(xstart+14, CH_MATH_MENU_YPOS + 110, "A * B"); break;
+    case 4: select = 144; display_fill_rounded_rect(xstart, CH_MATH_MENU_YPOS + select, 60, 40, 3); display_set_fg_color(BLACK_COLOR);display_text(xstart+14, CH_MATH_MENU_YPOS + 156, "A / B");break;
+      
+    default: select = 190; display_set_fg_color(RED_COLOR);  display_fill_rounded_rect(xstart, CH_MATH_MENU_YPOS + select, 60, 40, 3); display_set_fg_color(BLACK_COLOR); display_text(xstart + 18, CH_MATH_MENU_YPOS + 202, "OFF"); break;
+  }
+        
+  //display_fill_rounded_rect(xstart, CH_MATH_MENU_YPOS + select, 60, 40, 3);
+  //display_fill_rounded_rect(settings->menuxpos + CH_MATH_MENU_XPOS + 6, CH_MATH_MENU_YPOS + 6, 60, 40, 3);
+  
+  //display_fill_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+  
+  /*
+  //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+  //display_set_fg_color(GREY_COLOR);//GREY_COLOR
+  display_draw_rounded_rect(xstart, CH_MATH_MENU_YPOS + 6, 60, 40, 3);
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+  
+  display_draw_rounded_rect(xstart, CH_MATH_MENU_YPOS + 52, 60, 40, 3);
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+    
+  display_draw_rounded_rect(xstart, CH_MATH_MENU_YPOS + 98, 60, 40, 3);
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+  
+  display_draw_rounded_rect(xstart, CH_MATH_MENU_YPOS + 144, 60, 40, 3);
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+  
+  display_draw_rounded_rect(xstart, CH_MATH_MENU_YPOS + 190, 60, 40, 3);
+  //display_draw_rounded_rect(settings->menuxpos + 350, CH_MENU_YPOS + 52, 60, 40, 3);
+  */
+  
+
+  //display_text(xstart, CH_MENU_YPOS + 71, "menu");
+  
+}
+
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_open_keyboard_menu(void)
@@ -3390,14 +4994,14 @@ void scope_open_keyboard_menu(void)
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
 
   //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_top_rect_onto_screen(KEY_MENU_XPOS, KEY_MENU_YPOS, KEY_MENU_WIDTH, KEY_MENU_HEIGHT, 69906);
+  display_slide_top_rect_onto_screen(KEY_MENU_XPOS, KEY_MENU_YPOS, KEY_MENU_WIDTH, KEY_MENU_HEIGHT, 61000);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_keyboard_select(void)
 {
-  uint32 i,x=0,y;
+  uint32 i,x = 0,y;
 
   //Select the font for the texts
   display_set_font(&font_5);
@@ -3405,8 +5009,8 @@ void scope_keyboard_select(void)
   //Clear the boxes for the not selected items
   for(i=0;i<((sizeof(keyboard_texts) / sizeof(int8 *)));i++)
   {
-    if(((i%5)==0)) x = 5; else x += 58;
-    y=((i/5)*53); 
+    if(((i%5) == 0)) x = 5; else x += 58;
+    y=((i / 5) * 53); 
     
     //Set dark grey color for the boxes behind the not selected texts
     display_set_fg_color(MIDLEGREY_COLOR);
@@ -3794,6 +5398,9 @@ void scope_acquisition_Long_memory_select(void)
 
 void scope_open_trigger_menu(void)
 {
+  uint32 xstart;
+  uint32 xend;
+  
   //Setup the menu in a separate buffer to be able to slide it onto the screen
   display_set_screen_buffer(displaybuffertmp);//1
 
@@ -3810,12 +5417,17 @@ void scope_open_trigger_menu(void)
   //Draw the edge
   //display_draw_rect(560, 46, 166, 246);//186
   display_draw_rect(TRIGGER_MENU_XPOS, TRIGGER_MENU_YPOS, TRIGGER_MENU_WIDTH, TRIGGER_MENU_HEIGHT);
+  
+    //Line start and end x positions
+  xstart = TRIGGER_MENU_XPOS + 10;//14
+  xend   = TRIGGER_MENU_XPOS + TRIGGER_MENU_WIDTH - 10;//-4
 
-  //Two black lines between the settings
+  //Two black lines between the settings step 56
   display_set_fg_color(BLACK_COLOR);
-  display_draw_horz_line(107, 570, 716);//722
-  display_draw_horz_line(168, 570, 716);//722
-  display_draw_horz_line(229, 570, 716);//722
+  display_draw_horz_line(102, xstart, xend);//102//716//61
+  display_draw_horz_line(158, xstart, xend);//158//716
+  display_draw_horz_line(214, xstart, xend);////214 716
+  display_draw_horz_line(270, xstart, xend);////270 716
 
   //Main texts in white
   display_set_fg_color(WHITE_COLOR);
@@ -3824,19 +5436,27 @@ void scope_open_trigger_menu(void)
   display_set_font(&font_3);
 
   //Display the texts
-  display_text(570,  56, "Trigger");
-  display_text(570,  75, "mode");//570
-  display_text(570, 118, "Trigger");
-  display_text(570, 137, "edge");
-  display_text(570, 182, "Trigger");
-  display_text(570, 200, "channel");
-  display_text(570, 245, "Hold");
-  display_text(570, 263, "on");
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+10,  "Trigger");//56
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+29,  "mode");//57
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+66,  "Trigger");//112
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+85,  "edge");//131
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+122, "Trigger");//168
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+141, "channel");//187
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+178, "Always");//224
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+197, "50%");//243
+  
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+234, "Hold");//280
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+253, "off");//299
+  
+  //Display the icon with the set colors
+  display_copy_icon_use_colors(trigger_50_percent_icon, TRIGGER_MENU_XPOS+75, TRIGGER_MENU_YPOS+184, 24, 24);
 
   //Display the actual settings
   scope_trigger_mode_select();
   scope_trigger_edge_select();
   scope_trigger_channel_select();
+  scope_always_trigger50_select();
+  //scope_hold_off_select();
 
   //Set source and target for getting it on the actual screen
   display_set_source_buffer(displaybuffertmp);//1
@@ -3862,42 +5482,54 @@ void scope_trigger_mode_select(void)
   {
     case 0:                                 //AUTO
       //dark grey single and normal
-      display_fill_rounded_rect(661, 57, 20, 38, 2);
-      display_fill_rounded_rect(692, 57, 21, 38, 2);
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+65, TRIGGER_MENU_YPOS+17, 47, 22, 2);//661 56
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+156, TRIGGER_MENU_YPOS+17, 54, 22, 2);//692 56
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(TRIGGER_MENU_XPOS+65, TRIGGER_MENU_YPOS+17, 47, 22, 2);//661 56
+      display_draw_rounded_rect(TRIGGER_MENU_XPOS+156, TRIGGER_MENU_YPOS+17, 54, 22, 2);//692 56
       break;
 
     case 1:                                 //SINGLE
       //dark grey auto and normal
-      display_fill_rounded_rect(628, 57, 22, 38, 2);//629 57 20 38
-      display_fill_rounded_rect(692, 57, 21, 38, 2);
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+116, TRIGGER_MENU_YPOS+17, 36, 22, 2);//628 57 20 38
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+156, TRIGGER_MENU_YPOS+17, 54, 22, 2);
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(TRIGGER_MENU_XPOS+116, TRIGGER_MENU_YPOS+17, 36, 22, 2);//628 57 20 38
+      display_draw_rounded_rect(TRIGGER_MENU_XPOS+156, TRIGGER_MENU_YPOS+17, 54, 22, 2);//692 56
       break;
 
     default:                                //NORMAL
       //dark grey auto and single
-      display_fill_rounded_rect(628, 57, 22, 38, 2);//629 57 20 38
-      display_fill_rounded_rect(661, 57, 20, 38, 2);
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+65, TRIGGER_MENU_YPOS+17, 47, 22, 2);//629 57 20 38
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+116, TRIGGER_MENU_YPOS+17, 36, 22, 2);//661
+      display_set_fg_color(GREY_COLOR);//GREY_COLOR
+      display_draw_rounded_rect(TRIGGER_MENU_XPOS+65, TRIGGER_MENU_YPOS+17, 47, 22, 2);//661 56
+      display_draw_rounded_rect(TRIGGER_MENU_XPOS+116, TRIGGER_MENU_YPOS+17, 36, 22, 2);//661
       break;
   }
 
   //Set trigger color for the box behind the selected text
-  display_set_fg_color(TRIGGER_COLOR);
+  //display_set_fg_color(TRIGGER_COLOR);
 
   //Check if which trigger mode to highlight
   switch(scopesettings.triggermode)
   {
     case 0:
       //Highlight auto mode
-      display_fill_rounded_rect(628, 57, 22, 38, 2);//629 57 20 38
+      display_set_fg_color(TRIGGER_COLOR);  
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+116, TRIGGER_MENU_YPOS+17, 36, 22, 2);//629 57 20 38
       break;
 
     case 1:
       //Highlight single mode
-      display_fill_rounded_rect(661, 57, 20, 38, 2);
+      display_set_fg_color(ORANGE_COLOR); 
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+65, TRIGGER_MENU_YPOS+17, 47, 22, 2);//661 68 101 132
       break;
 
     default:
       //Highlight normal mode
-      display_fill_rounded_rect(692, 57, 21, 38, 2);
+      display_set_fg_color(DARKGREEN_COLOR);
+      display_fill_rounded_rect(TRIGGER_MENU_XPOS+156, TRIGGER_MENU_YPOS+17, 54, 22, 2);//692
       break;
   }
 
@@ -3913,7 +5545,7 @@ void scope_trigger_mode_select(void)
     if(scopesettings.waveviewmode)
     {  
       //Grey auto text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3923,8 +5555,9 @@ void scope_trigger_mode_select(void)
   }
 
   //Display the auto text
-  display_text(631, 58, "Au");
-  display_text(633, 75, "to");
+  display_text(TRIGGER_MENU_XPOS+120, TRIGGER_MENU_YPOS+19, "Auto");//71 11 72 5
+  //display_text(TRIGGER_MENU_XPOS+69, TRIGGER_MENU_YPOS+11, "Au");//71 11
+  //display_text(TRIGGER_MENU_XPOS+71, TRIGGER_MENU_YPOS+28, "to");//73 28
 
   //Check if trigger mode is single
   if(scopesettings.triggermode == 1)
@@ -3938,7 +5571,7 @@ void scope_trigger_mode_select(void)
     if(scopesettings.waveviewmode)
     {
       //Grey single text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
     else
     {
@@ -3948,9 +5581,10 @@ void scope_trigger_mode_select(void)
   }
 
   //Display the single text
-  display_text(664, 56, "Si");//666
-  display_text(663, 66, "ng");
-  display_text(665, 79, "le");
+  display_text(TRIGGER_MENU_XPOS+68, TRIGGER_MENU_YPOS+19,  "Single");//666 110 19
+  //display_text(TRIGGER_MENU_XPOS+104, TRIGGER_MENU_YPOS+9,  "Si");//666
+  //display_text(TRIGGER_MENU_XPOS+103, TRIGGER_MENU_YPOS+19, "ng");
+  //display_text(TRIGGER_MENU_XPOS+105, TRIGGER_MENU_YPOS+32, "le");
 
   //Check if trigger mode is normal
   if(scopesettings.triggermode > 1)
@@ -3964,7 +5598,7 @@ void scope_trigger_mode_select(void)
     if(scopesettings.waveviewmode)
     {
       //Grey normal text when in waveform view mode
-      display_set_fg_color(0x00606060);        
+      display_set_fg_color(LIGHTGREY1_COLOR);        
     }
     else
     {
@@ -3974,9 +5608,10 @@ void scope_trigger_mode_select(void)
   }
 
   //Display the normal text
-  display_text(694, 56, "No");//695
-  display_text(694, 66, "rm");
-  display_text(696, 79, "al");
+  display_text(TRIGGER_MENU_XPOS+160, TRIGGER_MENU_YPOS+19,  "Normal");//695 155 33
+  //display_text(TRIGGER_MENU_XPOS+134, TRIGGER_MENU_YPOS+9,  "No");//695
+  //display_text(TRIGGER_MENU_XPOS+134, TRIGGER_MENU_YPOS+19, "rm");
+  //display_text(TRIGGER_MENU_XPOS+136, TRIGGER_MENU_YPOS+32, "al");
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -3993,27 +5628,34 @@ void scope_trigger_edge_select(void)
   if(scopesettings.triggeredge == 0)
   {
     //Rising so dark grey box behind falling
-    display_fill_rounded_rect(670, 125, 47, 22, 2);
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+150, TRIGGER_MENU_YPOS+74, 55, 22, 2);//110 74 47 22 2
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+150, TRIGGER_MENU_YPOS+74, 55, 22, 2);
   }
   else
   {
     //Falling so dark grey box behind rising
-    display_fill_rounded_rect(625, 125, 42, 22, 2);
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+74, 55, 22, 2);//65 74 42 22 2
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+74, 55, 22, 2);
   }
 
-  //Set trigger color for the box behind the selected text
-  display_set_fg_color(TRIGGER_COLOR);
+
 
   //Check which trigger edge is selected
   if(scopesettings.triggeredge == 0)
   {
+    //Set trigger color for the box behind the selected text
+    display_set_fg_color(LIGHTRED_COLOR);
     //Rising so trigger color box behind rising
-    display_fill_rounded_rect(625, 125, 42, 22, 2);//626 125 40 22
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+74, 55, 22, 2);//626 125 40 22
   }
   else
-  {
+  {   
+    //Set trigger color for the box behind the selected text
+    display_set_fg_color(LDARKBLUE_COLOR);
     //Falling so trigger color box behind falling
-    display_fill_rounded_rect(670, 125, 47, 22, 2);//671 125 45 22
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+150, TRIGGER_MENU_YPOS+74, 55, 22, 2);//671 125 45 22
   }
 
   //Check which trigger edge is selected
@@ -4028,7 +5670,7 @@ void scope_trigger_edge_select(void)
     if(scopesettings.waveviewmode)
     {
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);        
+      display_set_fg_color(LIGHTGREY1_COLOR);        
     }
     else
     {
@@ -4038,7 +5680,7 @@ void scope_trigger_edge_select(void)
   }
 
   //Display the rising text
-  display_text(627, 127, "Rising");//629
+  display_text(TRIGGER_MENU_XPOS+78, TRIGGER_MENU_YPOS+76, "Rising");//629 127
 
   //Check which trigger edge is selected
   if(scopesettings.triggeredge == 0)
@@ -4047,7 +5689,7 @@ void scope_trigger_edge_select(void)
     if(scopesettings.waveviewmode)
     {
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);        
+      display_set_fg_color(LIGHTGREY1_COLOR);        
     }
     else
     {
@@ -4062,7 +5704,11 @@ void scope_trigger_edge_select(void)
   }
 
   //Display the falling text
-  display_text(672, 127, "Falling");//672//674
+  display_text(TRIGGER_MENU_XPOS+156, TRIGGER_MENU_YPOS+76, "Falling");//160//112//672//674
+  
+  
+  display_set_fg_color(DARKGREY_COLOR);
+  scope_trigger_symbol(TRIGGER_MENU_XPOS+65, TRIGGER_MENU_YPOS+59);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -4075,34 +5721,60 @@ void scope_trigger_channel_select(void)
   //Set dark grey color for the box behind the not selected text
   display_set_fg_color(DARKGREY_COLOR);
 
-  //Check if channel is 1 or 2
-  if(scopesettings.triggerchannel == 0)
+  //Check if channel is 1 or 2 or EXT
+  if(scopesettings.triggerchannel == 0)//0-ch1
   {
     //1 so dark grey box behind CH2 text
-    display_fill_rounded_rect(680, 188, 32, 22, 2);
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+121, TRIGGER_MENU_YPOS+129, 33, 22, 2);//118
+    //2 so dark grey box behind EXT text
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+172, TRIGGER_MENU_YPOS+129, 33, 22, 2);//166
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+121, TRIGGER_MENU_YPOS+129, 33, 22, 2);//118
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+172, TRIGGER_MENU_YPOS+129, 33, 22, 2);
   }
-  else
+  else if(scopesettings.triggerchannel == 1)//1-ch2
   {
     //2 so dark grey box behind CH1 text
-    display_fill_rounded_rect(632, 188, 32, 22, 2);
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+129, 33, 22, 2);
+    //2 so dark grey box behind EXT text
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+172, TRIGGER_MENU_YPOS+129, 33, 22, 2);
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+129, 33, 22, 2);
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+172, TRIGGER_MENU_YPOS+129, 33, 22, 2);
+  }
+  else if(scopesettings.triggerchannel == 2)//2-ext
+  {
+    //2 so dark grey box behind CH1 text
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+129, 33, 22, 2);
+    //1 so dark grey box behind CH2 text
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+121, TRIGGER_MENU_YPOS+129, 33, 22, 2);//188
+    display_set_fg_color(GREY_COLOR);//GREY_COLOR
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+129, 33, 22, 2);
+    display_draw_rounded_rect(TRIGGER_MENU_XPOS+121, TRIGGER_MENU_YPOS+129, 33, 22, 2);
   }
 
   //Set trigger color for the box behind the selected text
   //display_set_fg_color(TRIGGER_COLOR);
 
-  //Check if channel is 1 or 2
-  if(scopesettings.triggerchannel == 0)
+  //Check if channel is 1 or 2 or EXT
+  if(scopesettings.triggerchannel == 0)//0-ch1
   {
     //Set channel color for the box behind the selected text
     display_set_fg_color(CHANNEL1_COLOR);
     //1 so trigger color box behind CH1 text
-    display_fill_rounded_rect(632, 188, 32, 22, 2);
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+70, TRIGGER_MENU_YPOS+129, 33, 22, 2);
   }
-  else
+  else if(scopesettings.triggerchannel == 1)//1-ch2
   {
-      display_set_fg_color(CHANNEL2_COLOR);
+    display_set_fg_color(CHANNEL2_COLOR);
     //2 so trigger color box behind CH2 text
-    display_fill_rounded_rect(680, 188, 32, 22, 2);
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+121, TRIGGER_MENU_YPOS+129, 33, 22, 2);//188
+  }
+  else if(scopesettings.triggerchannel == 2)
+  {
+    display_set_fg_color(EXTERN_TRIG_COLOR);
+    //2 so trigger color box behind CH2 text
+    display_fill_rounded_rect(TRIGGER_MENU_XPOS+172, TRIGGER_MENU_YPOS+129, 33, 22, 2);//188
   }
 
   //Check if channel is 1 or 2
@@ -4122,15 +5794,21 @@ void scope_trigger_channel_select(void)
     else
     {
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
   }
 
   //Display the CH1 text
-  display_text(635, 191, "CH1");
+  display_text(TRIGGER_MENU_XPOS+74, TRIGGER_MENU_YPOS+132, "CH1");//191
+  //-----------------------------------------------------
 
   //Check if channel is 1 or 2
-  if(scopesettings.triggerchannel == 0)
+  if(scopesettings.triggerchannel == 1)
+  {
+    //2 so black CH2 text
+    display_set_fg_color(BLACK_COLOR);
+  }
+  else
   {
     //1 so white or grey CH2 text
     if((!scopesettings.waveviewmode) && scopesettings.channel2.enable)
@@ -4141,22 +5819,90 @@ void scope_trigger_channel_select(void)
     else
     {
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
-  }
-  else
-  {
-    //2 so black CH2 text
-    display_set_fg_color(BLACK_COLOR);
   }
 
   //Display the CH2 text
-  display_text(683, 191, "CH2");
+  display_text(TRIGGER_MENU_XPOS+125, TRIGGER_MENU_YPOS+132, "CH2");
+  
+    //-----------------------------------------------------
+
+  //Check if channel is 1 or 2
+  if(scopesettings.triggerchannel == 2)
+  {
+    // so black EXT text
+    display_set_fg_color(BLACK_COLOR);
+  }
+  else
+  {
+    //so white or grey EXT text
+    //if((!scopesettings.waveviewmode) && scopesettings.channel2.enable)
+    if((!scopesettings.waveviewmode))
+    {
+      //White text if in normal mode
+      display_set_fg_color(WHITE_COLOR);
+    }
+    else
+    {
+      //Grey text when in waveform view mode
+      display_set_fg_color(LIGHTGREY1_COLOR);
+    }
+  }
+
+  //Display the CH2 text
+  display_text(TRIGGER_MENU_XPOS+176, TRIGGER_MENU_YPOS+132, "EXT");
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void scope_hold_on_select(void)
+void scope_always_trigger50_select(void)
+{
+  //Select the font for the texts
+  display_set_font(&font_3);
+
+  //Set dark grey color for the box behind the not selected text
+  display_set_fg_color(DARKGREY_COLOR);
+  
+  //Show the state (if always trige 50 on or off)
+  scope_display_slide_button(TRIGGER_MENU_XPOS + 135, TRIGGER_MENU_YPOS + 186, scopesettings.alwaystrigger50, GREEN_COLOR);//90 186
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_trigger_symbol(int x, int y)
+{
+  //Falling so black falling text
+  //display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rect(x+68, y+19, 8, 13);
+  
+  //White text if in normal mode
+  display_set_fg_color(WHITE_COLOR);
+  
+  //Draw the trigger edge symbol
+  display_draw_vert_line(x+72, y+20, y+31);
+
+  //Draw the arrow based on the selected edge
+  if(scopesettings.triggeredge == 0)
+  {
+    //rising edge
+    display_draw_horz_line(y+20, x+72, x+75);
+    display_draw_horz_line(y+31, x+69, x+72);
+    display_draw_horz_line(y+25, x+71, x+73);
+    display_draw_horz_line(y+26, x+70, x+74);
+  }
+  else
+  {
+    //falling edge
+    display_draw_horz_line(y+20, x+69, x+72);
+    display_draw_horz_line(y+31, x+72, x+75);
+    display_draw_horz_line(y+25, x+70, x+74);
+    display_draw_horz_line(y+26, x+71, x+73);
+  }
+}
+  
+  //----------------------------------------------------------------------------------------------------------------------------------
+  
+void scope_hold_off_select(void)
 {
   //Select the font for the texts
   display_set_font(&font_3);
@@ -4211,7 +5957,7 @@ void scope_hold_on_select(void)
     else
     {
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
   }
 
@@ -4230,7 +5976,7 @@ void scope_hold_on_select(void)
     else
     {
       //Grey text when in waveform view mode
-      display_set_fg_color(0x00606060);
+      display_set_fg_color(LIGHTGREY1_COLOR);
     }
   }
   else
@@ -4241,6 +5987,80 @@ void scope_hold_on_select(void)
 
   //Display the CH2 text
   display_text(683, 191, "CH2");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_open_generator_menu(void)
+{
+  uint32 xstart;
+  uint32 xend;
+  
+  //Setup the menu in a separate buffer to be able to slide it onto the screen
+  display_set_screen_buffer(displaybuffertmp);//1
+
+  //Draw the background in dark grey
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Fill the background
+  //display_fill_rect(560, 46, 166, 246);//186
+  display_fill_rect(TRIGGER_MENU_XPOS, TRIGGER_MENU_YPOS, TRIGGER_MENU_WIDTH, TRIGGER_MENU_HEIGHT);
+
+  //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+
+  //Draw the edge
+  //display_draw_rect(560, 46, 166, 246);//186
+  display_draw_rect(TRIGGER_MENU_XPOS, TRIGGER_MENU_YPOS, TRIGGER_MENU_WIDTH, TRIGGER_MENU_HEIGHT);
+  
+    //Line start and end x positions
+  xstart = TRIGGER_MENU_XPOS + 10;//14
+  xend   = TRIGGER_MENU_XPOS + TRIGGER_MENU_WIDTH - 10;//-4
+
+  //Two black lines between the settings step 56
+  display_set_fg_color(BLACK_COLOR);
+  display_draw_horz_line(102, xstart, xend);//102//716//61
+  display_draw_horz_line(158, xstart, xend);//158//716
+  display_draw_horz_line(214, xstart, xend);////214 716
+  display_draw_horz_line(270, xstart, xend);////270 716
+
+  //Main texts in white
+  display_set_fg_color(WHITE_COLOR);
+
+  //Select the font for the texts
+  display_set_font(&font_3);
+
+  //Display the texts
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+10,  "Trigger");//56
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+29,  "mode");//57
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+66,  "Trigger");//112
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+85,  "edge");//131
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+122, "Trigger");//168
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+141, "channel");//187
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+178, "Always");//224
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+197, "50%");//243
+  
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+234, "Hold");//280
+  display_text(TRIGGER_MENU_XPOS+10, TRIGGER_MENU_YPOS+253, "off");//299
+  
+  //Display the icon with the set colors
+  display_copy_icon_use_colors(trigger_50_percent_icon, TRIGGER_MENU_XPOS+75, TRIGGER_MENU_YPOS+184, 24, 24);
+
+  //Display the actual settings
+  scope_trigger_mode_select();
+  scope_trigger_edge_select();
+  scope_trigger_channel_select();
+  scope_always_trigger50_select();
+  //scope_hold_off_select();
+
+  //Set source and target for getting it on the actual screen
+  display_set_source_buffer(displaybuffertmp);//1
+  display_set_screen_buffer((uint16 *)maindisplaybuffer);
+
+  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
+  //display_slide_top_rect_onto_screen(560, 46, 166, 246, 56415);//186
+  display_slide_top_rect_onto_screen(TRIGGER_MENU_XPOS, TRIGGER_MENU_YPOS, TRIGGER_MENU_WIDTH, TRIGGER_MENU_HEIGHT, 56415);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -4256,29 +6076,31 @@ void scope_open_system_settings_menu(void)
   display_set_fg_color(DARKGREY_COLOR);
 
   //Fill the background
-  display_fill_rect(150, 46, 244, 413);//353
+  display_fill_rect(SYSTEM_MENU_XPOS, SYSTEM_MENU_YPOS, SYSTEM_MENU_WIDTH, SYSTEM_MENU_HEIGHT);//353
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
 
   //Draw the edge
-  display_draw_rect(150, 46, 244, 413);//353
+  display_draw_rect(SYSTEM_MENU_XPOS, SYSTEM_MENU_YPOS, SYSTEM_MENU_WIDTH, SYSTEM_MENU_HEIGHT);//353
 
   //Five black lines between the settings
   display_set_fg_color(BLACK_COLOR);
 
-  for(y=104;y<410;y+=59)//350
+  for(y=SYSTEM_MENU_YPOS+58;y<SYSTEM_MENU_HEIGHT;y+=59)//350
   {
-    display_draw_horz_line(y, 159, 385);
+    display_draw_horz_line(y, SYSTEM_MENU_XPOS+9, SYSTEM_MENU_HEIGHT-28);
   }
 
   //Display the menu items
   scope_system_settings_screen_brightness_item(0);
   scope_system_settings_grid_brightness_item(0);
-  scope_system_settings_trigger_50_item();
+  //scope_system_settings_trigger_50_item();
+  scope_system_settings_other_settings_item(0);
+  
   scope_system_settings_calibration_item(0);
-  scope_system_settings_x_y_mode_item();
-  scope_system_settings_confirmation_item();
+  scope_system_settings_x_y_mode_item(0);
+  scope_system_settings_confirmation_item(0);
   scope_system_settings_RTC_settings_item(0);
 
   //Set source and target for getting it on the actual screen
@@ -4286,7 +6108,7 @@ void scope_open_system_settings_menu(void)
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
 
   //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_left_rect_onto_screen(150, 46, 244, 413, 63039);//353
+  display_slide_left_rect_onto_screen(SYSTEM_MENU_XPOS, SYSTEM_MENU_YPOS, SYSTEM_MENU_WIDTH, SYSTEM_MENU_HEIGHT, 63039);//353
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -4306,7 +6128,7 @@ void scope_system_settings_screen_brightness_item(int mode)
   }
 
   //Draw the background
-  display_fill_rounded_rect(159, 58, 226, 36, 3);//159 59 226 36 3
+  display_fill_rounded_rect(SYSTEM_MENU_XPOS+9, 58, 226, 36, 3);//159 59 226 36 3
 
   //Check if inactive or active
   if(mode == 0)
@@ -4328,7 +6150,7 @@ void scope_system_settings_screen_brightness_item(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(screen_brightness_icon, 171, 64, 24, 24);
+  display_copy_icon_use_colors(screen_brightness_icon, SYSTEM_MENU_XPOS+21, 64, 24, 24);
 
   //Display the text
   display_set_font(&font_3);
@@ -4370,7 +6192,7 @@ void scope_system_settings_grid_brightness_item(int mode)
   }
 
   //Draw the background
-  display_fill_rounded_rect(159, 116, 226, 36, 3);
+  display_fill_rounded_rect(SYSTEM_MENU_XPOS+9, 116, 226, 36, 3);
 
   //Check if inactive or active
   if(mode == 0)
@@ -4387,7 +6209,7 @@ void scope_system_settings_grid_brightness_item(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(grid_brightness_icon, 171, 122, 24, 24);
+  display_copy_icon_use_colors(grid_brightness_icon, SYSTEM_MENU_XPOS+21, 122, 24, 24);
 
   //Display the text
   display_set_font(&font_3);
@@ -4414,24 +6236,320 @@ void scope_system_settings_grid_brightness_value(void)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void scope_system_settings_trigger_50_item(void)
+void scope_system_settings_other_settings_item(int mode)
 {
-  //Set the colors for white foreground and grey background
-  display_set_fg_color(WHITE_COLOR);
-  display_set_bg_color(DARKGREY_COLOR);
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so dark grey background
+    display_set_fg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so yellow background
+    display_set_fg_color(YELLOW_COLOR);
+  }
+
+  //Draw the background
+  //display_fill_rounded_rect(159, 174, 226, 38, 3);//401 36 
+  display_fill_rounded_rect(SYSTEM_MENU_XPOS+9, SYSTEM_MENU_YPOS+128, 226, 38, 3);//401 36
+
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Inactive so white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    display_set_bg_color(DARKGREY_COLOR);
+  }
+  else
+  {
+    //Active so black foreground and yellow background
+    display_set_fg_color(BLACK_COLOR);
+    display_set_bg_color(YELLOW_COLOR);
+  }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(trigger_50_percent_icon, 171, 181, 24, 24);
+  //display_copy_icon_use_colors(RTC_icon, 171, 417, 24, 24);
+    //Display the icon with the set colors
+  display_copy_icon_use_colors(Other_settings_icon, SYSTEM_MENU_XPOS+21, 181, 24, 24);//171
+  display_copy_icon_use_colors(Right_drop_menu_icon, SYSTEM_MENU_XPOS+202, 181, 24, 24);//211
 
   //Display the text
   display_set_font(&font_3);
-  display_text(229, 178, "Always");
-  display_text(217, 194, "trigger 50%");
-
-  //Show the state
-  scope_display_slide_button(326, 183, scopesettings.alwaystrigger50, GREEN_COLOR);
+  display_text(235, 177, "Other");
+  display_text(229, 193, "settings");
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_open_other_settings_menu(void)
+{
+  int y;
+  
+  uint32 *ptr = STARTUP_CONFIG_ADDRESS; //Read boot config 
+  boot_menu_start = ptr[0] & 0x07;      //choice 1 for fnirsi firmware, 0 for peco firmware, 2 for FEL mode, 4 view choice menu
+
+  //Setup the menu in a separate buffer to be able to slide it onto the screen
+  display_set_screen_buffer(displaybuffertmp);
+
+  //Draw the background in dark grey
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Fill the background
+  display_fill_rect(OTHER_MENU_XPOS, OTHER_MENU_YPOS, OTHER_MENU_WIDTH, OTHER_MENU_HEIGHT);//150  46 244 353
+
+  //Draw the edge in a lighter grey
+  display_set_fg_color(LIGHTGREY_COLOR);
+
+  //Draw the edge
+  display_draw_rect(OTHER_MENU_XPOS, OTHER_MENU_YPOS, OTHER_MENU_WIDTH, OTHER_MENU_HEIGHT);//46 413 353
+
+  //Five black lines between the settings
+  display_set_fg_color(BLACK_COLOR);
+
+  for(y=OTHER_MENU_YPOS+46;y<OTHER_MENU_YPOS+OTHER_MENU_HEIGHT;y+=46)//+59
+  {
+    display_draw_horz_line(y, OTHER_MENU_XPOS+9, OTHER_MENU_XPOS+OTHER_MENU_WIDTH-9);//1404 585//59 385 630
+  }
+
+  //Display the menu items
+  scope_system_settings_other_settings_boot_menu_item();
+  scope_system_settings_other_settings_default_start_item();
+  scope_system_settings_other_settings_new_autosetup_item();
+  scope_system_settings_other_settings_lock_cursor_item();
+  scope_system_settings_other_settings_dc_shift_cal_item();
+  scope_system_settings_other_settings_CH340_mode_item();
+  scope_system_settings_other_settings_dev_mode_item();
+  scope_system_settings_other_settings_BMP_mark_item();
+  scope_system_settings_other_settings_ref_on_start_item();
+  
+  //Set source and target for getting it on the actual screen
+  display_set_source_buffer(displaybuffertmp);
+  display_set_screen_buffer((uint16 *)maindisplaybuffer);
+
+  //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
+  display_slide_left_rect_onto_screen(OTHER_MENU_XPOS, OTHER_MENU_YPOS, OTHER_MENU_WIDTH, OTHER_MENU_HEIGHT, 63039);//46 244 353
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_boot_menu_item(void)
+{
+  uint8 tmp;                  //for choice default start 
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 6;//12
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+  
+  //Show the state (boot menu button mode)
+  tmp=((boot_menu_start & 0x04)>>2);
+  scope_display_slide_button(x+6, y+7, tmp, GREEN_COLOR);//588
+  
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+   
+  display_text(x+66, y+8, "Boot menu");     
+  //display_text(x+57, 162, "Default start"); 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_default_start_item(void)
+{
+  //uint8 tmp;                  //for choice default start
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 52;//step 46 //step 59
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+
+  //Add the button for BOOT Default start
+  scope_boot_button(x+6, y+7);//588
+    
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+  
+  display_text(x+66, y+8, "Default start"); 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_new_autosetup_item(void)
+{
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 98;//130
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+
+  //Show the state (autosetup button mode)
+  scope_display_slide_button(x+6, y+7, scopesettings.new_autosetup, GREEN_COLOR);//588
+  
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+  
+  display_text(x+66, y+8, "New autosetup");      //575 425
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_lock_cursor_item(void)
+{
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 144;//189
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+  
+  //Show the state (lock cursors move)
+  scope_display_slide_button(x+6, y+7, scopesettings.lockcursors, GREEN_COLOR);//588
+  
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+
+  display_text(x+66, y+8, "Lock move cursors"); 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_dc_shift_cal_item(void)
+{
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 190;//248
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+        
+  //Show the state (dc_shift_cal button mode)
+  scope_display_slide_button(x+6, y+7, dc_shift_cal, GREEN_COLOR);//588
+   
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+  
+  display_text(x+66, y+8, "DC shift calibration");     
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_CH340_mode_item(void)
+{
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 236;//307
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+        
+  //Show the state (dc_shift_cal button mode)
+  scope_display_slide_button(x+6, y+7, USB_CH340, GREEN_COLOR);//588
+   
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+  
+  //display_text(x+66, y+8, "USB CH340 mode");  
+    display_text(x+66, y+8, "USB-Serial mode");
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_dev_mode_item(void)
+{
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 282;//366
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+        
+  //Show the state (dc_shift_cal button mode)
+  scope_display_slide_button(x+6, y+7, dev_mode, RED_COLOR);//588
+   
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+  
+  display_text(x+66, y+8, "Dev mode"); 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_BMP_mark_item(void)
+{
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 328;//366
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+        
+  //Show the state (dc_shift_cal button mode)
+  scope_display_slide_button(x+6, y+7, tag_in_BMP, GREEN_COLOR);//588
+   
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+  
+  display_text(x+66, y+8, "Add a tag to BMP"); 
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_system_settings_other_settings_ref_on_start_item(void)
+{
+  int x,y;
+  x = OTHER_MENU_XPOS + 9;
+  y = OTHER_MENU_YPOS + 374;//366
+  
+  //Inactive so dark grey background
+  display_set_fg_color(DARKGREY_COLOR);
+
+  //Draw the background
+  display_fill_rounded_rect(x, y, OTHER_MENU_WIDTH-18, 36, 3);//step 58
+        
+  //Show the state (ref_on_startup button)
+  scope_display_slide_button(x+6, y+7, scopesettings.ref_on_startup, GREEN_COLOR);//588
+   
+  //Display the text
+  display_set_font(&font_3);
+  display_set_fg_color(WHITE_COLOR);
+  
+  display_text(x+66, y+8, "Load Ref on start"); 
+}
 //----------------------------------------------------------------------------------------------------------------------------------
 
 void scope_system_settings_calibration_item(int mode)
@@ -4449,7 +6567,7 @@ void scope_system_settings_calibration_item(int mode)
   }
 
   //Draw the background
-  display_fill_rounded_rect(159, 235, 226, 36, 3);
+  display_fill_rounded_rect(SYSTEM_MENU_XPOS+9, 233, 226, 36, 3);//235
 
   //Check if inactive or active
   if(mode == 0)
@@ -4466,55 +6584,65 @@ void scope_system_settings_calibration_item(int mode)
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(baseline_calibration_icon, 171, 239, 24, 25);
+  display_copy_icon_use_colors(baseline_calibration_icon, SYSTEM_MENU_XPOS+21, 239, 24, 25);//239
+  display_copy_icon_use_colors(Right_drop_menu_icon, SYSTEM_MENU_XPOS+202, 239, 24, 24);//211
 
   //Display the text
   display_set_font(&font_3);
-  display_text(225, 237, "Baseline");
-  display_text(219, 253, "calibration");
+  display_text(225, 235, "Baseline");
+  display_text(219, 251, "calibration");
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void scope_system_settings_x_y_mode_item(void)
+void scope_system_settings_x_y_mode_item(int mode)
 {
-  //Set the colors for white foreground and grey background
-  display_set_fg_color(WHITE_COLOR);
-  display_set_bg_color(DARKGREY_COLOR);
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Set the colors for white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    display_set_bg_color(DARKGREY_COLOR);
 
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(x_y_mode_display_icon, 171, 299, 24, 24);
+    //Display the icon with the set colors
+    display_copy_icon_use_colors(x_y_mode_display_icon, SYSTEM_MENU_XPOS+21, 299, 24, 24);//176//+21 299
 
-  //Display the text
-  display_set_font(&font_3);
-  display_text(223, 295, "X-Y mode");
-  display_text(231, 311, "display");
+    //Display the text
+    display_set_font(&font_3);
+    display_text(SYSTEM_MENU_XPOS+147, 295, "X-Y mode");//100//223
+    display_text(SYSTEM_MENU_XPOS+155, 311, "display");//108//231
+  }
 
   //Show the state
-  scope_display_slide_button(326, 299, scopesettings.xymodedisplay, GREEN_COLOR);
+  scope_display_slide_button(SYSTEM_MENU_XPOS+70, 300, scopesettings.xymodedisplay, MAGENTA_COLOR);//+21//+176//326 299
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void scope_system_settings_confirmation_item(void)
+void scope_system_settings_confirmation_item(int mode)
 {
-  //Set the colors for white foreground and grey background
-  display_set_fg_color(WHITE_COLOR);
-  display_set_bg_color(DARKGREY_COLOR);
+  //Check if inactive or active
+  if(mode == 0)
+  {
+    //Set the colors for white foreground and grey background
+    display_set_fg_color(WHITE_COLOR);
+    display_set_bg_color(DARKGREY_COLOR);
 
-  //Display the icon with the set colors
-  display_copy_icon_use_colors(confirmation_icon, 171, 358, 24, 24);//356
+    //Display the icon with the set colors
+    display_copy_icon_use_colors(confirmation_icon, SYSTEM_MENU_XPOS+21, 358, 24, 24);//80//202 358
 
-  //Display the text
-  display_set_font(&font_3);
-  display_text(217, 354, "Notification");
-  display_text(213, 370, "confirmation");
+    //Display the text
+    display_set_font(&font_3);
+    display_text(SYSTEM_MENU_XPOS+142, 354, "Notification");//94//217
+    display_text(SYSTEM_MENU_XPOS+138, 370, "confirmation");//90//213
+  }
 
   //Show the state
-  scope_display_slide_button(326, 358, scopesettings.confirmationmode, GREEN_COLOR);
+  scope_display_slide_button(SYSTEM_MENU_XPOS+70, 359, scopesettings.confirmationmode, GREEN_COLOR);//+15 358
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
+
 void scope_system_settings_RTC_settings_item(int mode)//set
 {
   //Check if inactive or active
@@ -4530,7 +6658,7 @@ void scope_system_settings_RTC_settings_item(int mode)//set
   }
 
   //Draw the background
-  display_fill_rounded_rect(159, 410, 226, 38, 3);//401 36
+  display_fill_rounded_rect(SYSTEM_MENU_XPOS+9, 410, 226, 38, 3);//401 36
 
   //Check if inactive or active
   if(mode == 0)
@@ -4547,12 +6675,14 @@ void scope_system_settings_RTC_settings_item(int mode)//set
   }
 
   //Display the icon with the set colors
-  display_copy_icon_use_colors(RTC_icon, 171, 417, 24, 24);
+  display_copy_icon_use_colors(RTC_icon, SYSTEM_MENU_XPOS+21, 417, 24, 24);//171
+  display_copy_icon_use_colors(Right_drop_menu_icon, SYSTEM_MENU_XPOS+202, 417, 24, 24);//211
+  
 
   //Display the text
   display_set_font(&font_3);
-  display_text(241, 413, "RTC settings");
-  display_text(220, 429, "Time & Date settings");
+  display_text(241, 413, "RTC settings");       //250// 241 413
+  display_text(213, 429, "Time & Date settings");//222//220 429
   
   //Read time for RTC
   get_fattime();
@@ -4571,13 +6701,13 @@ void scope_open_RTC_settings_menu(void)
   display_set_fg_color(DARKGREY_COLOR);
 
   //Fill the background
-  display_fill_rect(395, 106, 200, 353);//150  46 244 353
+  display_fill_rect(RTC_MENU_XPOS, RTC_MENU_YPOS, RTC_MENU_WIDTH, RTC_MENU_HEIGHT);//150  46 244 353
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
 
   //Draw the edge
-  display_draw_rect(395, 106, 200, 353);//46 413 353
+  display_draw_rect(RTC_MENU_XPOS, RTC_MENU_YPOS, RTC_MENU_WIDTH, RTC_MENU_HEIGHT);//46 413 353
 
   //Five black lines between the settings
   display_set_fg_color(BLACK_COLOR);
@@ -4600,7 +6730,7 @@ void scope_open_RTC_settings_menu(void)
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
 
   //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_left_rect_onto_screen(395, 106, 200, 353, 63039);//46 244 353
+  display_slide_left_rect_onto_screen(RTC_MENU_XPOS, RTC_MENU_YPOS, RTC_MENU_WIDTH, RTC_MENU_HEIGHT, 63039);//46 244 353
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -4615,7 +6745,7 @@ void scope_system_settings_hour_item(void)
   display_fill_rounded_rect(540, 115, 35, 35, 2);//739 5 51 50
 
   //Draw the edge
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(415, 115, 35, 35, 2);
   display_draw_rounded_rect(540, 115, 35, 35, 2);
 
@@ -4664,7 +6794,7 @@ void scope_system_settings_minute_item(void)
   display_fill_rounded_rect(540, 174, 35, 35, 2);//739 5 51 50
 
   //Draw the edge
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(415, 174, 35, 35, 2);
   display_draw_rounded_rect(540, 174, 35, 35, 2);
 
@@ -4713,7 +6843,7 @@ void scope_system_settings_day_item(void)
   display_fill_rounded_rect(540, 233, 35, 35, 2);//739 5 51 50
 
   //Draw the edge
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(415, 233, 35, 35, 2);
   display_draw_rounded_rect(540, 233, 35, 35, 2);
 
@@ -4762,7 +6892,7 @@ void scope_system_settings_month_item(void)
   display_fill_rounded_rect(540, 291, 35, 35, 2);//739 5 51 50
 
   //Draw the edge
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(415, 291, 35, 35, 2);
   display_draw_rounded_rect(540, 291, 35, 35, 2);
 
@@ -4811,7 +6941,7 @@ void scope_system_settings_year_item(void)
   display_fill_rounded_rect(540, 350, 35, 35, 2);//739 5 51 50
 
   //Draw the edge
-  display_set_fg_color(0x00606060);
+  display_set_fg_color(LIGHTGREY1_COLOR);
   display_draw_rounded_rect(415, 350, 35, 35, 2);
   display_draw_rounded_rect(540, 350, 35, 35, 2);
 
@@ -4882,11 +7012,11 @@ void scope_open_diagnostic_view(void)
   //y
   const uint16    i=65; //40
   const uint16    j=225;//200
-  const uint16    k=328;//385
+  //const uint16    k=328;//385
   
   uint16    b1;
   uint8    temp;
-  uint8    tmp;
+  //uint8    tmp;
   
   //Clear the whole screen
   display_set_fg_color(BLACK_COLOR);
@@ -4895,6 +7025,7 @@ void scope_open_diagnostic_view(void)
   
   //Draw the edge
   display_set_fg_color(WHITE_COLOR);
+  display_draw_rect(0, 0, 800, 480); 
   display_draw_rounded_rect(10, 10, 780, 460, 3);  //4
   display_draw_rounded_rect(11, 11, 778, 458, 3);  //4
   //  display_draw_rounded_rect(270, 10, 520, 460, 3);  //4
@@ -4925,12 +7056,13 @@ void scope_open_diagnostic_view(void)
   display_text(160, 370, "Reset or restore"); //x70 //335 390
   display_text(150, 385, "of calibration data"); //x70 //335 390
   
-  
+  /*
   display_text(k+57, 42,  "New autosetup");      //575 425
   display_text(k+57, 82,  "DC shift calibration");     
   display_text(k+57, 122, "Boot menu");     
   display_text(k+57, 162, "Default start"); 
   display_text(k+57, 202, "Lock move cursors"); 
+  */
     
   temp = readtemperature();
   
@@ -5062,7 +7194,7 @@ void scope_open_diagnostic_view(void)
           
   //Add the button for RESET
   scope_reset_button(230, 410, 0);    //c=200 //460 400
-  
+  /*
   //Show the state (autosetup button mode)
   scope_display_slide_button(k, 40, scopesettings.new_autosetup, GREEN_COLOR);//588
         
@@ -5074,10 +7206,11 @@ void scope_open_diagnostic_view(void)
   scope_display_slide_button(k, 120, tmp, GREEN_COLOR);//588
 
   //Add the button for BOOT Default start
-  scope_boot_button(k, 160, 0);//588
+  scope_boot_button(k, 160);//588 //0
   
   //Show the state (lock cursors move)
   scope_display_slide_button(k, 200, scopesettings.lockcursors, GREEN_COLOR);//588
+  */
   
   //Add the button for EXIT
   scope_exit_button(710, 410, 0);
@@ -5100,18 +7233,18 @@ void scope_open_calibration_start_text(void)
 {
   //Save the screen under the baseline calibration start text
   display_set_destination_buffer(displaybuffer3);//2
-  display_copy_rect_from_screen(395, 222, 199, 59);
+  display_copy_rect_from_screen(CALIBRATION_MENU_XPOS, CALIBRATION_MENU_YPOS, CALIBRATION_MENU_WIDTH, CALIBRATION_MENU_HEIGHT);
 
   //Setup the text in a separate buffer to be able to slide it onto the screen
   display_set_screen_buffer(displaybuffertmp);//1
 
   //Draw the background in yellow //white
   display_set_fg_color(YELLOW_COLOR);
-  display_fill_rect(395, 222, 199, 59);
+  display_fill_rounded_rect(CALIBRATION_MENU_XPOS, CALIBRATION_MENU_YPOS, CALIBRATION_MENU_WIDTH, CALIBRATION_MENU_HEIGHT, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(CALIBRATION_MENU_XPOS, CALIBRATION_MENU_YPOS, CALIBRATION_MENU_WIDTH, CALIBRATION_MENU_HEIGHT, 3);
 
   //Display the text in white
   display_set_fg_color(RED_COLOR);
@@ -5128,7 +7261,7 @@ void scope_open_calibration_start_text(void)
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
 
   //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_left_rect_onto_screen(395, 222, 199, 59, 63039);
+  display_slide_left_rect_onto_screen(CALIBRATION_MENU_XPOS, CALIBRATION_MENU_YPOS, CALIBRATION_MENU_WIDTH, CALIBRATION_MENU_HEIGHT, 63039);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -5137,15 +7270,15 @@ void scope_show_calibrating_text(void)
 {
   //Restore the screen from under the calibration start text to get rid of it
   display_set_source_buffer(displaybuffer3);//2
-  display_copy_rect_to_screen(395, 222, 199, 59);
+  display_copy_rect_to_screen(CALIBRATION_MENU_XPOS, CALIBRATION_MENU_YPOS, CALIBRATION_MENU_WIDTH, CALIBRATION_MENU_HEIGHT);
 
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 109, 58);//110 59
+  display_fill_rounded_rect(395, 222, 109, 58, 3);//110 59
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 110, 59);
+  display_draw_rounded_rect(395, 222, 110, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5159,11 +7292,11 @@ void scope_show_calibration_done_text(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 109, 58);
+  display_fill_rounded_rect(395, 222, 109, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 110, 59);
+  display_draw_rounded_rect(395, 222, 110, 59, 3);
 
   //Display the text in green
   display_set_fg_color(GREEN_COLOR);
@@ -5181,11 +7314,11 @@ void scope_show_calibration_fail(void)
 {
   //Draw the background in white
   display_set_fg_color(WHITE_COLOR);
-  display_fill_rect(395, 222, 198, 58);//199 59
+  display_fill_rounded_rect(395, 222, 198, 58, 3);//199 59
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in red
   display_set_fg_color(RED_COLOR);
@@ -5200,11 +7333,11 @@ void scope_show_Input_calibration(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);//199 59
+  display_fill_rounded_rect(395, 222, 198, 58, 3);//199 59
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5223,11 +7356,11 @@ void scope_show_calibrating_300mV_text(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5244,11 +7377,11 @@ void scope_show_calibrating_600mV_text(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5265,11 +7398,11 @@ void scope_show_calibrating_1_5V_text(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5287,11 +7420,11 @@ void scope_show_calibrating_3V_text(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5309,11 +7442,11 @@ void scope_show_calibrating_7_5V_text(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5329,11 +7462,11 @@ void scope_show_calibrating_15V_text(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in white
   display_set_fg_color(WHITE_COLOR);
@@ -5349,11 +7482,11 @@ void scope_show_Input_calibration_done(void)
 {
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(395, 222, 198, 58);//199 59
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in green
   display_set_fg_color(GREEN_COLOR);
@@ -5368,11 +7501,11 @@ void scope_show_Input_calibration_fail(void)
 {
   //Draw the background in white
   display_set_fg_color(WHITE_COLOR);
-  display_fill_rect(395, 222, 198, 58);//199 59
+  display_fill_rounded_rect(395, 222, 198, 58, 3);
 
   //Draw the edge in a lighter grey
   display_set_fg_color(LIGHTGREY_COLOR);
-  display_draw_rect(395, 222, 199, 59);
+  display_draw_rounded_rect(395, 222, 199, 59, 3);
 
   //Display the text in red
   display_set_fg_color(RED_COLOR);
@@ -5450,57 +7583,45 @@ void scope_open_measures_menu(void)
 
   //Draw the background in dark grey
   display_set_fg_color(DARKGREY_COLOR);
-  display_fill_rect(231, 263, 501, 215);//499
+  display_fill_rect(232, 232, 499, 246);//231-263-501-215 //499
 
   //Draw the edge in black
   //display_set_fg_color(BLACK_COLOR);
   display_set_fg_color(WHITE_COLOR);
-  display_draw_rect(231, 263, 501, 215);//499
+  display_draw_rect(232, 232, 499, 246);//499
 
   //Three horizontal black lines between the settings y, x, long
   display_set_fg_color(BLACK_COLOR);
   //display_set_fg_color(WHITE_COLOR);
-  display_draw_horz_line(296, 232, 730);
-  display_draw_horz_line(356, 232, 730);
-  display_draw_horz_line(416, 232, 730);
+  display_draw_horz_line(264, 233, 728); 
+  display_draw_horz_line(296, 233, 728);
+  display_draw_horz_line(356, 233, 728);
+  display_draw_horz_line(416, 233, 728);
   
-  //Channel 1 top bar
-  display_set_fg_color(CHANNEL1_COLOR);
-  display_fill_rect(232, 264, 248, 31);
-
-  //Channel 2 top bar
-  display_set_fg_color(CHANNEL2_COLOR);
-  display_fill_rect(482, 264, 248, 31);//246
+  scope_source1_measures_menu_item();
+  scope_source2_measures_menu_item();
   
   //If hide measures menu item is active change color Hide bar CH1 & CH2
-  scope_hide_measures_menu_item();
+  //scopesettings.measures_color1 = CHANNEL1_COLOR;
+  //scope_hide_measures_menu_item();
 
   //Vertical separator between the channel sections
   //Draw the edge in white
   //display_set_fg_color(ORANGE_COLOR);
   display_set_fg_color(WHITE_COLOR);
-  display_draw_vert_line(481, 264, 476);
+  display_draw_vert_line(480, 232, 476);
+  display_draw_vert_line(481, 232, 476);
 
   //Vertical separators between the items
   //Draw the edge in black
   display_set_fg_color(BLACK_COLOR);
-  display_draw_vert_line(294, 264, 476);//294 289 476
-  display_draw_vert_line(356, 264, 476);
-  display_draw_vert_line(418, 264, 476);
-  display_draw_vert_line(544, 264, 476);
-  display_draw_vert_line(606, 264, 476);
-  display_draw_vert_line(668, 264, 476);
+  display_draw_vert_line(294, 233, 475);//294 289 476
+  display_draw_vert_line(356, 233, 475);
+  display_draw_vert_line(418, 233, 475);
+  display_draw_vert_line(544, 233, 475);
+  display_draw_vert_line(606, 233, 475);
+  display_draw_vert_line(668, 233, 475);
 
-  //Display the channel identifier text in black
-  display_set_fg_color(BLACK_COLOR);
-  display_set_font(&font_2);
-  display_text(240, 273, "CH1");
-  display_text(300, 273, "Select All");
-  display_text(375, 273, "Clear");  //373
-  
-  display_text(490, 273, "CH2");
-  display_text(550, 273, "Select All");
-  display_text(625, 273, "Clear");  //623
 
   //Display the menu items
   for(channel=0;channel<2;channel++)
@@ -5518,7 +7639,142 @@ void scope_open_measures_menu(void)
   display_set_screen_buffer((uint16 *)maindisplaybuffer);
 
   //Slide the image onto the actual screen. The speed factor makes it start fast and end slow, Smaller value makes it slower.
-  display_slide_right_rect_onto_screen(231, 263, 501, 215, 75646);//449
+  display_slide_right_rect_onto_screen(232, 232, 499, 246, 75646);//449
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_source1_measures_menu_item(void)
+{
+  //Draw the background in dark grey
+  display_set_fg_color(DARKGREY_COLOR);
+  display_fill_rect(233, 265, 61, 31); //Channel 1 item
+  display_fill_rect(233, 233, 61, 31);
+  display_fill_rect(295, 233, 61, 31);
+  display_fill_rect(357, 233, 61, 31);
+  display_fill_rect(419, 233, 61, 31);
+  
+switch (scopesettings.source1_measures)
+{
+  case 0:
+    scopesettings.measures_color1 = CHANNEL1_COLOR;
+    display_set_fg_color(scopesettings.measures_color1);
+    display_fill_rect(233, 265, 61, 31); //Channel 1 item
+    break;
+  case 1:
+    scopesettings.measures_color1 = scopesettings.ch_ref1.color;
+    display_set_fg_color(scopesettings.measures_color1);
+    display_fill_rect(233, 233, 61, 31);
+    break;
+  case 2:
+    scopesettings.measures_color1 = scopesettings.ch_ref2.color;
+    display_set_fg_color(scopesettings.measures_color1);
+    display_fill_rect(295, 233, 61, 31);
+    break;
+  case 3:
+    scopesettings.measures_color1 = scopesettings.ch_ref3.color;
+    display_set_fg_color(scopesettings.measures_color1);
+    display_fill_rect(357, 233, 61, 31);
+    break;
+  case 4:
+    scopesettings.measures_color1 = scopesettings.ch_ref4.color;
+    display_set_fg_color(scopesettings.measures_color1);
+    display_fill_rect(419, 233, 61, 31);
+    break;
+  default:
+    scopesettings.measures_color1 = CHANNEL1_COLOR;
+    display_set_fg_color(scopesettings.measures_color1);
+    display_fill_rect(233, 265, 61, 31); //Channel 1 item
+    break;
+}
+  //Select all_1 item 
+  display_fill_rect(295, 265, 61, 31);
+  //Clear_1 item
+  display_fill_rect(357, 265, 61, 31);
+   
+  //Display the channel identifier text in black
+  display_set_fg_color(BLACK_COLOR);
+  display_set_font(&font_2);
+  display_text(250, 242, "Ref 1");//+18
+  display_text(312, 242, "Ref 2");
+  display_text(374, 242, "Ref 3");
+  display_text(436, 242, "Ref 4");
+
+  display_text(253, 273, "CH1");
+  display_text(300, 273, "Select All");
+  display_text(375, 273, "Clear");  //373
+
+  //If hide measures menu item is active change color Hide bar CH1 & CH2
+  scope_hide_measures_menu_item();  //change source color of button
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void scope_source2_measures_menu_item(void)
+{
+  //Draw the background in dark grey
+  display_set_fg_color(DARKGREY_COLOR);
+  
+  display_fill_rect(482, 265, 62, 31);//246
+  display_fill_rect(482, 233, 62, 31);
+  display_fill_rect(545, 233, 61, 31);
+  display_fill_rect(607, 233, 61, 31);
+  display_fill_rect(669, 233, 61, 31);
+  
+switch (scopesettings.source2_measures)
+{
+  case 0:
+    scopesettings.measures_color2 = CHANNEL2_COLOR;
+    display_set_fg_color(scopesettings.measures_color2);
+    display_fill_rect(482, 265, 62, 31); //Channel 2 item
+    break;
+  case 1:
+    scopesettings.measures_color2 = scopesettings.ch_ref5.color;
+    display_set_fg_color(scopesettings.measures_color2);
+    display_fill_rect(482, 233, 62, 31);
+    break;
+  case 2:
+    scopesettings.measures_color2 = scopesettings.ch_ref6.color;
+    display_set_fg_color(scopesettings.measures_color2);
+    display_fill_rect(545, 233, 61, 31);
+    break;
+  case 3:
+    scopesettings.measures_color2 = scopesettings.ch_ref7.color;
+    display_set_fg_color(scopesettings.measures_color2);
+    display_fill_rect(607, 233, 61, 31);
+    break;
+  case 4:
+    scopesettings.measures_color2 = scopesettings.ch_ref8.color;
+    display_set_fg_color(scopesettings.measures_color2);
+    display_fill_rect(669, 233, 61, 31);
+    break;
+  default:
+    scopesettings.measures_color2 = CHANNEL2_COLOR;
+    display_set_fg_color(scopesettings.measures_color2);
+    display_fill_rect(482, 265, 62, 31); //Channel 1 item
+    break;
+}
+  //Select all_2
+  display_fill_rect(545, 265, 61, 31);
+  //Clear_2 item
+  display_fill_rect(607, 265, 61, 31);
+  
+  //Display the channel identifier text in black
+  display_set_fg_color(BLACK_COLOR);
+  display_set_font(&font_2);
+
+  
+  display_text(499, 242, "Ref 5");//+18
+  display_text(562, 242, "Ref 6");
+  display_text(624, 242, "Ref 7");
+  display_text(686, 242, "Ref 8");
+  
+  display_text(503, 273, "CH2");
+  display_text(550, 273, "Select All");
+  display_text(625, 273, "Clear");  //623   
+  
+  //If hide measures menu item is active change color Hide bar CH1 & CH2
+  scope_hide_measures_menu_item();  //change source color of button
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -5526,17 +7782,17 @@ void scope_open_measures_menu(void)
 void scope_hide_measures_menu_item(void)
 {
   //Channel 1 HIDE top bar
-  if( scopesettings.hide_values_CH1) display_set_fg_color(RED_COLOR); else display_set_fg_color(CHANNEL1_COLOR);
-  display_fill_rect(419, 264, 61, 31);
+  if( scopesettings.hide_values_CH1) display_set_fg_color(RED_COLOR); else display_set_fg_color(scopesettings.measures_color1);
+  display_fill_rect(419, 265, 61, 31);
 
   //Channel 2 HIDE top bar
-  if( scopesettings.hide_values_CH2) display_set_fg_color(RED_COLOR); else display_set_fg_color(CHANNEL2_COLOR);
-  display_fill_rect(669, 264, 61, 31);   
+  if( scopesettings.hide_values_CH2) display_set_fg_color(RED_COLOR); else display_set_fg_color(scopesettings.measures_color2);
+  display_fill_rect(669, 265, 61, 31);   
   
   //Display text Hide in black
   display_set_fg_color(BLACK_COLOR);
   display_set_font(&font_2);
-  display_text(440, 273, "Hide");  
+  display_text(438, 273, "Hide");  
   display_text(690, 273, "Hide");     
 }
 
@@ -5838,7 +8094,7 @@ void scope_display_ok_button(uint16 xpos, uint16 ypos, uint8 mode)
   }
 
   //Draw the background
-  display_fill_rect(xpos, ypos, 66, 44);
+  display_fill_rounded_rect(xpos, ypos, 66, 44, 3);
 
   //Check if inactive or active
   if(mode == 0)
@@ -5874,7 +8130,7 @@ void scope_default_button(uint16 xpos, uint16 ypos, uint8 mode)
   }
 
   //Draw the background
-  display_fill_rect(xpos, ypos, 66, 44);
+  display_fill_rounded_rect(xpos, ypos, 66, 44, 3);
 
   //Black text
   display_set_fg_color(BLACK_COLOR);
@@ -5902,7 +8158,7 @@ void scope_restore_button(uint16 xpos, uint16 ypos, uint8 mode)
   }
 
   //Draw the background
-  display_fill_rect(xpos, ypos, 66, 44);
+  display_fill_rounded_rect(xpos, ypos, 66, 44, 3);
 
   //Black text
   display_set_fg_color(BLACK_COLOR);
@@ -5930,7 +8186,7 @@ void scope_reset_button(uint16 xpos, uint16 ypos, uint8 mode) //((xtouch >= 470)
   }
 
   //Draw the background
-  display_fill_rect(xpos, ypos, 66, 44);
+  display_fill_rounded_rect(xpos, ypos, 66, 44, 3);
 
   //Black text
   display_set_fg_color(BLACK_COLOR);
@@ -5943,29 +8199,20 @@ void scope_reset_button(uint16 xpos, uint16 ypos, uint8 mode) //((xtouch >= 470)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-void scope_boot_button(uint16 xpos, uint16 ypos, uint8 mode)
+void scope_boot_button(uint16 xpos, uint16 ypos)
 {
   uint8 tmp;   
   
   //type firmware to view
   tmp = (boot_menu_start & 0x03);
-  
-  //Check if inactive or active
-  if(mode == 0)
-  {
-    //Inactive so color
-    if (tmp == 0) display_set_fg_color(GREEN_COLOR);    //Peco
-    if (tmp == 1) display_set_fg_color(BLUE_COLOR);     //fnirsi    
-    if (tmp == 2) display_set_fg_color(ORANGE_COLOR);   //FEL mode
-  }
-  else
-  {
-    //Active so light grey background
-    display_set_fg_color(0x00CCCCCC);
-  }
+
+  //Set so color
+  if (tmp == 0) display_set_fg_color(GREEN_COLOR);    //Peco
+  if (tmp == 1) display_set_fg_color(BLUE_COLOR);     //fnirsi    
+  if (tmp == 2) display_set_fg_color(ORANGE_COLOR);   //FEL mode
 
   //Draw the background
-  display_fill_rect(xpos, ypos, 46, 22);
+  display_fill_rounded_rect(xpos, ypos, 46, 22, 2);
 
   //Black text
   display_set_fg_color(BLACK_COLOR);
@@ -5975,7 +8222,6 @@ void scope_boot_button(uint16 xpos, uint16 ypos, uint8 mode)
   if (tmp == 0) display_text(xpos + 10, ypos + 4, "PECO"); else
   if (tmp == 1) display_text(xpos + 5,  ypos + 4, "FNIRSI"); else
   if (tmp == 2) display_text(xpos + 2,  ypos + 4, "FELmod");
-
 }
 //----------------------------------------------------------------------------------------------------------------------------------
 
@@ -5994,7 +8240,7 @@ void scope_exit_button(uint16 xpos, uint16 ypos, uint8 mode)
   }
 
   //Draw the background
-  display_fill_rect(xpos, ypos, 66, 44);
+  display_fill_rounded_rect(xpos, ypos, 66, 44, 3);
 
   //Black text
   display_set_fg_color(BLACK_COLOR);
@@ -6320,5 +8566,59 @@ void scope_draw_volt_cursors(void)
     display_draw_horz_dashes(scopesettings.voltcursor2position, 6, 725, 3, 3);//6 726
   }
 }
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+/*
+ void u32_to_hexstr(uint32_t value, char *buffer) {
+    const char hex_chars[] = "0123456789ABCDEF";
+    for (int i = 0; i < 8; i++) {
+        buffer[7 - i] = hex_chars[(value >> (i * 4)) & 0xF];
+    }
+    buffer[8] = '\0'; // null-terminate
+}
+ 
+ */
+
+void format_version_full(uint32_t value, char *buffer) 
+{
+    int idx = 0;
+
+    for (int i = 3; i >= 0; i--) {
+        uint8_t byte = (value >> (i * 8)) & 0xFF;
+
+        if (i != 3)  buffer[idx++] = '.';
+            
+        // Converting a byte to a decimal number
+        if (byte >= 100) {
+            buffer[idx++] = '0' + byte / 100;
+            buffer[idx++] = '0' + (byte / 10) % 10;
+            buffer[idx++] = '0' + byte % 10;
+        } else if (byte >= 10) {
+            buffer[idx++] = '0' + byte / 10;
+            buffer[idx++] = '0' + byte % 10;
+        } else {
+            buffer[idx++] = '0' + byte;
+        }
+    }
+    buffer[idx] = '\0';
+}
+
+void extract_version_string(uint32_t word1, uint32_t word2, char *buffer) 
+{
+  
+    buffer[0] = (char)(word1 & 0xFF);         // 'v'
+    buffer[1] = (char)((word1 >> 8) & 0xFF);  // '0'
+    buffer[2] = (char)((word1 >> 16) & 0xFF); // '.'
+    buffer[3] = (char)((word1 >> 24) & 0xFF); // '2'
+
+    buffer[4] = (char)(word2 & 0xFF);         // '6'
+    buffer[5] = (char)((word2 >> 8) & 0xFF);  // 's'
+    buffer[6] = (char)((word2 >> 16) & 0xFF); // '\0' (null terminator)
+    buffer[7] = '\0'; // just to be sure
+}
+
+
+
 
 //----------------------------------------------------------------------------------------------------------------------------------

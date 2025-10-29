@@ -42,23 +42,23 @@ void readtime(void)                     //Read time for display to main screen
 //******************************************************************************
 void settime (void)                     //Write time to DS3231
 	{
-        //start register for writing
-        uint8 RTC_CMD_REG = 0; //write to sec register
-        uint8 buffertimeX[3];
+      //start register for writing
+      uint8 RTC_CMD_REG = 0; //write to sec register
+      uint8 buffertimeX[3];
         
-        buffertimeX[0]=0;               //set 0sec
+      buffertimeX[0]=0;               //set 0sec
         
-	buffertimeX[1]=(minute/10)<<4;  //set min
-	buffertimeX[1]|=(minute%10);
+      buffertimeX[1]=(minute/10)<<4;  //set min
+      buffertimeX[1]|=(minute%10);
 
-	buffertimeX[2]=(hour/10)<<4;    //set hour
-	buffertimeX[2]|=(hour%10);
+      buffertimeX[2]=(hour/10)<<4;    //set hour
+      buffertimeX[2]|=(hour%10);
         
-        if(onoffRTC) 
-            {
-            tp_i2c_send_data(RTC_DEVICE_ADDR, RTC_CMD_REG, buffertimeX, 3);
-            }
-	return;
+      if(onoffRTC) 
+        {
+          tp_i2c_send_data(RTC_DEVICE_ADDR, RTC_CMD_REG, buffertimeX, 3);
+        }
+      return;
 	}
 //****************************************************************
 //*************************  Send DATE  **************************
@@ -153,13 +153,13 @@ void monthDown (void)
 //--------------------------------------------------
 void yearUp (void)
     {
-    if (year<40) year++; else year=22;
+    if (year<40) year++; else year=25;
     setdate();
     return;
     }
 void yearDown (void)
     {
-    if (year>22) year--; else year=40;
+    if (year>25) year--; else year=40;
     setdate();
     return;
     }
@@ -293,44 +293,40 @@ void decodethumbnailfilename (int8 *s)
 //******************************************************************************
 DWORD get_fattime (void)
 {
-    uint8   tm_sec;
+    uint8   tm_sec = 0;
     uint8   tmp;
     uint8   bufferfattime[7];
     
     if(onoffRTC) 
-        {
+      { //RTC on
         tp_i2c_read_data(RTC_DEVICE_ADDR, 0x00, bufferfattime, 7);
   
-	tmp=(bufferfattime[0]>>4)&7;	
-	tm_sec=(bufferfattime[0]&15)+(10*tmp);
-        
-        tmp=(bufferfattime[1]>>4)&7;	
-	minute=(bufferfattime[1]&15)+(10*tmp);
-        
-        tmp=(bufferfattime[2]>>4)&3;	
-	hour=(bufferfattime[2]&15)+(10*tmp);
-        
-        tmp=(bufferfattime[4]>>4)&3;	
-	day=(bufferfattime[4]&15)+(10*tmp);
-        
-        tmp=(bufferfattime[5]>>4)&1;	
-	month=(bufferfattime[5]&15)+(10*tmp);
-        
-        tmp=(bufferfattime[6]>>4)&15;	
-	year=(bufferfattime[6]&15)+(10*tmp);
+        tmp=(bufferfattime[0]>>4)&7;	
+        tm_sec=(bufferfattime[0]&15)+(10*tmp);
 
-   
-        //return date and time
-        return (DWORD)(year+20) << 25 |
-               (DWORD)(month) << 21 |
-               (DWORD)(day) << 16 |
-               (DWORD)(hour) << 11 |
-               (DWORD)minute << 5 |
-               (DWORD)tm_sec >> 1; 
-        } 
-        else 
-            //Some date and time value ( if RTC off )
-            return(1449957149);   //Ne 12. marec 2023, 18:56:58
+        tmp=(bufferfattime[1]>>4)&7;	
+        minute=(bufferfattime[1]&15)+(10*tmp);
+
+        tmp=(bufferfattime[2]>>4)&3;	
+        hour=(bufferfattime[2]&15)+(10*tmp);
+
+        tmp=(bufferfattime[4]>>4)&3;	
+        day=(bufferfattime[4]&15)+(10*tmp);
+
+        tmp=(bufferfattime[5]>>4)&1;	
+        month=(bufferfattime[5]&15)+(10*tmp);
+
+        tmp=(bufferfattime[6]>>4)&15;	
+        year=(bufferfattime[6]&15)+(10*tmp);
+      } 
+
+      //return date and time (FATtime original year-1980)
+      return (DWORD)(year+20) << 25 |
+             (DWORD)(month) << 21 |
+             (DWORD)(day) << 16 |
+             (DWORD)(hour) << 11 |
+             (DWORD)minute << 5 |
+             (DWORD)tm_sec >> 1;
 }
 //******************************************************************************
 //------------------------------------------------------------------------------

@@ -15,6 +15,7 @@
 //----------------------------------------------------------------------------------------------------------------------------------
 
 #include "types.h"
+#include "variables.h"
 #include "font_structs.h"
 #include "display_lib.h"
 #include "sin_cos_math.h"
@@ -750,10 +751,6 @@ void display_fill_rect(uint32 xpos, uint32 ypos, uint32 width, uint32 height)
   uint16 *ptr;
   uint32  y;
   uint32  x;
-  
-  //Compensate for the last pixel 1.2 2023 fw0.023c
-  width--;
-  height--;
 
   //Calculate the last x and y position to compare against
   width += xpos;
@@ -772,13 +769,13 @@ void display_fill_rect(uint32 xpos, uint32 ypos, uint32 width, uint32 height)
   }
   
   //Draw all the pixels
-  for(y=ypos;y<=height;y++)
+  for(y=ypos;y<height;y++)
   {
     //Point to the first pixel of this line in the screen buffer
     ptr = displaydata.screenbuffer + ((y * displaydata.pixelsperline) + xpos);
 
     //Draw the pixels on the line
-    for(x=xpos;x<=width;x++)
+    for(x=xpos;x<width;x++)
     {
       //Set the current screen buffer pixel with the requested color
       *ptr++ = displaydata.fg_color;
@@ -793,7 +790,7 @@ void display_fill_rounded_rect(uint32 xpos, uint32 ypos, uint32 width, uint32 he
   uint16 *ptr1, *ptr2;
   uint32  x, xc, xs, xe, xt, y, yc, ys, ye;
   uint32  a, step, r;
-
+  
   //Compensate for the last pixel
   width--;
   height--;
@@ -938,6 +935,47 @@ void display_slide_top_rect_onto_screen(uint32 xpos, uint32 ypos, uint32 width, 
     
     //Handle the needed number of lines for this loop
     for(line=startline;line<height;line++)
+    {
+      //Copy a single line to the screen buffer
+      memcpy(ptr1, ptr2, width);
+      
+      //Point to the next line of pixels in both destination and source
+      ptr1 += pixels;
+      ptr2 += pixels;
+    }
+    
+    //Calculate the new starting line
+    startline = startline - 1 - ((startline * speed) >> 20);
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void display_slide_bottom_rect_onto_screen(uint32 xpos, uint32 ypos, uint32 width, uint32 height, uint32 speed)
+{
+  register uint16 *ptr1, *ptr2;
+  register int32   startline;     //Needs to be an int because it has to become negative to stop
+  register uint32  line;
+  register uint32  startxy;
+  register uint32  pixels = displaydata.pixelsperline;
+
+  //Starting line of the rectangle to display first
+  startline = height - ((height * speed) >> 20) - 1;
+  
+  //Start x,y offset for source and destination calculation
+  startxy = xpos + ypos * pixels;
+  
+  //For copying bytes instead of shorts the width doubles
+  width <<=1;
+  
+  //Draw lines as long as is needed to get the whole rectangle on screen
+  while(startline >= 0)
+  {
+    ptr2 = displaydata.sourcebuffer + startxy + ((height - 1 - startline) * pixels);
+    ptr1 = displaydata.screenbuffer + startxy + ((height - 1 - startline) * pixels);
+    
+    //Handle the needed number of lines for this loop
+    for (line = startline; line >= 0; line--)
     {
       //Copy a single line to the screen buffer
       memcpy(ptr1, ptr2, width);
@@ -1277,6 +1315,23 @@ void display_copy_icon_fg_color_y_gradient(const uint8 *icon, uint32 xpos, uint3
     //Point to the next line of pixels in the destination
     ptr += pixels;
   }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void display_left_REF_pointer(uint32 xpos, uint32 ypos, int8 id)
+{
+  //Draw the pointer
+  display_copy_icon_fg_color(left_REF_pointer_icon, xpos, ypos, 38, 14);//21
+  
+  //Set the color for drawing the id
+  displaydata.fg_color = displaydata.bg_color;
+  
+  //Draw the id
+  display_character(xpos + 1,  ypos, 'R');
+  display_character(xpos + 9,  ypos, 'e');
+  display_character(xpos + 17, ypos, 'f');
+  display_character(xpos + 25, ypos, id);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
