@@ -49,8 +49,6 @@
 #define BASE_ADDRESS    0x80000000
 #define FEL_ADDRESS     0xFFFF0020
 
-#define STARTUP_CONFIG_ADDRESS    (uint8*)0x81BFFC1F //value for default start firmware (0-pepco,1-fnirsi, 2-FEL, <3 skip menu)
-
 //----------------------------------------------------------------------------------------------------------------------------------
 
 //Buffer for reading header from SD card
@@ -64,7 +62,7 @@ int main(void)
   unsigned int address = BASE_ADDRESS;
   unsigned int length;
   unsigned int blocks;
-  int choice = 0;
+  uint32 choice;
   int i,j, retval;
   uint32 waittime = 0;
   uint32 time = 0;
@@ -122,7 +120,7 @@ int main(void)
   }
   
   //Load the display configuration sector to DRAM before the startup screen program
-  if(sd_card_read(DISPLAY_CONFIG_SECTOR, 1, (void *)0x81BFFC00) != SD_OK)
+  if(sd_card_read(DISPLAY_CONFIG_SECTOR, 1, (uint8 *)DISPLAY_CONFIG_ADDRESS) != SD_OK)
   {
     display_set_fg_color(BLACK_COLOR);
     //Fill the settings background
@@ -155,8 +153,7 @@ int main(void)
   //tp_i2c_read_status();
   
   //check SDcart startup settings
-  uint8 *ptr = STARTUP_CONFIG_ADDRESS;
-  choice = ptr[0];  //choice 1 for fnirsi firmware, 0 for peco firmware, 2 for FEL mode, 4 view choice menu
+  choice = STARTUP_CONFIG_ADDRESS[0];  //choice 1 for fnirsi firmware, 0 for peco firmware, 2 for FEL mode, 4 view choice menu
   //if ((choice > 3)||(havetouch == 1))  // choice>3 or touch detected view choice menu
   if (choice > 3)  // choice>3 view choice menu
   { choice &= 0x03; //choice 1 for fnirsi firmware, 0 for peco firmware, 2 for FEL mode

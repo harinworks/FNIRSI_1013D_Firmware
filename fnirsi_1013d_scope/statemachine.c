@@ -4907,7 +4907,7 @@ void handle_diagnostic_view_touch(void)
   //if(boot_menu_start == 1) boot_menu_start = 0x05;              //fnirsi firmware always with boot menu
   //ptr[0] = boot_menu_start;
   //SAVE the display configuration sector from DRAM to SDcart   //save boot menu and default start
-  //sd_card_write(DISPLAY_CONFIG_SECTOR, 1, (uint8 *)0x81BFFC00);
+  //sd_card_write(DISPLAY_CONFIG_SECTOR, 1, (uint8 *)DISPLAY_CONFIG_ADDRESS);
         //-------------------------------------
 }
 
@@ -5051,7 +5051,7 @@ void close_open_menus(uint32 closemain)
     if (dev_mode == 0) {if(boot_menu_start > 0) boot_menu_start |= 0x04;} //fnirsi and FEL firmware always with boot menu for user
     ptr[0] = boot_menu_start;
     //SAVE the display configuration sector from DRAM to SDcart   //save boot menu and default start
-    sd_card_write(DISPLAY_CONFIG_SECTOR, 1, (uint8 *)0x81BFFC00);
+    sd_card_write(DISPLAY_CONFIG_SECTOR, 1, (uint8 *)DISPLAY_CONFIG_ADDRESS);
     //---------------------------------------------------------------------------------------------------
    
     //Signal it is closed

@@ -40,7 +40,7 @@ uint8 yswap;
 
 uint8 config_valid;
 
-uint8 boot_menu_start;  //choice boot menu on start & choice start Peco, Fnirsi or Fel mode
+uint32 boot_menu_start;  //choice boot menu on start & choice start Peco, Fnirsi or Fel mode
 
 //----------------------------------------------------------------------------------------------------------------------------------
 //RTC DS3231 data

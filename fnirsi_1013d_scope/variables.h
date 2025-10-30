@@ -92,7 +92,8 @@
 
 #define SETTINGS_SECTOR                 709    //old 700 Location of the settings on the SD card for now
 #define DISPLAY_CONFIG_SECTOR           710
-#define STARTUP_CONFIG_ADDRESS          (uint32*)0x81BFFC1F //value for default start firmware (0-pepco,1-fnirsi, 2-FEL, <3 skip menu)
+#define DISPLAY_CONFIG_ADDRESS          ((uint32 *)0x81BFFC00)
+#define STARTUP_CONFIG_ADDRESS          ((uint32 *)0x81BFFC1F) //value for default start firmware (0-pepco,1-fnirsi, 2-FEL, <3 skip menu)
                                                //configuration_data         file_setup 
 #define CHANNEL1_SETTING_OFFSET          8     //24 all, used 11*16bit=11   used 21*16bit
 #define CHANNEL2_SETTING_OFFSET          32    //24 all, used 11*16bit      used 21*16bit 
@@ -722,7 +723,7 @@ extern uint8 yswap;
 
 extern uint8 config_valid;
 
-extern uint8 boot_menu_start;
+extern uint32 boot_menu_start;
 
 //----------------------------------------------------------------------------------------------------------------------------------
 //RTC DS3231 data
