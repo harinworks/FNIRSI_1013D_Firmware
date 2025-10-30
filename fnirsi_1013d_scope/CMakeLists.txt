@@ -44,7 +44,7 @@ add_dependencies(fnirsi_1013d_scope host_utils)
 if(LEGACY_STARTUP)
     add_dependencies(fnirsi_1013d_scope fnirsi_1013d_startup_screen)
 else()
-    add_dependencies(fnirsi_1013d_scope fnirsi_1014d_startup)
+    add_dependencies(fnirsi_1013d_scope fnirsi_1013d_startup)
 endif()
 
 target_link_libraries(fnirsi_1013d_scope PRIVATE gcc)

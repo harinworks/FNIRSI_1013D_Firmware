@@ -47,7 +47,7 @@ jobs:
         with:
           name: fnirsi_1013d-${{ matrix.type }}
           path: |
-            build/fnirsi_1014d_startup/fnirsi_1014d_startup.bin
+            build/fnirsi_1013d_startup/fnirsi_1013d_startup.bin
             build/fnirsi_1013d_scope/fnirsi_1013d_scope.bin
             build/fnirsi_1013d_scope/fnirsi_1013d.bin
           if-no-files-found: error

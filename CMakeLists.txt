@@ -43,7 +43,7 @@ if(LEGACY_STARTUP)
     add_subdirectory(fnirsi_1013d_sd_card_bootloader)
     add_subdirectory(fnirsi_1013d_startup_screen)
 else()
-    add_subdirectory(fnirsi_1014d_startup)
+    add_subdirectory(fnirsi_1013d_startup)
 endif()
 
 add_subdirectory(fnirsi_1013d_scope)
