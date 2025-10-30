@@ -16,7 +16,7 @@
 //Version info
 //----------------------------------------------------------------------------------------------------------------------------------
 
-#define VERSION_STRING             "git"
+#include "version.h"
 
 #define VERSION_STRING_XPOS             698//690//681     //690 
 #define VERSION_STRING_YPOS              24

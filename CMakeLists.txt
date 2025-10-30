@@ -15,6 +15,14 @@ ExternalProject_Add(host_utils
 set(FLASHFILEPACKER ${CMAKE_BINARY_DIR}/host_utils/flashfilepacker)
 set(MKSUNXI ${CMAKE_BINARY_DIR}/host_utils/mksunxi)
 
+add_custom_target(gen_version ALL
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DBINARY_DIR=${CMAKE_BINARY_DIR}
+        -P ${CMAKE_SOURCE_DIR}/cmake/GenerateVersion.cmake
+    BYPRODUCTS ${CMAKE_BINARY_DIR}/generated/version.h
+)
+
 set(CMAKE_C_COMPILER arm-none-eabi-gcc)
 set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
 
