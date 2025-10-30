@@ -40,12 +40,7 @@ set(SRC_FILES
 
 add_executable(fnirsi_1013d_scope ${SRC_FILES})
 add_dependencies(fnirsi_1013d_scope host_utils)
-
-if(LEGACY_STARTUP)
-    add_dependencies(fnirsi_1013d_scope fnirsi_1013d_startup_screen)
-else()
-    add_dependencies(fnirsi_1013d_scope fnirsi_1013d_startup)
-endif()
+add_dependencies(fnirsi_1013d_scope fnirsi_1013d_startup)
 
 target_link_libraries(fnirsi_1013d_scope PRIVATE gcc)
 target_link_libraries(fnirsi_1013d_scope PRIVATE m)
