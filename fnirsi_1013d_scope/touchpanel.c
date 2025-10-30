@@ -82,7 +82,7 @@ void tp_i2c_setup(void)
   //Setup all port A pins for output
   *PORT_A_CFG_REG = 0xFFFF1111;
   
-  //Wait for 100uS
+  //Wait for 200uS
   tp_delay(200);
 
   //Set INT high for device address 0x14 select
@@ -94,21 +94,21 @@ void tp_i2c_setup(void)
   //Set RESET high for device activation
   *PORT_A_DATA_REG = 0x0000000F;
 
-  //Wait for ~5mS
+  //Wait for ~10mS
   tp_delay(10000);
   
   //Set INT as input and keep the rest as output
   *PORT_A_CFG_REG = 0xFFFF1101;
 
-  //Wait for ~50mS
+  //Wait for ~100mS
   tp_delay(100000);
 
   //Start communication by sending 2 to the command register
   command = 2;
   tp_i2c_send_data(TP_DEVICE_ADDR, TP_CMD_REG, &command, 1);
   
-  //Wait for ~100mS
-  tp_delay(200000);
+  //Wait for ~250mS
+  tp_delay(250000);
 
 #ifdef USE_TP_CONFIG
   //Clear the checksum before calculating it
@@ -158,7 +158,7 @@ void tp_i2c_setup(void)
     yswap = 0xFF;
   }
   
-  //Wait for ~100mS
+  //Wait for ~200mS
   tp_delay(200000);
 
   //Start scanning by sending 0 to the command register
