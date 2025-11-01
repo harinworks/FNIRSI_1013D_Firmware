@@ -7020,22 +7020,14 @@ void scope_open_diagnostic_view(void)
   
   //Clear the whole screen
   display_set_fg_color(BLACK_COLOR);
-  //display_fill_rect(265, 0, 535, 480);//400
   display_fill_rect(0, 0, 800, 480);//400
   
   //Draw the edge
   display_set_fg_color(WHITE_COLOR);
-  display_draw_rect(0, 0, 800, 480); 
   display_draw_rounded_rect(10, 10, 780, 460, 3);  //4
   display_draw_rounded_rect(11, 11, 778, 458, 3);  //4
-  //  display_draw_rounded_rect(270, 10, 520, 460, 3);  //4
-  //display_draw_rounded_rect(271, 11, 518, 458, 3);  //4
-  //display_draw_vert_line(575, 10, 468);
   display_draw_vert_line(315, 10, 468);
-  display_draw_vert_line(515, 10, 468);
-  
   display_draw_horz_line(350, 10, 315);
-  
   
   //Display the text with the green color
   display_set_fg_color(GREEN_COLOR);
