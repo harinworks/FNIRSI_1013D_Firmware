@@ -87,7 +87,7 @@ void scope_setup_main_screen(void)
   //Show version information
   display_set_fg_color(WHITE_COLOR);
   display_set_font(&font_2);
-  display_text(VERSION_STRING_XPOS, VERSION_STRING_YPOS, VERSION_STRING);
+  display_text(VERSION_STRING_XPOS, VERSION_STRING_YPOS, VERSION_COUNT);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------

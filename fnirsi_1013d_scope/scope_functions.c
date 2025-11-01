@@ -3574,7 +3574,7 @@ void scope_prepare_setup_for_file(void)
   //memcpy(&ptr[1], WAVEFORM_FILE_VERSION, sizeof(WAVEFORM_FILE_VERSION));
   
   //Put in a firmware version for the waveform view file
-  memcpy(&ptr[2], VERSION_STRING, sizeof(VERSION_STRING));
+  strncpy((char *)&ptr[2], VERSION_HASH, 8);
     
   //Leave space for file version and checksum data  21
   index = CHANNEL1_SETTING_OFFSET;
@@ -5473,7 +5473,7 @@ void scope_display_file_status_message(int32 msgid, int32 alwayswait)
     case MESSAGE_ERROR_VERSION_MISMATCH:
       //Show additional info of error
       display_text(290, 213, "Actual FW: ");  //270
-      display_text(370, 213, VERSION_STRING);        //Show actual FW version information 
+      display_text(370, 213, VERSION_HASH);        //Show actual FW version information 
       display_text(430, 213, "Version: ");
       format_version_full(WAVEFORM_FILE_VERSION, version_str); 
       display_text(490, 213, version_str);          //Show actual file version information 

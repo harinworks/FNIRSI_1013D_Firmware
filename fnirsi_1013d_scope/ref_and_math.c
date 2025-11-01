@@ -631,7 +631,7 @@ void scope_prepare_setup_for_REFx_file(uint8 number)
   ptr[1] = WAVEFORM_FILE_VERSION;
   
   //Put in a firmware version for the waveform view file
-  memcpy(&ptr[2], VERSION_STRING, sizeof(VERSION_STRING));
+  strncpy((char *)&ptr[2], VERSION_HASH, 8);
   
   //Leave space for file version and checksum data  21
   index = CHANNEL1_SETTING_OFFSET;

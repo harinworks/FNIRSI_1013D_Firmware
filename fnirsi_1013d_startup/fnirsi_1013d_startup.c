@@ -178,7 +178,7 @@ int main(void)
     display_text(630, 60, "SPI firmware");
   
     display_text(300, 150, "Reaming time to action:  s"); //Reaming time to action
-    display_text( 40, 430, "BOOT fw git"); 
+    display_text( 40, 430, VERSION_STRING); 
     
     //Display the text with green color
     display_set_fg_color(GREEN_COLOR);
