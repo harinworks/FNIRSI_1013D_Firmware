@@ -7014,7 +7014,7 @@ void scope_open_diagnostic_view(void)
   const uint16    j=225;//200
   //const uint16    k=328;//385
   
-  uint16    b1;
+  uint16    b1=200;
   uint8    temp;
   //uint8    tmp;
   
@@ -7042,10 +7042,23 @@ void scope_open_diagnostic_view(void)
   display_set_font(&font_3);
   display_text(a, 20, VERSION_STRING);  //c//460      //Show version information 
   
-  //Display the temperature with darkgreen color
-  //display_set_font(&font_3);
-  display_set_fg_color(DARKGREEN_COLOR);
-  display_text(b, 20, "Temperature");//j+135
+  if (onoffRTC) {
+    //Display the temperature with green color
+    //display_set_font(&font_3);
+    display_set_fg_color(GREEN_COLOR);
+    display_text(b1, 20, "Temp");
+    
+    temp = readtemperature();
+    
+    //Display the text with the white color
+    display_set_fg_color(WHITE_COLOR);
+    
+    //Display sign (-)
+    if (temp & 0x80) display_text(b1+50, 20, "-");
+    
+    display_decimal(b1+57, 20, temp & 0x7F);
+    display_text(b1+71, 20, "C"); 
+  }
   
   //Display the text with the white color
   display_set_fg_color(WHITE_COLOR);
@@ -7062,16 +7075,7 @@ void scope_open_diagnostic_view(void)
   display_text(k+57, 122, "Boot menu");     
   display_text(k+57, 162, "Default start"); 
   display_text(k+57, 202, "Lock move cursors"); 
-  */
-    
-  temp = readtemperature();
   
-  //Display sign (-)
-  if (!(temp & 0x80)) b1=c; else {b1=c+10; display_text(c, 20, "-");}
-  
-  display_decimal(b1, 20, temp & 0x7F);
-  display_text(b1+20, 20, "C"); 
- /* 
   //Display the text with font 3 and the red color
   display_set_fg_color(RED_COLOR);
   display_set_font(&font_3);
