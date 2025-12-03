@@ -139,7 +139,7 @@ int main(void)
   
   //Display the text with yellow color
   display_set_fg_color(YELLOW_COLOR);
-  display_text(304, 430, "Harin Lee <me@hrin.org>");
+  display_text(365, 430, "Boot Menu");
   
  //*****************************************************************************
   
