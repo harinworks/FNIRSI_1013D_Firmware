@@ -40,16 +40,13 @@ set(SRC_FILES
 
 add_executable(fnirsi_1013d_scope ${SRC_FILES})
 add_dependencies(fnirsi_1013d_scope host_utils)
-add_dependencies(fnirsi_1013d_scope gen_version)
 add_dependencies(fnirsi_1013d_scope fnirsi_1013d_startup)
 
 target_include_directories(fnirsi_1013d_scope PRIVATE
     ${CMAKE_BINARY_DIR}/generated
 )
 
-target_link_libraries(fnirsi_1013d_scope PRIVATE gcc)
-target_link_libraries(fnirsi_1013d_scope PRIVATE m)
-
+target_link_libraries(fnirsi_1013d_scope PRIVATE gcc m)
 target_link_options(fnirsi_1013d_scope PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/fnirsi_1013d.ld -nostdlib)
 
 add_custom_command(TARGET fnirsi_1013d_scope POST_BUILD

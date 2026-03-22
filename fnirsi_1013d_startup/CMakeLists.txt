@@ -19,7 +19,6 @@ set(SRC_FILES
 
 add_executable(fnirsi_1013d_startup ${SRC_FILES})
 add_dependencies(fnirsi_1013d_startup host_utils)
-add_dependencies(fnirsi_1013d_startup gen_version)
 
 target_include_directories(fnirsi_1013d_startup PRIVATE
     ${CMAKE_BINARY_DIR}/generated
